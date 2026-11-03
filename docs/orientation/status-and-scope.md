@@ -2,13 +2,15 @@
 
 > **Status:** This chapter defines the labels used everywhere else in the book.
 
-r-share has static, parser and one recorded behavioural run. On 2026-11-03, a fresh devnet
-built from rholo `e2d073d` with r-cash `49b441d` passed `unit_root`, `unit_payments`,
-`unit_lifecycle` and `unit_claims`. The lifecycle run verifies the dispute gate, the
-arbitration gate and permissionless `resolveDispute`; the claims run verifies
-`buyerUseBreach`, `noFaultCancellation`, `noShow` and `damage` across all five kinds
-(20/30 coverage cells). `providerDeliveryBreach`, `partialPerformance`, concurrency,
-conservation and pause remain design or not run; every claim is labelled accordingly.
+r-share has static, parser and one recorded 16-suite behavioural run. On 2026-11-03, a fresh
+devnet built from rholo `e2d073d` with r-cash `49b441d` passed every suite in
+`harness/run_suites.py`: root, payments, lifecycle, claims, pricing, guestbook, booking,
+pause, concurrency, admin, events, generality, provider, listing, the golden transcript and
+conservation. The claims run verifies `buyerUseBreach`, `noFaultCancellation`, `noShow` and
+`damage` across all five kinds (20/30 coverage cells); conservation verifies seven real
+settlement scenarios over a closed balance set. `providerDeliveryBreach` and
+`partialPerformance` remain design; the unrun breadth items are listed in
+[Verification](../reference/verification.md).
 
 ## Status labels
 
@@ -48,7 +50,7 @@ words are reserved for a recorded command and artifact.
 | `unit_provider` | passing; register, profile, pause/resume, owner |
 | `unit_listing` | passing; create, unit, activate, pause/resume, delist |
 | `unit_behavior` | passing; golden lifecycle transcript |
-| `unit_conservation` | passing; one-booking escrow/refund/Bond check |
+| `unit_conservation` | passing; seven real scenarios, closed-set sum constant, Bond closure, replay, negative control |
 | Devnet bootstrap | `make devnet-up`, `make rcash-bootstrap`, `make install` |
 
 ## What is a design proposal
@@ -61,18 +63,16 @@ targets as estimates.
 
 ## What is planned
 
-| Milestone | Scope | Suite |
-|---|---|---|
-| M2 | provider registration, listing creation, units and slots | `unit_provider`, `unit_listing` |
-| M3 | booking, escrow, same-block races, multi-slot atomicity | `unit_booking`, `unit_concurrency` |
-| M4 | accept/reject/cancel/checkout/settle/deposit/dispute | `unit_lifecycle` |
-| M5 | event seats, redeem, transfer, close | `unit_events` |
-| M6 | 2-of-3 pause/delist/arbitration/rotation | `unit_admin` |
-| M7 | bike, car and robot fixtures on the unchanged path | `unit_generality` |
-| M8 | property tests, soak, invariant checks | `unit_all` |
+The M2–M7 suite milestones have landed; the recorded 16-suite campaign is in
+[Verification](../reference/verification.md). What remains:
 
-The acceptance map is in `spec/acceptance.yaml`. The suite placeholders print their milestone
-and exit 2; they never report a pass.
+| Item | Scope | Status |
+|---|---|---|
+| M8 | property tests, soak and broader invariant checks | planned |
+| Phase 2 | provider bond leg, obligation objects, generalized claims, evidence enforcement | design |
+
+The acceptance map is in `spec/acceptance.yaml`. No suite placeholder remains in the
+runner: an unhealthy devnet reports `not run`, never a pass.
 
 ## What is out of scope
 

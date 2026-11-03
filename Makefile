@@ -11,7 +11,7 @@ export RHOLO_DIR := $(abspath $(RHOLO_DIR))
 
 .PHONY: venv build build-check measure measure-check metrics metrics-compare \
         metrics-baseline check-arch check-captures check-select check-placeholders \
-        check-money spec-check parse-check docs docs-serve docs-check devnet devnet-up \
+        check-money check-suites spec-check parse-check docs docs-serve docs-check devnet devnet-up \
         devnet-wait down status rcash-install rcash-keys rcash-bootstrap keys install setup unit-root unit-payments \
         unit-provider unit-listing unit-booking unit-concurrency unit-lifecycle \
         unit-claims unit-pricing unit-guestbook unit-events unit-admin unit-pause \
@@ -62,6 +62,9 @@ check-money:
 check-coverage:
 	$(PY) tools/check_coverage.py
 
+check-suites:
+	$(PY) tools/check_suites.py
+
 check-remedy:
 	$(PY) tools/check_remedy_table.py
 
@@ -76,7 +79,7 @@ pareto-check:
 
 spec-check: build-check measure-check metrics-compare check-arch check-captures \
             check-select check-placeholders check-money check-coverage check-remedy \
-            check-no-oracle pareto-check
+            check-no-oracle check-suites pareto-check
 
 parse-check:
 	$(PY) harness/install.py --dry-run

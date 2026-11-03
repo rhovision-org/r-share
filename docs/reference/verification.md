@@ -1,8 +1,10 @@
 # Verification record
 
-> **Status:** One recorded behavioural run. It covers the root directory, the r-cash adapter,
-> and the dispute/lifecycle fixes. It does not cover claim classes, concurrency races,
-> conservation, pause, or the other resource classes.
+> **Status:** One recorded 16-suite behavioural run on a fresh local devnet. It covers the
+> root directory, the r-cash adapter, lifecycle, claims across five kinds, booking,
+> concurrency, pause, admin, events, provider, listing, the golden transcript and
+> per-scenario conservation. It does not cover the two design-only claim classes, a
+> multi-slot race matrix, `setAdmins` payloads, or slot settlement beyond one booking.
 
 ## Recorded run
 
@@ -13,7 +15,7 @@
 | rholo | `e2d073dcd02f1e560ccb84749937138a1e184b0b` |
 | r-cash | `49b441d` |
 | Node | fresh local devnet, `localhost:40403` |
-| Command | `make devnet-up keys rcash-bootstrap install && make unit-all` |
+| Command | `make devnet-up rcash-keys rcash-bootstrap keys install && make unit-all` |
 
 Results:
 
@@ -36,6 +38,8 @@ unit-generality pass  five kinds validate; an unknown kind refuses
 unit-provider  pass   register stable, profile update, pause/resume, owner check
 unit-listing   pass   create, unit, activate, pause/resume, delist, projections
 unit-behavior   pass   normalized lifecycle transcript matches the golden file
+unit-conservation pass seven real scenarios; closed-set sum constant; bond closed;
+                       negative control detects an untracked Bond
 ```
 
 The runner writes `deployments/suite-results.json` (gitignored) and exits 0 only when every
@@ -120,7 +124,6 @@ clock, asset resolver and account factory; the AMM pool is not on its path.
 ## What is still not run
 
 - `providerDeliveryBreach` and `partialPerformance`, which have no code;
-- the full per-asset conservation harness (one booking is covered);
 - `setAdmins` payload cases (pause, threshold and replay are covered);
 - multi-slot and multi-guest races beyond one same-slot pair;
 - fleet fixtures beyond the claim path;

@@ -12,8 +12,12 @@ includes it so the book and the repository cannot drift.
 
 - `unit_booking` checks the escrow debit, the refund and the Bond closure for one real
   booking: the account loses exactly `rent + deposit`, the refund restores it, and the Bond
-  ends paid with zero remaining. `harness/conservation.py` is still a stub, so the full
-  per-asset invariant set is not yet automated.
+  ends paid with zero remaining.
+- `unit_conservation` checks the full closed set for seven scenarios: guest, provider,
+  platform and Bond balances sum to the same total, every slot is free or booked, no ledger
+  op stays pending, and a negative control proves the sum detects untracked escrow. The
+  known limit is that r-cash exposes no account enumeration, so the set is the accounts the
+  scenario names, not a chain-wide total.
 - The M8 hardening milestone adds property tests and a soak test across disjoint slots.
 - A review that changes a money path must say which invariant it preserves and how.
 - A failure is a bug in the contract, not a flaky test; fix the contract or the test.

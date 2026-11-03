@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
-"""One-booking conservation check.
+"""Conservation suite entry point used by `run_suites.py`.
 
-This runs the end-to-end booking suite, which asserts that the escrow debit is exactly
-rent + deposit, a full-refund cancel restores the balance, and the Bond ends paid with zero
-remaining. The full per-asset harness in `conservation.py` is still a stub.
+The scenarios, closed-set snapshots and negative control live in `conservation.py`.
 """
 
 from __future__ import annotations
 
-from unit_booking import main as booking_main
+from conservation import main as conservation_main
 
 
 def main() -> int:
-    print("unit-conservation (one booking)")
-    return booking_main()
+    print("unit-conservation (per-scenario closed set)")
+    return conservation_main()
 
 
 if __name__ == "__main__":
