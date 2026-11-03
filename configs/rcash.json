@@ -1,5 +1,5 @@
 {
-  "pinned_commit": "49b441d",
+  "pinned_commit": "49b441dea4f5561992387ed670ab263fcd5dd164",
   "min_version": 1,
   "assets": ["REV"],
   "root_state_path": "../Rholphin/.devnet/v3-install.json",
