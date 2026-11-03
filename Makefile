@@ -4,10 +4,15 @@ RCASH_DIR ?= ../Rholphin
 RHOLO_DIR ?= ../RNodeRust
 NODE ?= http://localhost:40403
 
+# Make every recipe and its Python children use the same absolute checkout. CI sets
+# RCASH_DIR to its `rholo` checkout, so no sibling named Rholphin exists there.
+export RCASH_DIR := $(abspath $(RCASH_DIR))
+export RHOLO_DIR := $(abspath $(RHOLO_DIR))
+
 .PHONY: venv build build-check measure measure-check metrics metrics-compare \
         metrics-baseline check-arch check-captures check-select check-placeholders \
         check-money spec-check parse-check docs docs-serve docs-check devnet devnet-up \
-        devnet-wait down status rcash-install rcash-bootstrap keys install setup unit-root unit-payments \
+        devnet-wait down status rcash-install rcash-keys rcash-bootstrap keys install setup unit-root unit-payments \
         unit-provider unit-listing unit-booking unit-concurrency unit-lifecycle \
         unit-claims unit-pricing unit-guestbook unit-events unit-admin unit-pause \
         unit-generality unit-conservation unit-behavior unit-all \
@@ -105,18 +110,22 @@ status:
 	@curl -s $(NODE)/api/v1/status | $(PY) -m json.tool || echo "devnet not running"
 
 rcash-install:
-	$(MAKE) -C $(RCASH_DIR) install RHOLO_DIR=$(abspath $(RHOLO_DIR))
+	$(MAKE) -C $(RCASH_DIR) install RHOLO_DIR=$(RHOLO_DIR)
+
+rcash-keys:
+	$(MAKE) -C $(RCASH_DIR) keys RHOLO_DIR=$(RHOLO_DIR)
 
 rcash-bootstrap:
 	$(PY) harness/rcash_bootstrap.py --rcash $(RCASH_DIR) --node $(NODE)
 
 keys:
-	$(PY) tools/keygen.py --out .devnet/keys.json
+	$(PY) tools/keygen.py --out .devnet/keys.json \
+		--from-path $(RCASH_DIR)/.devnet/keys.json
 
 install:
 	$(PY) harness/install.py --node $(NODE)
 
-setup: devnet-up keys rcash-bootstrap install
+setup: devnet-up rcash-keys rcash-bootstrap keys install
 
 unit-root:
 	$(PY) harness/unit_root.py

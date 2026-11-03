@@ -22,11 +22,13 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "harness"))
+from rcash_paths import rcash_dir  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--rcash", default=str(ROOT.parent / "Rholphin"))
+    ap.add_argument("--rcash", default=str(rcash_dir()))
     ap.add_argument("--node", default="http://localhost:40403")
     ap.add_argument("--min-lock-blocks", default="10")
     args = ap.parse_args(argv)

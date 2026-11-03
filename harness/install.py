@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 import deploy as node  # noqa: E402
 import preflight  # noqa: E402
 from minify_rho import minify  # noqa: E402
+from rcash_paths import configured_manifest  # noqa: E402
 
 ORDER = [
     "00_root.rho",
@@ -134,7 +135,8 @@ def main(argv: list[str] | None = None) -> int:
     if "deployer" not in keys:
         raise SystemExit("install: keys file has no deployer key")
 
-    rcash_manifest = Path(cfg.get("rcash_manifest", rcash["root_manifest_path"]))
+    rcash_manifest = configured_manifest(
+        cfg.get("rcash_manifest", rcash["root_manifest_path"]))
     if rcash_manifest.is_file():
         rcash_root = load_json(rcash_manifest)["root_uri"]
     elif args.dry_run:

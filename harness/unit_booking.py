@@ -13,6 +13,7 @@ from pathlib import Path
 
 from assertions import expect_ok, one, root_uri
 from preflight import require_devnet
+from rcash_paths import configured_manifest
 
 import deploy as node
 
@@ -21,7 +22,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def rcash_root_uri() -> str:
     cfg = json.loads((ROOT / "configs" / "devnet.json").read_text())
-    manifest = (ROOT / cfg["rcash_manifest"]).resolve()
+    manifest = configured_manifest(cfg["rcash_manifest"])
     return json.loads(manifest.read_text())["root_uri"]
 
 

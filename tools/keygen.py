@@ -13,7 +13,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_SOURCE = ROOT.parent / "Rholphin" / ".devnet" / "keys.json"
+sys.path.insert(0, str(ROOT / "harness"))
+from rcash_paths import keys_path  # noqa: E402
+
+DEFAULT_SOURCE = keys_path()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -26,7 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     source = Path(args.from_path)
     if not source.is_file():
         print(f"keygen: missing {source}", file=sys.stderr)
-        print("keygen: run `make keys` in ../Rholphin first", file=sys.stderr)
+        print("keygen: run `make rcash-keys` first (or set RCASH_DIR)", file=sys.stderr)
         return 1
 
     data = json.loads(source.read_text())

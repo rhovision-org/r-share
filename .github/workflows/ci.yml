@@ -69,6 +69,10 @@ jobs:
     # run on every PR. Run it manually or on the nightly schedule.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      RCASH_DIR: ${{ github.workspace }}/rholo
+      RHOLO_DIR: ${{ github.workspace }}/rnode-rust
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -85,26 +89,31 @@ jobs:
         with:
           python-version: "3.12"
       - uses: dtolnay/rust-toolchain@1.95.0
-      - run: make venv
+      - name: r-share harness dependencies
+        run: make venv
       - name: r-cash harness dependencies
-        env:
-          RCASH_DIR: ${{ github.workspace }}/rholo
         run: make -C "$RCASH_DIR" venv
       - name: Build the rholo devnet image
-        env:
-          RCASH_DIR: ${{ github.workspace }}/rholo
-          RHOLO_DIR: ${{ github.workspace }}/rnode-rust
         run: make -C "$RCASH_DIR" image RHOLO_DIR="$RHOLO_DIR"
-      - name: devnet and suites
-        env:
-          RCASH_DIR: ${{ github.workspace }}/rholo
-          RHOLO_DIR: ${{ github.workspace }}/rnode-rust
+      - name: Start the devnet and wait for health
         run: |
           make devnet
           make devnet-wait
-          make rcash-bootstrap
-          make keys install
-          make unit-all
+      - name: Generate r-cash devnet keys
+        run: make rcash-keys
+      - name: Bootstrap the r-cash rail
+        run: make rcash-bootstrap
+      - name: Install r-share
+        run: make keys install
+      - name: Run behavioural suites
+        run: make unit-all
+      - name: Devnet diagnostics
+        if: failure()
+        run: |
+          docker ps -a || true
+          curl -s http://localhost:40403/api/v1/status || true
+          curl -s http://localhost:40405/api/v1/status || true
+          ls -la .devnet "$RCASH_DIR/.devnet" "$RCASH_DIR/deployments" || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
