@@ -25,8 +25,9 @@ resolve through r-cash's AssetResolver and be verified before enabling.
 
 1. Validate the listing, units, schedules and slot states.
 2. Hold the requested slots under a fresh release token.
-3. `Payments.issuer(assetId)` → brand + issuer; `issuer.makeEmptyPurse()`.
-4. `Payments.ensureAccount(dId)` → the guest's r-cash account.
+3. `Payments.issuer(assetId)` → brand + issuer.
+4. `Payments.ensureAccount(dId)` → the guest's r-cash account;
+   `issuer.makeEmptyPurse()`.
 5. `account.withdraw(dId, assetId, rent + deposit)` → an ERTP payment.
 6. `issuer.getAmountOf(payment)` must equal the total; otherwise `1/0`.
 7. `purse.deposit(payment)`; instant bookings confirm the slots.

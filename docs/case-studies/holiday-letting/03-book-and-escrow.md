@@ -55,8 +55,8 @@ can hold a machine and an operator together. For lodging it is one room.
 6. **Escrows the money.**
    - resolve `component:payments`;
    - `issuer(assetId)` → brand + issuer;
-   - `makeEmptyPurse`;
    - `ensureAccount(deployerId)` → Ben's account;
+   - `makeEmptyPurse`;
    - `account.withdraw(deployerId, assetId, rent + deposit)`;
    - measure with `getAmountOf`; a mismatch is `1/0`;
    - `purse.deposit(payment)`.
