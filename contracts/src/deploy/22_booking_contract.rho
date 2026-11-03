@@ -1,5 +1,5 @@
 // BookingContractFactory + one BookingContract per booking.
-// The contract closes over its escrow purse, release token and asset brand; its state cell
+// The contract closes over its release token and settle token; its state cell
 // holds only data. Every mutating arm consumes the cell, decides, and reposts exactly once.
 // Placeholders: __ROOT_URI__.
 new
@@ -11,7 +11,29 @@ new
   rootCh, c, ack
 in {
   // @@INLINE:lib/Auth.rho@@
-  // @@INLINE:lib/Guard.rho@@
+
+  contract adminGuard(@domain, @nonce, @action, @args, @sigs,
+                      @admins, @threshold, ret) = {
+    new rCh, Root, gCh, gc in {
+      rl!(`__ROOT_URI__`, *rCh) |
+      for (Root <- rCh) {
+        Root!("resolve", "component:admin-guard", 1, *gCh) |
+        for (@r <- gCh) {
+          match r {
+            (true, uri, _) => {
+              rl!(uri, *gc) |
+              for (AdminGuard <- gc) {
+                AdminGuard!("verify", domain, nonce, action, args, sigs,
+                            admins, threshold, *ret)
+              }
+            }
+            _ => { ret!((false, "below threshold")) }
+          }
+        }
+      }
+    }
+  } |
+
 
 contract bookingResolve(@key, ret) = {
     new rCh, Root, kCh in {
@@ -41,10 +63,10 @@ contract bookingResolve(@key, ret) = {
     }
   } |
   contract bookingPayments(ret) = { bookingResolve!("component:payments", *ret) } |
-  contract bookingPolicy(ret) = { bookingResolve!("component:policy", *ret) } |
+  contract bookingRemedy(ret) = { bookingResolve!("component:remedy", *ret) } |
 
-  contract BookingContractFactory(@"create", dId, @data, escrowPurse,
-                                  releaseToken, brand, ret) = {
+  contract BookingContractFactory(@"create", dId, @data, releaseToken,
+                                  @bondUri, settleToken, ret) = {
     new oCh in {
       authOwner!(*dId, *oCh) |
       for (@(true, guestId) <- oCh) {
@@ -61,6 +83,7 @@ contract bookingResolve(@key, ret) = {
                       "kind": data.get("kind"),
                       "unitSlots": data.get("unitSlots"),
                       "assetId": data.get("assetId"),
+                      "bondUri": bondUri,
                       "rent": data.get("rent"),
                       "deposit": data.get("deposit"),
                       "feeBps": data.get("feeBps"),
@@ -97,55 +120,29 @@ contract bookingResolve(@key, ret) = {
                     } |
 
                     contract bcRelease(@unitSlots, ret2) = {
-                      bookingUnitRelease!(unitSlots, 0, *releaseToken, *ret2)
-                    } |
-                    contract bookingUnitRelease(@unitSlots, @i, token, ret2) = {
-                      if (i >= unitSlots.length()) {
-                        ret2!((true, Nil))
-                      } else {
-                        match unitSlots.nth(i) {
-                          us => {
-                            new cCh in {
-                              rl!(us.get("unitUri"), *cCh) |
-                              for (Unit <- cCh) {
-                                new rCh in {
-                                  Unit!("release", us.get("slots"), *token, *rCh) |
-                                  for (@_ <- rCh) {
-                                    bookingUnitRelease!(unitSlots, i + 1, *token, *ret2)
-                                  }
-                                }
-                              }
+                      new fCh in {
+                        bookingResolve!("component:unit-factory", *fCh) |
+                        for (@f <- fCh) {
+                          match f {
+                            (true, UnitFactory) => {
+                              @UnitFactory!("releaseAll", unitSlots,
+                                            *releaseToken, *ret2)
                             }
+                            _ => { ret2!(f) }
                           }
                         }
                       }
                     } |
                     contract bcConfirm(@unitSlots, ret2) = {
-                      bookingUnitConfirm!(unitSlots, 0, *releaseToken, *ret2)
-                    } |
-                    contract bookingUnitConfirm(@unitSlots, @i, token, ret2) = {
-                      if (i >= unitSlots.length()) {
-                        ret2!((true, Nil))
-                      } else {
-                        match unitSlots.nth(i) {
-                          us => {
-                            new cCh in {
-                              rl!(us.get("unitUri"), *cCh) |
-                              for (Unit <- cCh) {
-                                new rCh in {
-                                  Unit!("confirm", us.get("slots"), *token, *rCh) |
-                                  for (@r <- rCh) {
-                                    match r {
-                                      (true, Nil) => {
-                                        bookingUnitConfirm!(unitSlots, i + 1,
-                                                            *token, *ret2)
-                                      }
-                                      _ => { ret2!((false, "slot lost")) }
-                                    }
-                                  }
-                                }
-                              }
+                      new fCh in {
+                        bookingResolve!("component:unit-factory", *fCh) |
+                        for (@f <- fCh) {
+                          match f {
+                            (true, UnitFactory) => {
+                              @UnitFactory!("confirmAll", unitSlots,
+                                            *releaseToken, *ret2)
                             }
+                            _ => { ret2!(f) }
                           }
                         }
                       }
@@ -165,74 +162,20 @@ contract bookingResolve(@key, ret) = {
                       }
                     } |
 
-                    contract bcPaySequence(@buckets, @i, @assetId, @expected, @acc, ret2) = {
-                      if (i >= buckets.length()) {
-                        if (acc == expected) { ret2!((true, Nil)) } else { 1/0 }
-                      } else {
-                        match buckets.nth(i) {
-                          b => {
-                            if (b.get("amount") == 0) {
-                              bcPaySequence!(buckets, i + 1, assetId,
-                                             expected, acc, *ret2)
-                            } else {
-                              if (b.get("amount") < 0) { 1/0 } else {
-                              new pCh in {
-                                bookingPayments!(*pCh) |
-                                for (@p <- pCh) {
-                                  match p {
-                                    (true, Payments) => {
-                                      new fCh in {
-                                        @Payments!("depositFacet", b.get("owner"),
-                                                   assetId, *fCh) |
-                                        for (@f <- fCh) {
-                                          match f {
-                                            (true, facet) => {
-                                              new wCh in {
-                                                @escrowPurse!("withdraw",
-                                                  (brand, b.get("amount")), *wCh) |
-                                                for (@w <- wCh) {
-                                                  match w {
-                                                    (true, payment) => {
-                                                      new dCh in {
-                                                        @facet!("deposit", *payment, *dCh) |
-                                                        for (@_ <- dCh) {
-                                                          bcPaySequence!(buckets,
-                                                                         i + 1,
-                                                                         assetId,
-                                                                         expected,
-                                                                         acc + b.get("amount"),
-                                                                         *ret2)
-                                                        }
-                                                      }
-                                                    }
-                                                    _ => { 1/0 }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                            _ => { 1/0 }
-                                          }
-                                        }
-                                      }
-                                    }
-                                    _ => { 1/0 }
-                                  }
-                                }
+                    contract bcSettleWith(@st, @opId, @buckets, @status, @assetId, ret2) = {
+                      new cCh in {
+                        rl!(st.get("bondUri"), *cCh) |
+                        for (Bond <- cCh) {
+                          new bCh in {
+                            Bond!("pay", buckets,
+                                  st.get("rent") + st.get("deposit"),
+                                  *settleToken, *bCh) |
+                            for (@r <- bCh) {
+                              match r {
+                                (true, Nil) => { bcPost!(st, opId, status, *ret2) }
+                                _ => { 1/0 }
                               }
                             }
-                          }
-                        }
-                      }
-                    }
-                  } |
-
-                    contract bcSettleWith(@st, @opId, @buckets, @status, @assetId, ret2) = {
-                      new pCh in {
-                        bcPaySequence!(buckets, 0, assetId, st.get("rent") + st.get("deposit"), 0, *pCh) |
-                        for (@p <- pCh) {
-                          match p {
-                            (true, Nil) => { bcPost!(st, opId, status, *ret2) }
-                            _ => { 1/0 }
                           }
                         }
                       }
@@ -365,12 +308,12 @@ contract bookingResolve(@key, ret) = {
                                               match n {
                                                 (true, now) => {
                                                   new polCh in {
-                                                    bookingPolicy!(*polCh) |
+                                                    bookingRemedy!(*polCh) |
                                                     for (@p <- polCh) {
                                                       match p {
-                                                        (true, Policy) => {
+                                                        (true, Remedy) => {
                                                           new sc in {
-                                                            @Policy!("cancel",
+                                                            @Remedy!("cancel",
                                                               st.get("kind"),
                                                               st.get("cancellation"),
                                                               now,
@@ -633,12 +576,12 @@ contract bookingResolve(@key, ret) = {
                                               bcRefuse!(st, "too early", *ret2)
                                             } else {
                                               new polCh in {
-                                                bookingPolicy!(*polCh) |
+                                                bookingRemedy!(*polCh) |
                                                 for (@p <- polCh) {
                                                   match p {
-                                                    (true, Policy) => {
+                                                    (true, Remedy) => {
                                                       new fCh in {
-                                                        @Policy!("fee", st.get("rent"),
+                                                        @Remedy!("fee", st.get("rent"),
                                                                  st.get("feeBps"), *fCh) |
                                                         for (@ff <- fCh) {
                                                           match ff {
@@ -762,12 +705,12 @@ contract bookingResolve(@key, ret) = {
                                               bcRefuse!(st, "too early", *ret2)
                                             } else {
                                               new polCh in {
-                                                bookingPolicy!(*polCh) |
+                                                bookingRemedy!(*polCh) |
                                                 for (@p <- polCh) {
                                                   match p {
-                                                    (true, Policy) => {
+                                                    (true, Remedy) => {
                                                       new fCh in {
-                                                        @Policy!("fee", st.get("rent"),
+                                                        @Remedy!("fee", st.get("rent"),
                                                                  st.get("feeBps"), *fCh) |
                                                         for (@ff <- fCh) {
                                                           match ff {
@@ -867,7 +810,7 @@ contract bookingResolve(@key, ret) = {
                                   bcRefuse!(st, "replay", *ret2)
                                 } else {
                                   new vCh in {
-                                    verifyAdmin!("arbiter", nonce, "split",
+                                    adminGuard!("arbiter", nonce, "split",
                                                  [st.get("bookingId"), splitBps],
                                                  sigs, st.get("admins"),
                                                  st.get("threshold"), *vCh) |
@@ -881,18 +824,18 @@ contract bookingResolve(@key, ret) = {
                                               bcRefuse!(st, "bps", *ret2)
                                             } else {
                                               new polCh in {
-                                                bookingPolicy!(*polCh) |
+                                                bookingRemedy!(*polCh) |
                                                 for (@p <- polCh) {
                                                   match p {
-                                                    (true, Policy) => {
+                                                    (true, Remedy) => {
                                                       new dsCh in {
-                                                        @Policy!("depositSplit",
+                                                        @Remedy!("depositSplit",
                                                           st.get("deposit"), splitBps, *dsCh) |
                                                         for (@ds <- dsCh) {
                                                           match ds {
                                                             (true, split) => {
                                                               new fCh in {
-                                                                @Policy!("fee", st.get("rent"),
+                                                                @Remedy!("fee", st.get("rent"),
                                                                          st.get("feeBps"), *fCh) |
                                                                 for (@ff <- fCh) {
                                                                   match ff {
@@ -1012,12 +955,12 @@ contract bookingResolve(@key, ret) = {
                                                     bcRefuse!(st, "too early", *ret2)
                                                   } else {
                                                     new polCh in {
-                                                      bookingPolicy!(*polCh) |
+                                                      bookingRemedy!(*polCh) |
                                                       for (@p <- polCh) {
                                                         match p {
-                                                          (true, Policy) => {
+                                                          (true, Remedy) => {
                                                             new nsCh in {
-                                                              @Policy!("noShow", st.get("rent"),
+                                                              @Remedy!("noShow", st.get("rent"),
                                                                        st.get("deposit"),
                                                                        st.get("feeBps"), *nsCh) |
                                                               for (@ns <- nsCh) {
@@ -1150,12 +1093,12 @@ contract bookingResolve(@key, ret) = {
                                               bcRefuse!(st, "too early", *ret2)
                                             } else {
                                               new polCh in {
-                                                bookingPolicy!(*polCh) |
+                                                bookingRemedy!(*polCh) |
                                                 for (@p <- polCh) {
                                                   match p {
-                                                    (true, Policy) => {
+                                                    (true, Remedy) => {
                                                       new feeCh in {
-                                                        @Policy!("fee", st.get("rent"),
+                                                        @Remedy!("fee", st.get("rent"),
                                                                  st.get("feeBps"), *feeCh) |
                                                         for (@ff <- feeCh) {
                                                           match ff {
@@ -1266,7 +1209,7 @@ contract bookingResolve(@key, ret) = {
                           bcRefuse!(st, "replay", *ret2)
                         } else {
                           new vCh in {
-                            verifyAdmin!("booking:" ++ st.get("bookingId"), nonce,
+                            adminGuard!("booking:" ++ st.get("bookingId"), nonce,
                                          "setAdmins", [newAdmins, newThreshold],
                                          sigs, st.get("admins"),
                                          st.get("threshold"), *vCh) |
@@ -1307,7 +1250,7 @@ contract bookingResolve(@key, ret) = {
   for (Root <- rootCh) {
     rs!(bundle+{*BookingContractFactory}, *c) |
     for (@uri <- c) {
-      Root!("register", "component:booking-contract-factory", uri, 1,
+      Root!("register", "component:booking-factory", uri, 1,
             "booking", *deployerId, *ack) |
       for (@r <- ack) { deployId!([uri]) }
     }

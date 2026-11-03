@@ -48,7 +48,7 @@ starts `confirmed`.
  "eventTransferCutoffBlocks": 0}
 ```
 
-`Policy.termsOk` validates it. Keep the numbers in minor units.
+`Terms.validate` validates it. Keep the numbers in minor units.
 
 ## A minimal unit
 

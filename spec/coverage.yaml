@@ -1,0 +1,48 @@
+# Coverage manifest. Only `passing` counts as coverage.
+# statuses: passing | mapping | design | not_implemented
+classes:
+  - name: lodging
+    kind: lodging
+    claims:
+      buyerUseBreach: mapping
+      providerDeliveryBreach: design
+      noFaultCancellation: mapping
+      noShow: mapping
+      damage: mapping
+      partialPerformance: design
+  - name: event
+    kind: event
+    claims:
+      buyerUseBreach: mapping
+      providerDeliveryBreach: design
+      noFaultCancellation: mapping
+      noShow: mapping
+      damage: mapping
+      partialPerformance: design
+  - name: bike
+    kind: bike
+    claims:
+      buyerUseBreach: mapping
+      providerDeliveryBreach: design
+      noFaultCancellation: mapping
+      noShow: mapping
+      damage: mapping
+      partialPerformance: design
+  - name: car
+    kind: car
+    claims:
+      buyerUseBreach: mapping
+      providerDeliveryBreach: design
+      noFaultCancellation: mapping
+      noShow: mapping
+      damage: mapping
+      partialPerformance: design
+  - name: robot
+    kind: robot
+    claims:
+      buyerUseBreach: mapping
+      providerDeliveryBreach: design
+      noFaultCancellation: mapping
+      noShow: mapping
+      damage: mapping
+      partialPerformance: design

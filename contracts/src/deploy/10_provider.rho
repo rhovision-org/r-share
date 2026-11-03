@@ -9,7 +9,29 @@ new
   rootCh, c, ack
 in {
   // @@INLINE:lib/Auth.rho@@
-  // @@INLINE:lib/Guard.rho@@
+
+  contract adminGuard(@domain, @nonce, @action, @args, @sigs,
+                      @admins, @threshold, ret) = {
+    new rCh, Root, gCh, gc in {
+      rl!(`__ROOT_URI__`, *rCh) |
+      for (Root <- rCh) {
+        Root!("resolve", "component:admin-guard", 1, *gCh) |
+        for (@r <- gCh) {
+          match r {
+            (true, uri, _) => {
+              rl!(uri, *gc) |
+              for (AdminGuard <- gc) {
+                AdminGuard!("verify", domain, nonce, action, args, sigs,
+                            admins, threshold, *ret)
+              }
+            }
+            _ => { ret!((false, "below threshold")) }
+          }
+        }
+      }
+    }
+  } |
+
 
   contract providerPayments(ret) = {
     new rCh, Root, pCh, cCh in {
@@ -70,6 +92,11 @@ in {
                                 }) |
                                 contract ProviderContract(@"info", ret2) = {
                                   for (@st <<- providerState) { ret2!((true, st)) }
+                                } |
+                                contract ProviderContract(@"isActive", ret2) = {
+                                  for (@st <<- providerState) {
+                                    ret2!((true, st.get("status") == "active"))
+                                  }
                                 } |
                                 contract ProviderContract(@"owner", ret2) = {
                                   for (@st <<- providerState) {
@@ -234,7 +261,7 @@ in {
                                       providerState!(st) | ret2!((false, "replay"))
                                     } else {
                                       new vCh in {
-                                        verifyAdmin!("provider:" ++ ownerId, nonce,
+                                        adminGuard!("provider:" ++ ownerId, nonce,
                                                      "pause", [], sigs,
                                                      st.get("admins"),
                                                      st.get("threshold"), *vCh) |
@@ -269,7 +296,7 @@ in {
                                       providerState!(st) | ret2!((false, "replay"))
                                     } else {
                                       new vCh in {
-                                        verifyAdmin!("provider:" ++ ownerId, nonce,
+                                        adminGuard!("provider:" ++ ownerId, nonce,
                                                      "setAdmins",
                                                      [newAdmins, newThreshold], sigs,
                                                      st.get("admins"),

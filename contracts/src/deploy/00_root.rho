@@ -40,6 +40,43 @@ in {
     }
   } |
 
+  contract resolveManySeq(@keys, @i, @entries, @minVersion, @acc, ret) = {
+    if (i >= keys.length()) {
+      ret!((true, acc))
+    } else {
+      match keys.nth(i) {
+        key => {
+          match entries.get(key) {
+            Nil => { ret!((false, "unknown component", key)) }
+            e => {
+              if (e.get("status") != "active") {
+                ret!((false, "retired", key))
+              } else {
+                if (e.get("version") < minVersion) {
+                  ret!((false, "stale", key))
+                } else {
+                  resolveManySeq!(keys, i + 1, entries, minVersion,
+                                  acc.set(key, {"uri": e.get("uri"),
+                                                "version": e.get("version")}),
+                                  *ret)
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract ShareRoot(@"resolveMany", @keys, @minVersion, ret) = {
+    for (@s <<- rootState) {
+      new rCh in {
+        resolveManySeq!(keys, 0, s.get("entries"), minVersion, {}, *rCh) |
+        for (@r <- rCh) { ret!(r) }
+      }
+    }
+  } |
+
   contract ShareRoot(@"register", @key, @uri, @version, @kind, dId, ret) = {
     for (@s <- rootState) {
       if (s.get("frozen")) {

@@ -43,11 +43,6 @@
         "AdminGuard"
       ]
     },
-    "Policy": {
-      "file": "12_policy.rho",
-      "state_cells": [],
-      "depends_on": []
-    },
     "Payments": {
       "file": "40_payments.rho",
       "state_cells": [
@@ -77,22 +72,12 @@
       ]
     },
     "ListingFactory": {
-      "file": "11_listing.rho",
-      "state_cells": [],
-      "depends_on": [
-        "ProviderContract",
-        "Policy",
-        "Codec",
-        "ShareAdmin",
-        "ListingContractFactory"
-      ]
-    },
-    "ListingContractFactory": {
       "file": "14_listing_contract.rho",
       "state_cells": [],
       "depends_on": [
-        "UnitFactory",
-        "AdminGuard"
+        "ProviderContract",
+        "Terms",
+        "ShareAdmin"
       ]
     },
     "ListingContract": {
@@ -109,7 +94,7 @@
       "file": "13_unit.rho",
       "state_cells": [],
       "depends_on": [
-        "Policy",
+        "Terms",
         "Clock"
       ]
     },
@@ -148,15 +133,10 @@
         "Payments",
         "ListingContract",
         "UnitContract",
-        "BookingFactory",
-        "Clock"
-      ]
-    },
-    "BookingFactory": {
-      "file": "21_booking.rho",
-      "state_cells": [],
-      "depends_on": [
-        "BookingContractFactory"
+        "Clock",
+        "BookingContractFactory",
+        "BondFactory",
+        "UnitFactory"
       ]
     },
     "BookingContract": {
@@ -166,10 +146,11 @@
       ],
       "depends_on": [
         "UnitContract",
-        "Policy",
-        "Payments",
+        "Remedy",
         "Clock",
-        "AdminGuard"
+        "AdminGuard",
+        "Bond",
+        "UnitFactory"
       ]
     },
     "GuestLedgerFactory": {
@@ -184,6 +165,34 @@
       "state_cells": [],
       "depends_on": [
         "AdminGuard"
+      ]
+    },
+    "Terms": {
+      "file": "03_terms.rho",
+      "state_cells": [],
+      "depends_on": [
+        "Codec"
+      ]
+    },
+    "Remedy": {
+      "file": "04_remedy.rho",
+      "state_cells": [],
+      "depends_on": []
+    },
+    "BondFactory": {
+      "file": "15_bond.rho",
+      "state_cells": [],
+      "depends_on": [
+        "Payments"
+      ]
+    },
+    "Bond": {
+      "file": "15_bond.rho",
+      "state_cells": [
+        "bondState"
+      ],
+      "depends_on": [
+        "Payments"
       ]
     }
   }

@@ -1,0 +1,143 @@
+// Remedy: pure fee, cancellation, no-show and deposit-split arithmetic.
+// Placeholders: __ROOT_URI__.
+new
+  Remedy,
+  rl(`rho:registry:lookup`),
+  rs(`rho:registry:insertArbitrary`),
+  deployerId(`rho:rchain:deployerId`),
+  deployId(`rho:rchain:deployId`),
+  rootCh, c, a1, a2
+in {
+// Integer money helpers. Amounts are minor units; bps denominators are 10000.
+// Division is integer division and rounds toward zero (non-negative amounts only).
+
+contract moneyFee(@rent, @bps, ret) = {
+  if (rent < 0 || bps < 0 || bps > 10000) {
+    ret!((false, "bps"))
+  } else {
+    match rent * bps / 10000 {
+      fee => { ret!((true, fee, rent - fee)) }
+    }
+  }
+} |
+
+contract moneyPart(@amount, @bps, ret) = {
+  if (amount < 0 || bps < 0 || bps > 10000) {
+    ret!((false, "bps"))
+  } else {
+    match amount * bps / 10000 {
+      part => { ret!((true, part, amount - part)) }
+    }
+  }
+} |
+
+  contract Remedy(@"fee", @rent, @feeBps, ret) = {
+    moneyFee!(rent, feeBps, *ret)
+  } |
+
+  contract Remedy(@"cancel", @kind, @policy, @now, @startHeight,
+                  @rent, @deposit, @actor, ret) = {
+    if (actor == "provider") {
+      ret!((true, {"providerRent": 0, "platformFee": 0,
+                   "guestRefund": rent + deposit, "providerDamage": 0,
+                   "reason": "provider"}))
+    } else {
+      if (actor != "guest") {
+        ret!((false, "actor"))
+      } else {
+        if (kind == "event") {
+          match startHeight - policy.get("eventTransferCutoffBlocks") {
+            cutoff => {
+              if (now <= cutoff) {
+                ret!((true, {"providerRent": 0, "platformFee": 0,
+                             "guestRefund": rent + deposit, "providerDamage": 0,
+                             "reason": "full"}))
+              } else {
+                ret!((true, {"providerRent": rent, "platformFee": 0,
+                             "guestRefund": deposit, "providerDamage": 0,
+                             "reason": "late"}))
+              }
+            }
+          }
+        } else {
+          match startHeight - policy.get("fullRefundBeforeBlocks") {
+            fullCut => {
+              if (now <= fullCut) {
+                ret!((true, {"providerRent": 0, "platformFee": 0,
+                             "guestRefund": rent + deposit, "providerDamage": 0,
+                             "reason": "full"}))
+              } else {
+                match startHeight - policy.get("partialRefundBeforeBlocks") {
+                  partialCut => {
+                    if (now <= partialCut) {
+                      new pCh in {
+                        moneyPart!(rent, policy.get("partialRefundBps"), *pCh) |
+                        for (@p <- pCh) {
+                          match p {
+                            (true, refund, retained) => {
+                              ret!((true, {"providerRent": retained,
+                                           "platformFee": 0,
+                                           "guestRefund": refund + deposit,
+                                           "providerDamage": 0,
+                                           "reason": "partial"}))
+                            }
+                            _ => { ret!((false, "bps")) }
+                          }
+                        }
+                      }
+                    } else {
+                      ret!((true, {"providerRent": rent, "platformFee": 0,
+                                   "guestRefund": deposit, "providerDamage": 0,
+                                   "reason": "late"}))
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract Remedy(@"noShow", @rent, @deposit, @feeBps, ret) = {
+    new fCh in {
+      moneyFee!(rent, feeBps, *fCh) |
+      for (@f <- fCh) {
+        match f {
+          (true, fee, net) => {
+            ret!((true, {"providerRent": net, "platformFee": fee,
+                         "guestRefund": deposit, "providerDamage": 0,
+                         "reason": "no-show"}))
+          }
+          _ => { ret!((false, "bps")) }
+        }
+      }
+    }
+  } |
+
+  contract Remedy(@"depositSplit", @deposit, @providerBps, ret) = {
+    new pCh in {
+      moneyPart!(deposit, providerBps, *pCh) |
+      for (@p <- pCh) {
+        match p {
+          (true, providerDamage, guestRefund) => {
+            ret!((true, {"providerDamage": providerDamage,
+                         "guestRefund": guestRefund}))
+          }
+          _ => { ret!((false, "bps")) }
+        }
+      }
+    }
+  } |
+
+  rl!(`__ROOT_URI__`, *rootCh) |
+  for (Root <- rootCh) {
+    rs!(bundle+{*Remedy}, *c) |
+    for (@uri <- c) {
+      Root!("register", "component:remedy", uri, 1, "policy", *deployerId, *a1) |
+      Root!("register", "component:policy", uri, 1, "policy", *deployerId, *a2) |
+      for (@r1 <- a1; @r2 <- a2) { deployId!([uri]) }
+    }
+  }
+}

@@ -1,0 +1,48 @@
+# Hot-operation budgets for the base-layer refactor.
+#
+# root_resolves: number of ShareRoot("resolve"/"resolveMany") calls per arm.
+# registry_lookups: number of rl! calls per arm (including per-slot lookups).
+# consumed_cells: cells consumed by the arm. "short" means the cell is reposted before
+#   any external call; "held" means it is held across a callee, as with bookingState.
+# These are targets for R7; R0 records the measured baseline with tools/metrics.py.
+
+operations:
+  unit_hold:
+    root_resolves_max: 1
+    registry_lookups_per_slot_max: 0   # 1 is the fallback if slotCaps is not viable
+    unit_state_peeks_max: 1            # status only
+    consumed_cells: [slotState x N]
+  unit_release:
+    root_resolves_max: 1
+    registry_lookups_per_slot_max: 0
+    consumed_cells: [slotState x N]
+  unit_confirm:
+    root_resolves_max: 1
+    registry_lookups_per_slot_max: 0
+    consumed_cells: [slotState x N]
+  book_request:
+    root_resolves_max: 1               # resolveMany for payments, admin, provider, booking
+    consumed_cells: [ledgerState short, slotState x N, bondState, bookingState]
+    peeks: [adminState, providerState, listingState, unitState]
+  accept:
+    root_resolves_max: 1
+    consumed_cells: [bookingState, slotState x N]
+  cancel:
+    root_resolves_max: 1
+    registry_lookups_per_slot_max: 0
+    consumed_cells: [bookingState held, slotState x N, bondState]
+  settle:
+    root_resolves_max: 1
+    consumed_cells: [bookingState held, bondState]
+  claim:
+    root_resolves_max: 0
+    consumed_cells: [bookingState]
+  dispute:
+    root_resolves_max: 0
+    consumed_cells: [bookingState]
+  arbitrate:
+    root_resolves_max: 1               # AdminGuard
+    consumed_cells: [bookingState held, bondState]
+  pause_all:
+    root_resolves_max: 0
+    consumed_cells: [adminState]       # cold

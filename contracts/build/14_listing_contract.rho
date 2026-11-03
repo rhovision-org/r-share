@@ -34,90 +34,29 @@ contract authIsOwner(dId, @ownerId, ret) = {
     }
   }
 } |
-// M-of-N secp256k1 verification over a canonical payload.
-//
-// Payload: "rshare:admin:v1|<domain>|<nonce>|<action>|<arg0>,<arg1>,..."
-// Digest:  blake2b256(utf8(payload)). Signatures are DER secp256k1 over the digest.
-// verifyAdmin replies (true, Bool); the caller decides the refusal string.
 
-contract guardArgsToString(@args, ret) = {
-  if (args.length() == 0) {
-    ret!("")
-  } else {
-    match args.nth(0) {
-      a => {
-        new restCh in {
-          guardArgsAppend!(args, 1, a.toString(), *restCh) |
-          for (@s <- restCh) { ret!(s) }
-        }
-      }
-    }
-  }
-} |
-
-contract guardArgsAppend(@args, @i, @acc, ret) = {
-  if (i >= args.length()) {
-    ret!(acc)
-  } else {
-    match args.nth(i) {
-      a => { guardArgsAppend!(args, i + 1, acc ++ "," ++ a.toString(), *ret) }
-    }
-  }
-} |
-
-contract guardAnySig(@digest, @sigs, @j, @key, ret) = {
-  if (j >= sigs.length()) {
-    ret!(false)
-  } else {
-    new verify(`rho:crypto:secp256k1Verify`), vCh in {
-      match sigs.nth(j) {
-        sig => {
-          verify!(digest, sig, key, *vCh) |
-          for (@ok <- vCh) {
-            if (ok) { ret!(true) }
-            else { guardAnySig!(digest, sigs, j + 1, key, *ret) }
+  contract adminGuard(@domain, @nonce, @action, @args, @sigs,
+                      @admins, @threshold, ret) = {
+    new rCh, Root, gCh, gc in {
+      rl!(`__ROOT_URI__`, *rCh) |
+      for (Root <- rCh) {
+        Root!("resolve", "component:admin-guard", 1, *gCh) |
+        for (@r <- gCh) {
+          match r {
+            (true, uri, _) => {
+              rl!(uri, *gc) |
+              for (AdminGuard <- gc) {
+                AdminGuard!("verify", domain, nonce, action, args, sigs,
+                            admins, threshold, *ret)
+              }
+            }
+            _ => { ret!((false, "below threshold")) }
           }
         }
       }
     }
-  }
-} |
+  } |
 
-contract guardCount(@digest, @sigs, @i, @count, @keys, @threshold, ret) = {
-  if (i >= keys.length()) {
-    ret!(count >= threshold)
-  } else {
-    match keys.nth(i) {
-      key => {
-        new anyCh in {
-          guardAnySig!(digest, sigs, 0, key, *anyCh) |
-          for (@any <- anyCh) {
-            if (any) { guardCount!(digest, sigs, i + 1, count + 1, keys, threshold, *ret) }
-            else { guardCount!(digest, sigs, i + 1, count, keys, threshold, *ret) }
-          }
-        }
-      }
-    }
-  }
-} |
-
-contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, ret) = {
-  new hash(`rho:crypto:blake2b256Hash`), strCh, hashCh, okCh in {
-    guardArgsToString!(args, *strCh) |
-    for (@argStr <- strCh) {
-      match "rshare:admin:v1|" ++ domain ++ "|" ++ nonce.toString()
-            ++ "|" ++ action ++ "|" ++ argStr {
-        payload => {
-          hash!(payload.toUtf8Bytes(), *hashCh) |
-          for (@digest <- hashCh) {
-            guardCount!(digest, sigs, 0, 0, keys, threshold, *okCh) |
-            for (@ok <- okCh) { ret!((true, ok)) }
-          }
-        }
-      }
-    }
-  }
-} |
 
   contract listingResolve(@key, ret) = {
     new rCh, Root, kCh in {
@@ -151,9 +90,97 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
     }
   } |
 
-  contract ListingContractFactory(@"create", dId, @providerId, @listingId,
-                                  @kind, @terms, @termsHash, @admins,
-                                  @threshold, ret) = {
+  contract ListingFactory(@"create", dId, @providerUri, @listingId, @kind,
+                          @terms, ret) = {
+    new pCh, oCh, ownCh in {
+      rl!(providerUri, *pCh) |
+      for (ProviderContract <- pCh) {
+        ProviderContract!("checkOwner", *dId, *oCh) |
+        ProviderContract!("owner", *ownCh) |
+        for (@v <- oCh; @own <- ownCh) {
+          match v {
+            (true, Nil) => {
+              match own {
+                (true, providerId) => {
+                  new termsCh, admCh in {
+                    listingResolve!("component:terms", *termsCh) |
+                    listingResolve!("component:admin", *admCh) |
+                    for (@tr <- termsCh; @ar <- admCh) {
+                      match tr {
+                        (true, Terms) => {
+                          match ar {
+                            (true, ShareAdmin) => {
+                              new tCh, hCh, aCh in {
+                                @Terms!("validate", kind, terms, *tCh) |
+                                @Terms!("hash", kind, terms, *hCh) |
+                                @ShareAdmin!("keys", *aCh) |
+                                for (@t <- tCh; @h <- hCh; @a <- aCh) {
+                                  match t {
+                                    (true, Nil) => {
+                                      match h {
+                                        (true, termsHash) => {
+                                          match a {
+                                            (true, admins, threshold) => {
+                                              new lcCh in {
+                                                ListingContractFactory!("create",
+                                                  *dId, providerUri, providerId,
+                                                  listingId, kind, terms,
+                                                  termsHash, admins, threshold,
+                                                  *lcCh) |
+                                                for (@lr <- lcCh) {
+                                                  match lr {
+                                                    (true, listingUri) => {
+                                                      new rc in {
+                                                        ProviderContract!("registerListing",
+                                                          *dId, listingId, listingUri,
+                                                          kind, termsHash, *rc) |
+                                                        for (@rr <- rc) {
+                                                          match rr {
+                                                            (true, Nil) => {
+                                                              ret!((true, listingUri))
+                                                            }
+                                                            _ => { 1/0 }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                    _ => { ret!(lr) }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                            _ => { ret!(a) }
+                                          }
+                                        }
+                                        _ => { ret!(h) }
+                                      }
+                                    }
+                                    _ => { ret!(t) }
+                                  }
+                                }
+                              }
+                            }
+                            _ => { ret!(ar) }
+                          }
+                        }
+                        _ => { ret!(tr) }
+                      }
+                    }
+                  }
+                }
+                _ => { ret!(own) }
+              }
+            }
+            _ => { ret!(v) }
+          }
+        }
+      }
+    }
+  } |
+
+  contract ListingContractFactory(@"create", dId, @providerUri, @providerId,
+                                  @listingId, @kind, @terms, @termsHash,
+                                  @admins, @threshold, ret) = {
     new oCh in {
       authIsOwner!(*dId, providerId, *oCh) |
       for (@v <- oCh) {
@@ -162,6 +189,7 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
             new ListingContract, listingState, uCh in {
               listingState!({
                 "listingId": listingId,
+                "providerUri": providerUri,
                 "providerId": providerId,
                 "kind": kind,
                 "terms": terms,
@@ -296,6 +324,7 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
                                                     st.get("kind"), slots,
                                                     st.get("terms").get("maxLeadBlocks"),
                                                     st.get("terms").get("maxSlotBlocks"),
+                                                    st.get("terms").get("contiguous"),
                                                     *vch) |
                                                   for (@vv <- vch) {
                                                     match vv {
@@ -365,7 +394,7 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
                     listingState!(st) | ret2!((false, "replay"))
                   } else {
                     new vCh in {
-                      verifyAdmin!("listing:" ++ listingId, nonce, action,
+                      adminGuard!("listing:" ++ listingId, nonce, action,
                                    args, sigs, st.get("admins"),
                                    st.get("threshold"), *vCh) |
                       for (@v <- vCh) {
@@ -406,7 +435,7 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
                     listingState!(st) | ret2!((false, "replay"))
                   } else {
                     new vCh in {
-                      verifyAdmin!("listing:" ++ listingId, nonce, "setAdmins",
+                      adminGuard!("listing:" ++ listingId, nonce, "setAdmins",
                                    [newAdmins, newThreshold], sigs,
                                    st.get("admins"), st.get("threshold"), *vCh) |
                       for (@v <- vCh) {
@@ -446,9 +475,9 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
 
   rl!(`__ROOT_URI__`, *rootCh) |
   for (Root <- rootCh) {
-    rs!(bundle+{*ListingContractFactory}, *c) |
+    rs!(bundle+{*ListingFactory}, *c) |
     for (@uri <- c) {
-      Root!("register", "component:listing-contract-factory", uri, 1,
+      Root!("register", "component:listing-factory", uri, 1,
             "listing", *deployerId, *ack) |
       for (@r <- ack) { deployId!([uri]) }
     }

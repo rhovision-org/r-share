@@ -49,7 +49,7 @@ A damage claim is a deposit split:
 1. The provider calls `claimDeposit` with an amount up to the deposit and an evidence hash.
 2. The guest can `dispute`.
 3. The 2-of-3 arbiter calls `arbitrate(nonce, splitBps, sigs, opId)`.
-4. `Policy.depositSplit` computes `providerDamage = floor(deposit * splitBps / 10000)` and
+4. `Remedy.depositSplit` computes `providerDamage = floor(deposit * splitBps / 10000)` and
    the guest refund; the settlement pays rent and fee normally.
 
 The arbiter decides the split, not the facts. Evidence hashes are opaque; the off-chain

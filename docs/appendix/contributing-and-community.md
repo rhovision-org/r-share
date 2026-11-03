@@ -34,7 +34,7 @@ primitives clearer, safer or more reusable.
 
 ## The change rules
 
-- A new resource class changes only `kind`, `attrs` and a pure `Policy` branch. If it needs a
+- A new resource class changes only `kind`, `attrs` and a pure `Remedy` branch. If it needs a
   booking arm, the primitive is wrong.
 - Never add a shared mutable counter or a mutable availability cache.
 - Every new arm needs a refusal test and an idempotency test.

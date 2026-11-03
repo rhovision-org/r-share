@@ -29,6 +29,22 @@ pass before the milestone is considered done. The machine-readable version is
 
 "Implemented" means source plus static/parser gates. It does not mean a behavioural run.
 
+## Universal-core roadmap
+
+The [space-time proposal](https://github.com/PatrickMockridge/r-share/blob/main/spec/space-time.md)
+adds a second, design-first track after the primitive milestones:
+
+| Phase | Adds | Must not add |
+|---|---|---|
+| 1 | modular base layer, Terms/Remedy/Bond, pause/contiguous | claim classes, provider bond, oracle |
+| 2 | Terms v2, obligation objects, remedy table, generalized claim | oracle, second writer, arbitrary policy |
+| 3 | per-booking evidence anchors | fact adjudication, global append-only hot cell |
+| 4 | provider bond and cure window | shared bond pool on the hot path, timers |
+| 5 | bounded metering with buyer challenge | on-chain oracle, per-block billing |
+
+Each phase must remain non-dominated on `spec/pareto.md`; a phase that adds a trust party or
+a global bottleneck is rejected or moved to a fork.
+
 ## What would change the roadmap
 
 - A new resource class that needs a new primitive.

@@ -27,8 +27,8 @@ off-chain database in this repo.
 
 | Path | Contents |
 |---|---|
-| `contracts/src/deploy/` | 13 deployable Rholang terms |
-| `contracts/src/lib/` | build-time fragments (`Auth`, `Guard`, `Terms`, `Money`) |
+| `contracts/src/deploy/` | 13 deployable Rholang terms (root, terms/remedy, capacity, bond, booking, payments) |
+| `contracts/src/lib/` | build-time fragments (`Auth` inline; `Guard` only for the bootstrap Root; `Money` into Remedy) |
 | `harness/` | installer, devnet driver, fixtures, behavioural suites |
 | `tools/` | build inliner, size/concurrency lints, node-parser check, docs check |
 | `spec/` | invariants and the milestone acceptance map |
@@ -79,7 +79,7 @@ See [Fork and run](docs/guides/fork-and-run.md) for the full setup.
 ## Fork it and build your own
 
 Fork the repo, keep the AGPL notices, and copy `contracts/`, `harness/` and `tools/`. Change
-the `kind`, the `attrs`, the slot IDs, the terms, and a pure `Policy` branch. Do not add a
+the `kind`, the `attrs`, the slot IDs, the terms, and a pure `Remedy` branch. Do not add a
 booking arm; if you think you need one, read
 [Adding a new resource class](docs/case-studies/new-resource-class.md) first. Name your
 product distinctly. You own the off-chain parts: UI, identity, calendar, telemetry, support,

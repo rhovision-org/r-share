@@ -23,11 +23,12 @@ chapter is near-verbatim the repository's concurrency doctrine; the code is the 
    withdrawal, then `Unit.hold` revalidates under consume. A stale peek causes a clean
    refusal, never a double booking. Never carry a peeked record across an external await
    into a write.
-5. **Per-booking contracts.** Every BookingContract has its own state cell, escrow purse,
-   ticket projection and op map. Lifecycle operations on different bookings never share a
-   cell.
+5. **Per-booking contracts.** Every BookingContract has its own state cell, ticket
+   projection and op map; every booking has its own Bond holding the escrow purse.
+   Lifecycle operations on different bookings never share a cell.
 6. **No global counters.** `bookingId = guestId ++ ":" ++ opId`; listing, unit and slot IDs
-   are client- or provider-supplied and uniqueness-checked in the owning cell.
+   are client- or provider-supplied and uniqueness-checked in the owning cell. Multi-unit
+   orchestration is stateless in `UnitFactory`; it owns no cell and adds no contention.
 7. **Read-mostly directories.** ShareRoot, ProviderBook and GuestBook are indexes. Clients
    holding a listing/unit/booking URI go directly to it; the authoritative contract
    re-checks ownership. Registry URIs are resolved per arm and never cached in a bundle.
@@ -62,6 +63,7 @@ chapter is near-verbatim the repository's concurrency doctrine; the code is the 
 | Unit state cell | slot creation and provider reset | holds touch slot contracts |
 | GuestLedger op reservation | per guest, short | prevents duplicate bookings |
 | BookingContract state cell | per booking | exactly-once transitions |
+| Bond state cell | per booking | one terminal payout; no cross-booking contention |
 | r-cash account purse | per owner withdraw/payout | separate accounts per party |
 
 No hot path is shared between different guests booking different slots.

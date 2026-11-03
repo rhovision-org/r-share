@@ -28,8 +28,8 @@ The factory:
 
 1. checks Ana owns the provider contract;
 2. resolves `component:policy`, `component:codec` and `component:admin`;
-3. calls `Policy!("termsOk", kind, terms)` and hashes the ordered terms values with
-   `Codec!("hash", "rshare:terms:v1", values)`;
+3. resolves `component:terms` and calls `Terms!("validate", kind, terms)` and
+   `Terms!("hash", kind, terms)`;
 4. calls `ListingContractFactory!("create", ...)` to spawn the listing in `draft`;
 5. registers the listing URI on the provider contract.
 

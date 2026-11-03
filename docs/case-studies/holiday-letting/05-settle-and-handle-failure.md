@@ -11,7 +11,7 @@ or anyone else can finish the booking after the review window.
 BookingContract!("settle", "ben-op-009", *ret)
 ```
 
-Requires status `checkedOut`, `now >= depositReleaseHeight`, and no pending claim. `Policy.fee`
+Requires status `checkedOut`, `now >= depositReleaseHeight`, and no pending claim. `Remedy.fee`
 splits the rent:
 
 - `fee = floor(rent * feeBps / 10000)`;
@@ -59,7 +59,7 @@ The 2-of-3 admin set splits the deposit:
 BookingContract!("arbitrate", nonce, splitBps, sigs, "arb-op-012", *ret)
 ```
 
-`splitBps` is the share of the deposit to the provider, 0–10000. `Policy.depositSplit`
+`splitBps` is the share of the deposit to the provider, 0–10000. `Remedy.depositSplit`
 computes the provider damage and the guest refund. Rent and fee are settled normally. The
 signature payload is the `rshare:admin:v1` canonical string over
 `[bookingId, splitBps]`; the nonce is stored on the booking. Status becomes `settled`.

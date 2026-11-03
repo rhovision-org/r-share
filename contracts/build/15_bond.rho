@@ -1,0 +1,169 @@
+// BondFactory + one Bond per booking. The Bond owns the ERTP purse and the single payout.
+// Placeholders: __ROOT_URI__.
+new
+  BondFactory,
+  rl(`rho:registry:lookup`),
+  rs(`rho:registry:insertArbitrary`),
+  deployerId(`rho:rchain:deployerId`),
+  deployId(`rho:rchain:deployId`),
+  rootCh, c, ack
+in {
+  contract bondResolve(@key, ret) = {
+    new rCh, Root, kCh in {
+      rl!(`__ROOT_URI__`, *rCh) |
+      for (Root <- rCh) {
+        Root!("resolve", key, 1, *kCh) |
+        for (@r <- kCh) {
+          match r {
+            (true, uri, _) => {
+              new cCh in {
+                rl!(uri, *cCh) |
+                for (C <- cCh) { ret!((true, C)) }
+              }
+            }
+            _ => { ret!((false, "unavailable", key)) }
+          }
+        }
+      }
+    }
+  } |
+
+  contract bondSum(@buckets, @i, @acc, ret) = {
+    if (i >= buckets.length()) {
+      ret!(acc)
+    } else {
+      match buckets.nth(i) {
+        b => {
+          match b.get("amount") {
+            amount => {
+              if (amount < 0) { ret!((false, "amount")) }
+              else { bondSum!(buckets, i + 1, acc + amount, *ret) }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract bondPaySequence(@buckets, @i, @assetId, escrowPurse, brand,
+                           bondState, @st, ret) = {
+    if (i >= buckets.length()) {
+      bondState!(st.set("paid", true).set("remaining", 0)) |
+      ret!((true, Nil))
+    } else {
+      match buckets.nth(i) {
+        b => {
+          match b.get("amount") {
+            amount => {
+              if (amount == 0) {
+                bondPaySequence!(buckets, i + 1, assetId, *escrowPurse, *brand,
+                                 *bondState, st, *ret)
+              } else {
+                new pCh in {
+                  bondResolve!("component:payments", *pCh) |
+                  for (@p <- pCh) {
+                    match p {
+                      (true, Payments) => {
+                        new fCh in {
+                          @Payments!("depositFacet", b.get("owner"),
+                                     assetId, *fCh) |
+                          for (@f <- fCh) {
+                            match f {
+                              (true, facet) => {
+                                new wCh in {
+                                  @escrowPurse!("withdraw", (brand, amount), *wCh) |
+                                  for (@w <- wCh) {
+                                    match w {
+                                      (true, payment) => {
+                                        new dCh in {
+                                          @facet!("deposit", *payment, *dCh) |
+                                          for (@_ <- dCh) {
+                                            bondPaySequence!(buckets, i + 1,
+                                                             assetId, *escrowPurse,
+                                                             *brand, *bondState,
+                                                             st, *ret)
+                                          }
+                                        }
+                                      }
+                                      _ => { 1/0 }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { 1/0 }
+                            }
+                          }
+                        }
+                      }
+                      _ => { 1/0 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract BondFactory(@"create", escrowPurse, brand, @assetId,
+                       @expected, settleToken, ret) = {
+    new Bond, bondState, uCh in {
+      bondState!({"paid": false, "expected": expected, "remaining": expected}) |
+
+      contract Bond(@"pay", @buckets, @expected2, settleToken2, ret2) = {
+        for (@st <- bondState) {
+          if (st.get("paid")) {
+            bondState!(st) | ret2!((false, "closed"))
+          } else {
+            if (settleToken2 != *settleToken) {
+              bondState!(st) | ret2!((false, "not holder"))
+            } else {
+              if (expected2 != st.get("expected")) {
+                bondState!(st) | ret2!((false, "amount"))
+              } else {
+                new sumCh in {
+                  bondSum!(buckets, 0, 0, *sumCh) |
+                  for (@sum <- sumCh) {
+                    match sum {
+                      (true, total) => {
+                        if (total != expected2) {
+                          bondState!(st) | ret2!((false, "amount"))
+                        } else {
+                          bondPaySequence!(buckets, 0, assetId, *escrowPurse,
+                                           *brand, *bondState, st, *ret2)
+                        }
+                      }
+                      _ => { bondState!(st) | ret2!(sum) }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } |
+
+      contract Bond(@"balance", ret2) = {
+        @escrowPurse!("getCurrentAmount", *ret2)
+      } |
+
+      contract Bond(@"info", ret2) = {
+        for (@st <<- bondState) { ret2!((true, st)) }
+      } |
+
+      rs!(bundle+{*Bond}, *uCh) |
+      for (@uri <- uCh) { ret!((true, uri)) }
+    }
+  } |
+
+  rl!(`__ROOT_URI__`, *rootCh) |
+  for (Root <- rootCh) {
+    rs!(bundle+{*BondFactory}, *c) |
+    for (@uri <- c) {
+      Root!("register", "component:bond-factory", uri, 1, "bond", *deployerId, *ack) |
+      for (@r <- ack) { deployId!([uri]) }
+    }
+  }
+}

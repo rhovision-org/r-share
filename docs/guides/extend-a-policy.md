@@ -1,8 +1,8 @@
 # Extend a policy
 
-> **Status:** Implemented. `Policy` is a pure, stateless contract.
+> **Status:** Implemented. `Remedy` is a pure, stateless contract.
 
-`Policy` is the only place where the rental arithmetic lives. It has no state, so a change is
+`Remedy` is the only place where the rental arithmetic lives. It has no state, so a change is
 a pure function change and easy to test. This guide shows how to add a branch without
 touching the booking state machine.
 
@@ -14,11 +14,9 @@ touching the booking state machine.
 | `cancel(kind, policy, now, startHeight, rent, deposit, actor)` | cancellation buckets |
 | `noShow(rent, deposit, feeBps)` | no-show buckets |
 | `depositSplit(deposit, providerBps)` | arbitration split |
-| `termsOk(kind, terms)` | terms validation |
-| `scheduleOk(kind, slots, now, maxLead, maxSlot)` | slot schedule validation |
-
 The canonical signatures are in the [arm reference](../reference/arms.md). The contract is
-`contracts/src/deploy/12_policy.rho`.
+`contracts/src/deploy/04_remedy.rho`. Validation and hashing live in `Terms`
+(`validate`, `scheduleOk`, `hash`); Remedy only does arithmetic.
 
 ## The cancellation arithmetic
 
@@ -38,8 +36,8 @@ provider                                          -> full rent + deposit
 Suppose boats need a weather clause: if the provider cancels for weather inside 12 blocks of
 the start, the guest gets a full refund, and the provider gets nothing.
 
-1. Add `"boat"` to the `kind` check in `Policy.termsOk`.
-2. In `Policy.cancel`, add a `kind == "boat"` branch before the standard one:
+1. Add `"boat"` to the `kind` check in `Terms.validate`.
+2. In `Remedy.cancel`, add a `kind == "boat"` branch before the standard one:
 
    ```rholang
    if (kind == "boat"
@@ -57,13 +55,13 @@ the start, the guest gets a full refund, and the provider gets nothing.
 
 ## Add a fee model
 
-If the platform fee is tiered, change `Policy.fee` and keep the bucket sum invariant:
+If the platform fee is tiered, change `Remedy.fee` and keep the bucket sum invariant:
 `fee + net == rent`. Do not change the settlement arm in `BookingContract`; it calls
-`Policy.fee` and asserts the buckets.
+`Remedy.fee` and asserts the buckets.
 
 ## Add a deposit split model
 
-`Policy.depositSplit` is `floor(deposit * providerBps / 10000)`. If you need a fixed
+`Remedy.depositSplit` is `floor(deposit * providerBps / 10000)`. If you need a fixed
 deductible or a cap, change only this arm. The arbitration arm passes `splitBps`; the
 settlement asserts the buckets.
 
@@ -83,8 +81,9 @@ settlement asserts the buckets.
 - `BookingContract` calls `cancel`, `noShow`, `depositSplit` and `fee`.
 - `ListingContract.ensureUnit` calls `UnitFactory.validate`.
 
-A change to `Policy` is visible to every listing and booking that resolves
-`component:policy`. Version the Root entry if you deploy a breaking change.
+A change to `Remedy` is visible to every listing and booking that resolves
+`component:remedy` (or the `component:policy` alias). Version the Root entry if you deploy a
+breaking change.
 
 > **Where to go deeper.** [Governance and arbitration](../concepts/governance-and-arbitration.md)
 > is the dispute path. [Arm reference](../reference/arms.md) is the signature list. [Test your

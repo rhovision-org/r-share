@@ -4,9 +4,9 @@ RCASH_DIR ?= ../Rholphin
 RHOLO_DIR ?= ../RNodeRust
 NODE ?= http://localhost:40403
 
-.PHONY: venv build build-check measure measure-check check-arch check-captures \
-        check-select check-placeholders check-money spec-check parse-check \
-        docs docs-serve docs-check devnet down status \
+.PHONY: venv build build-check measure measure-check metrics metrics-compare \
+        check-arch check-captures check-select check-placeholders check-money \
+        spec-check parse-check docs docs-serve docs-check devnet down status \
         rcash-install keys install setup unit-root unit-payments unit-provider \
         unit-listing unit-booking unit-concurrency unit-lifecycle unit-events \
         unit-admin unit-generality unit-all ci clean
@@ -27,6 +27,12 @@ measure:
 measure-check:
 	$(PY) tools/measure_contracts.py --check
 
+metrics:
+	$(PY) tools/metrics.py --write contracts/metrics-current.json
+
+metrics-compare:
+	$(PY) tools/metrics.py --compare contracts/metrics-baseline.json
+
 check-arch:
 	$(PY) tools/check_arch.py
 
@@ -42,8 +48,24 @@ check-placeholders:
 check-money:
 	$(PY) tools/check_money.py
 
+check-coverage:
+	$(PY) tools/check_coverage.py
+
+check-remedy:
+	$(PY) tools/check_remedy_table.py
+
+check-no-oracle:
+	$(PY) tools/check_no_oracle.py
+
+pareto:
+	$(PY) tools/pareto.py --write
+
+pareto-check:
+	$(PY) tools/pareto.py --check
+
 spec-check: build-check measure-check check-arch check-captures check-select \
-            check-placeholders check-money
+            check-placeholders check-money check-coverage check-remedy \
+            check-no-oracle pareto-check
 
 parse-check:
 	$(PY) harness/install.py --dry-run

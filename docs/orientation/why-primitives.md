@@ -52,7 +52,7 @@ Three kinds of reuse, in increasing effort:
 1. **Copy the terms and the policy.** Keep the contracts. Change `kind`, `attrs`, slot IDs
    and the terms. This covers lodging, events, bikes, cars and most machines.
 2. **Copy a policy branch.** If your cancellation arithmetic differs, add a pure branch to
-   `Policy` and keep the booking state machine.
+   `Remedy` and keep the booking state machine.
 3. **Copy the repo.** If your trust model, money flow or regulation differs, fork and change
    the contracts. Keep the provenance and license notices.
 

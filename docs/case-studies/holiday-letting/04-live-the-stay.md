@@ -44,7 +44,7 @@ Ben can cancel while the booking is `requested` or `confirmed`:
 BookingContract!("cancel", *deployerId, "ben-op-005", *ret)
 ```
 
-`Policy.cancel` evaluates the terms against `now` and `checkInHeight`:
+`Remedy.cancel` evaluates the terms against `now` and `checkInHeight`:
 
 - before `checkInHeight - 48`: full rent + deposit back;
 - before `checkInHeight - 12`: 50% of rent + deposit back;

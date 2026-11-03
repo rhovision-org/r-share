@@ -33,6 +33,14 @@ words are reserved for a recorded command and artifact.
 | `unit_root` | implemented suite; needs a healthy devnet |
 | `unit_payments` | implemented suite; needs a healthy devnet |
 
+## What is a design proposal
+
+The [space-time primitives](../concepts/space-time-primitives.md), bilateral bonds, provider
+bonds, obligation objects, generalized claims and evidence anchors are design proposals in
+`spec/space-time.md`, `spec/pareto.md`, `spec/remedy-table.md` and `spec/lifecycle.md`. They
+are not implemented. The Pareto scorecard records the current core as measured and the
+targets as estimates.
+
 ## What is planned
 
 | Milestone | Scope | Suite |

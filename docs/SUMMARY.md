@@ -20,6 +20,9 @@
 - [Concurrency doctrine](concepts/concurrency-doctrine.md)
 - [Authority and refusal](concepts/authority-and-refusal.md)
 - [Governance and arbitration](concepts/governance-and-arbitration.md)
+- [Space-time primitives](concepts/space-time-primitives.md)
+- [Obligations and bonds](concepts/obligations-and-bonds.md)
+- [Remedies and claims](concepts/remedies-and-claims.md)
 
 # Part III — Case studies
 
@@ -53,6 +56,9 @@
 - [Invariants](reference/invariants.md)
 - [Platform constraints](reference/platform-constraints.md)
 - [Install order and component keys](reference/install-order-and-keys.md)
+- [Obligation schema](reference/obligation-schema.md)
+- [Bond arms](reference/bond-arms.md)
+- [Claim classes](reference/claim-classes.md)
 - [Glossary](reference/glossary.md)
 
 # Appendix

@@ -14,16 +14,16 @@ per object. The arm signatures are in the [arm reference](arms.md); the install 
 | `00_root.rho` | ShareRoot |
 | `01_kernel.rho` | Clock, Verifier, Codec |
 | `02_admin.rho` | AdminGuard, ShareAdmin |
-| `12_policy.rho` | Policy |
+| `03_terms.rho` | Terms |
+| `04_remedy.rho` | Remedy |
 | `40_payments.rho` | Payments |
 | `10_provider.rho` | ProviderBook, ProviderContract |
 | `13_unit.rho` | UnitFactory, UnitContract, SlotContract |
-| `11_listing.rho` | ListingFactory |
-| `14_listing_contract.rho` | ListingContractFactory, ListingContract |
+| `14_listing_contract.rho` | ListingFactory, ListingContract (plus the internal ListingContractFactory) |
+| `15_bond.rho` | BondFactory, Bond |
 | `20_booking.rho` | GuestBook |
-| `23_guest_ledger.rho` | GuestLedgerFactory, GuestLedger |
-| `21_booking.rho` | BookingFactory |
 | `22_booking_contract.rho` | BookingContractFactory, BookingContract |
+| `23_guest_ledger.rho` | GuestLedgerFactory, GuestLedger |
 
 ## Components
 
@@ -35,20 +35,21 @@ per object. The arm signatures are in the [arm reference](arms.md); the install 
 | Codec | `01_kernel.rho` | none | stateless |
 | AdminGuard | `02_admin.rho` | none | stateless |
 | ShareAdmin | `02_admin.rho` | `adminState` | singleton admin set |
-| Policy | `12_policy.rho` | none | stateless |
+| Terms | `03_terms.rho` | none | stateless schema/validation/hash |
+| Remedy | `04_remedy.rho` | none | stateless arithmetic |
 | Payments | `40_payments.rho` | `paymentsState` | singleton r-cash adapter |
 | ProviderBook | `10_provider.rho` | `providerBookState` | singleton index |
 | ProviderContract | `10_provider.rho` | `providerState` | one per provider |
-| ListingFactory | `11_listing.rho` | none | stateless |
-| UnitFactory | `13_unit.rho` | none | stateless |
-| ListingContractFactory | `14_listing_contract.rho` | none | stateless |
+| ListingFactory | `14_listing_contract.rho` | none | stateless |
 | ListingContract | `14_listing_contract.rho` | `listingState` | one per listing |
+| UnitFactory | `13_unit.rho` | none | stateless |
 | UnitContract | `13_unit.rho` | `unitState` | one per unit |
 | SlotContract | `13_unit.rho` | `slotState` | one per slot |
+| BondFactory | `15_bond.rho` | none | stateless |
+| Bond | `15_bond.rho` | `bondState` | one per booking |
 | GuestBook | `20_booking.rho` | `guestBookState` | singleton index |
 | GuestLedgerFactory | `23_guest_ledger.rho` | none | stateless |
 | GuestLedger | `23_guest_ledger.rho` | `ledgerState` | one per guest |
-| BookingFactory | `21_booking.rho` | none | stateless |
 | BookingContractFactory | `22_booking_contract.rho` | none | stateless |
 | BookingContract | `22_booking_contract.rho` | `bookingState` | one per booking |
 
@@ -57,16 +58,17 @@ per object. The arm signatures are in the [arm reference](arms.md); the install 
 ```
 ShareRoot
   |
-  +-- Clock / Verifier / Codec
-  +-- AdminGuard / ShareAdmin
-  +-- Policy
+  +-- Clock / Verifier / Codec / AdminGuard / ShareAdmin
+  +-- Terms ---- Codec
+  +-- Remedy
   +-- Payments ---- r-cash Root (account-factory, asset-resolver, clock)
   +-- ProviderBook ---- ProviderContract
   +-- ListingFactory ---- ListingContractFactory ---- ListingContract
   |                                             \---- UnitFactory
   +-- UnitFactory ---- UnitContract ---- SlotContract
+  +-- BondFactory ---- Bond ---- Payments
   +-- GuestBook ---- GuestLedgerFactory ---- GuestLedger
-  +-- BookingFactory ---- BookingContractFactory ---- BookingContract
+  +-- BookingContractFactory ---- BookingContract
 ```
 
 Figure: component dependencies. Factories resolve their instance factory from the Root at
@@ -76,15 +78,16 @@ arm entry; no registry capability is cached in a bundle.
 
 - Installer-gated: ShareRoot `register` before `freeze`.
 - Owner-gated: provider, listing, unit and booking owner arms derive the owner from the
-  deployer.
-- 2-of-3 gated: Root rotate/deprecate/freeze/admin, ShareAdmin, listing/unit/booking
-  adminPause, booking arbitrate, Payments admin.
+  deployer with the inlined `Auth` fragment.
+- 2-of-3 gated through the deployed `AdminGuard`: Root rotate/deprecate/freeze/admin,
+  ShareAdmin, listing/unit/booking adminPause, booking arbitrate, Payments admin.
 - Permissionless: booking `settle`, `expire`, `resolveDeposit`, `closeEvent`; reads.
 
 ## Where the code lives
 
 - `contracts/src/deploy/` — the 13 terms above.
-- `contracts/src/lib/` — `Auth`, `Guard`, `Terms`, `Money`, inlined at build time.
+- `contracts/src/lib/` — `Auth` (inlined into owner-gated terms), `Guard` (only the
+  bootstrap Root), `Money` (inlined into Remedy).
 - `contracts/components.json` — the machine-readable catalogue.
 - `contracts/measure.json` — per-term size, depth and contract count.
 

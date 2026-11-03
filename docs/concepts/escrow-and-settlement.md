@@ -31,15 +31,19 @@ resolve through r-cash's AssetResolver and be verified before enabling.
 5. `account.withdraw(dId, assetId, rent + deposit)` → an ERTP payment.
 6. `issuer.getAmountOf(payment)` must equal the total; otherwise `1/0`.
 7. `purse.deposit(payment)`; instant bookings confirm the slots.
-8. Spawn the BookingContract with the purse, release token and brand; insert its URI.
+8. Create the per-booking `Bond` with the purse and expected total; spawn the BookingContract
+   with the Bond URI, release token and a fresh settle token; insert its URI.
 
-The guest never sees the escrow purse or the release token. The BookingContract holds them
-in its closure; its state cell contains only data.
+The guest never sees the escrow purse or the release token. The GuestLedger creates a
+per-booking `Bond` that owns the purse; the BookingContract stores the Bond URI and closes
+over a fresh `settleToken`. The Bond is the only component that can move the money.
 
 ## Settlement
 
-Every lifecycle payout withdraws exact amounts from the booking's purse and deposits them
-into r-cash account deposit facets:
+Every lifecycle payout is delegated to the per-booking `Bond`. `Bond.pay` consumes its
+state, checks the settle token and the expected total, resolves Payments once, withdraws
+exact amounts from the escrow purse, deposits them into r-cash account deposit facets, and
+posts `paid: true`. A second `pay` is `"closed"`.
 
 ```
 AccountFactory.accountOf(ownerId) → account
@@ -57,9 +61,9 @@ The buckets are:
 | `guestRefund` | the guest |
 | `providerDamage` | the provider, from the deposit |
 
-Before paying, the contract asserts `providerRent + platformFee + guestRefund +
-providerDamage == rent + deposit`. A mismatch fails the deploy. Deposit facets are
-receive-only; they cannot re-enter the booking.
+The BookingContract asserts `expected == rent + deposit`; the Bond asserts the bucket sum
+and ends at zero. A mismatch fails the deploy. Deposit facets are receive-only; they cannot
+re-enter the booking.
 
 ## Failure modes
 

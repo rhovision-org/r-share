@@ -64,7 +64,7 @@ on-chain.
 
 ## Can I change the cancellation policy?
 
-Yes. `Policy` is a pure contract; add a branch, keep the bucket sum invariant, and test the
+Yes. `Remedy` is a pure contract; add a branch, keep the bucket sum invariant, and test the
 boundaries. See [Extend a policy](../guides/extend-a-policy.md).
 
 ## Can I add a new kind of inventory?

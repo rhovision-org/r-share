@@ -43,8 +43,10 @@ A unit stores:
 - `maxHoldBlocks`, `status`, `admins`, `threshold`.
 
 The unit's hot arms (`hold`, `release`, `confirm`, `probe`) resolve the requested slot URIs
-and call the SlotContracts. The unit's own state cell is touched only when slots are created
-or reset.
+and call the SlotContracts. The unit's state cell is peeked on every hold for its status and
+schedule; it is consumed only when slots are created, paused or reset. Multi-unit
+`holdAll`/`releaseAll`/`confirmAll` orchestration lives in the stateless `UnitFactory`, so
+the booking and ledger do not re-implement the loops.
 
 ## The slot
 
@@ -86,7 +88,8 @@ unitSlots, opId, expectedTermsHash)`:
 3. reads each unit's schedule and slot states;
 4. holds the slots under one fresh release token;
 5. withdraws rent + deposit from the guest's r-cash account into a per-booking escrow purse;
-6. spawns a `BookingContract` with the purse, token and brand;
+6. creates a per-booking `Bond` that owns the purse, then spawns a `BookingContract` with the
+   Bond URI and a fresh settle token;
 7. records the result against the `opId`.
 
 `unitSlots` is a list of maps:

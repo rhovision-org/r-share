@@ -42,6 +42,53 @@ in {
   } |
   contract ledgerPayments(ret) = { ledgerResolve!("component:payments", *ret) } |
   contract ledgerBookingFactory(ret) = { ledgerResolve!("component:booking-factory", *ret) } |
+  contract ledgerAdmin(ret) = { ledgerResolve!("component:admin", *ret) } |
+  contract ledgerProviderActive(@providerUri, ret) = {
+    if (providerUri == Nil) {
+      ret!((true, true))
+    } else {
+      new cCh in {
+        rl!(providerUri, *cCh) |
+        for (ProviderContract <- cCh) {
+          ProviderContract!("isActive", *ret)
+        }
+      }
+    }
+  } |
+  contract GuestLedgerGate(ret) = {
+    new aCh, pCh in {
+      ledgerAdmin!(*aCh) |
+      for (@a <- aCh) {
+        match a {
+          (true, ShareAdmin) => {
+            @ShareAdmin!("isPaused", *pCh) |
+            for (@p <- pCh) {
+              match p {
+                (true, true) => { ret!((false, "paused")) }
+                (true, false) => { ret!((true, Nil)) }
+                _ => { ret!((false, "paused")) }
+              }
+            }
+          }
+          _ => { ret!((false, "paused")) }
+        }
+      }
+    }
+  } |
+  contract bookingBond(escrowPurse, brand, @assetId, @expected, settleToken, ret) = {
+    new fCh in {
+      ledgerResolve!("component:bond-factory", *fCh) |
+      for (@f <- fCh) {
+        match f {
+          (true, BondFactory) => {
+            @BondFactory!("create", *escrowPurse, *brand, assetId, expected,
+                          *settleToken, *ret)
+          }
+          _ => { ret!((false, "bond factory unavailable")) }
+        }
+      }
+    }
+  } |
 
   contract ledgerMin(@a, @b, ret) = { if (a < b) { ret!(a) } else { ret!(b) } } |
   contract ledgerMax(@a, @b, ret) = { if (a > b) { ret!(a) } else { ret!(b) } } |
@@ -199,88 +246,43 @@ in {
 
   contract ledgerHoldUnits(@unitSlots, @i, @bookingId, @until,
                            releaseToken, ret) = {
-    if (i >= unitSlots.length()) {
-      ret!((true, Nil))
-    } else {
-      match unitSlots.nth(i) {
-        us => {
-          new cCh in {
-            rl!(us.get("unitUri"), *cCh) |
-            for (Unit <- cCh) {
-              new hCh in {
-                Unit!("hold", bookingId, us.get("slots"), until,
-                      *releaseToken, *hCh) |
-                for (@h <- hCh) {
-                  match h {
-                    (true, Nil) => {
-                      ledgerHoldUnits!(unitSlots, i + 1, bookingId, until,
-                                       *releaseToken, *ret)
-                    }
-                    _ => {
-                      new relCh in {
-                        ledgerReleaseUnits!(unitSlots, 0, *releaseToken, *relCh) |
-                        for (@_ <- relCh) { ret!(h) }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+    new fCh in {
+      ledgerResolve!("component:unit-factory", *fCh) |
+      for (@f <- fCh) {
+        match f {
+          (true, UnitFactory) => {
+            @UnitFactory!("holdAll", unitSlots, bookingId, until,
+                          *releaseToken, *ret)
           }
+          _ => { ret!(f) }
         }
       }
     }
   } |
 
   contract ledgerReleaseUnits(@unitSlots, @i, releaseToken, ret) = {
-    if (i >= unitSlots.length()) {
-      ret!((true, Nil))
-    } else {
-      match unitSlots.nth(i) {
-        us => {
-          new cCh in {
-            rl!(us.get("unitUri"), *cCh) |
-            for (Unit <- cCh) {
-              new rCh in {
-                Unit!("release", us.get("slots"), *releaseToken, *rCh) |
-                for (@_ <- rCh) {
-                  ledgerReleaseUnits!(unitSlots, i + 1, *releaseToken, *ret)
-                }
-              }
-            }
+    new fCh in {
+      ledgerResolve!("component:unit-factory", *fCh) |
+      for (@f <- fCh) {
+        match f {
+          (true, UnitFactory) => {
+            @UnitFactory!("releaseAll", unitSlots, *releaseToken, *ret)
           }
+          _ => { ret!(f) }
         }
       }
     }
   } |
 
   contract ledgerConfirmUnits(@unitSlots, @i, releaseToken, ret) = {
-    if (i >= unitSlots.length()) {
-      ret!((true, Nil))
-    } else {
-      match unitSlots.nth(i) {
-        us => {
-          new cCh in {
-            rl!(us.get("unitUri"), *cCh) |
-            for (Unit <- cCh) {
-              new c2 in {
-                Unit!("confirm", us.get("slots"), *releaseToken, *c2) |
-                for (@r <- c2) {
-                  match r {
-                    (true, Nil) => {
-                      ledgerConfirmUnits!(unitSlots, i + 1, *releaseToken, *ret)
-                    }
-                    _ => {
-                      new relCh in {
-                        ledgerReleaseUnits!(unitSlots, 0, *releaseToken, *relCh) |
-                        for (@_ <- relCh) { ret!((false, "slot lost")) }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+    new fCh in {
+      ledgerResolve!("component:unit-factory", *fCh) |
+      for (@f <- fCh) {
+        match f {
+          (true, UnitFactory) => {
+            @UnitFactory!("confirmAll", unitSlots, *releaseToken, *ret)
           }
+          _ => { ret!(f) }
         }
       }
     }
@@ -319,6 +321,11 @@ in {
 
   contract GuestLedgerBook(ledgerState, dId, @guestId, @listing,
                            @listingUri, @unitSlots, @opId, ret) = {
+    new pvCh in {
+      ledgerProviderActive!(listing.get("providerUri"), *pvCh) |
+      for (@pv <- pvCh) {
+        match pv {
+          (true, true) => {
     new tCh in {
       ledgerNow!(*tCh) |
       for (@n <- tCh) {
@@ -386,6 +393,18 @@ in {
         }
       }
     }
+          }
+          (true, false) => {
+            GuestLedgerDrop!(*ledgerState, opId) |
+            ret!((false, "provider paused"))
+          }
+          _ => {
+            GuestLedgerDrop!(*ledgerState, opId) |
+            ret!(pv)
+          }
+        }
+      }
+    }
   } |
 
   contract GuestLedgerPay(ledgerState, dId, @guestId, @listing, @listingUri,
@@ -443,23 +462,38 @@ in {
                                                               for (@dd <- depCh) {
                                                                 match dd {
                                                                   (true, balance) => {
-                                                                    GuestLedgerSpawn!(
-                                                                      *ledgerState,
-                                                                      *purse,
-                                                                      *releaseToken,
-                                                                      *brand,
-                                                                      *dId,
-                                                                      guestId,
-                                                                      listing,
-                                                                      listingUri,
-                                                                      unitSlots,
-                                                                      opId,
-                                                                      bookingId,
-                                                                      untilHeight,
-                                                                      checkInHeight,
-                                                                      checkOutHeight,
-                                                                      slotCount,
-                                                                      ret)
+                                                                    new settleToken, bondCh in {
+                                                                      bookingBond!(
+                                                                        *purse, *brand,
+                                                                        listing.get("terms").get("assetId"),
+                                                                        listing.get("terms").get("pricePerSlot") * slotCount
+                                                                        + listing.get("terms").get("deposit"),
+                                                                        *settleToken, *bondCh) |
+                                                                      for (@br <- bondCh) {
+                                                                        match br {
+                                                                          (true, bondUri) => {
+                                                                            GuestLedgerSpawn!(
+                                                                              *ledgerState,
+                                                                              *releaseToken,
+                                                                              *dId,
+                                                                              guestId,
+                                                                              listing,
+                                                                              listingUri,
+                                                                              unitSlots,
+                                                                              opId,
+                                                                              bookingId,
+                                                                              untilHeight,
+                                                                              checkInHeight,
+                                                                              checkOutHeight,
+                                                                              slotCount,
+                                                                              bondUri,
+                                                                              *settleToken,
+                                                                              ret)
+                                                                          }
+                                                                          _ => { 1/0 }
+                                                                        }
+                                                                      }
+                                                                    }
                                                                   }
                                                                   _ => { 1/0 }
                                                                 }
@@ -512,10 +546,11 @@ in {
     }
   } |
 
-  contract GuestLedgerSpawn(ledgerState, purse, releaseToken, brand, dId,
+  contract GuestLedgerSpawn(ledgerState, releaseToken, dId,
                             @guestId, @listing, @listingUri, @unitSlots,
                             @opId, @bookingId, @untilHeight, @checkInHeight,
-                            @checkOutHeight, @slotCount, ret) = {
+                            @checkOutHeight, @slotCount, @bondUri,
+                            settleToken, ret) = {
     new fCh in {
       ledgerBookingFactory!(*fCh) |
       for (@f <- fCh) {
@@ -553,8 +588,8 @@ in {
                       }) |
                       for (@data <- dCh) {
                         new cCh in {
-                          @BookingFactory!("create", *dId, data, *purse,
-                                           *releaseToken, *brand, *cCh) |
+                          @BookingFactory!("create", *dId, data, *releaseToken,
+                                           bondUri, *settleToken, *cCh) |
                           for (@r <- cCh) {
                             match r {
                               (true, bookingUri) => {
@@ -628,64 +663,74 @@ in {
                                     for (@v2 <- o2) {
                                       match v2 {
                                         (true, Nil) => {
-                                          new svCh in {
-                                            GuestLedgerReserve!(*ledgerState,
-                                                                opId, *svCh) |
-                                            for (@reserved <- svCh) {
-                                              match reserved {
-                                                (false, reason) => {
-                                                  ret2!((false, reason))
-                                                }
+                                          new gateCh in {
+                                            GuestLedgerGate!(*gateCh) |
+                                            for (@g <- gateCh) {
+                                              match g {
                                                 (true, Nil) => {
-                                                  new lcCh in {
-                                                    rl!(listingUri, *lcCh) |
-                                                    for (Listing <- lcCh) {
-                                                      new liCh in {
-                                                        Listing!("info", *liCh) |
-                                                        for (@li <- liCh) {
-                                                          match li {
-                                                            (true, listing) => {
-                                                              if (listing.get("status") != "active") {
-                                                                GuestLedgerDrop!(
-                                                                  *ledgerState, opId) |
-                                                                ret2!((false, "listing inactive"))
-                                                              } else {
-                                                                if (expectedTermsHash != Nil
-                                                                    && expectedTermsHash != listing.get("termsHash")) {
-                                                                  GuestLedgerDrop!(
-                                                                    *ledgerState, opId) |
-                                                                  ret2!((false, "terms"))
-                                                                } else {
-                                                                  GuestLedgerBook!(
-                                                                    *ledgerState,
-                                                                    *dId2, guestId,
-                                                                    listing, listingUri,
-                                                                    unitSlots, opId,
-                                                                    ret2)
+                                                  new svCh in {
+                                                    GuestLedgerReserve!(*ledgerState,
+                                                                        opId, *svCh) |
+                                                    for (@reserved <- svCh) {
+                                                      match reserved {
+                                                        (false, reason) => {
+                                                          ret2!((false, reason))
+                                                        }
+                                                        (true, Nil) => {
+                                                          new lcCh in {
+                                                            rl!(listingUri, *lcCh) |
+                                                            for (Listing <- lcCh) {
+                                                              new liCh in {
+                                                                Listing!("info", *liCh) |
+                                                                for (@li <- liCh) {
+                                                                  match li {
+                                                                    (true, listing) => {
+                                                                      if (listing.get("status") != "active") {
+                                                                        GuestLedgerDrop!(
+                                                                          *ledgerState, opId) |
+                                                                        ret2!((false, "listing inactive"))
+                                                                      } else {
+                                                                        if (expectedTermsHash != Nil
+                                                                            && expectedTermsHash != listing.get("termsHash")) {
+                                                                          GuestLedgerDrop!(
+                                                                            *ledgerState, opId) |
+                                                                          ret2!((false, "terms"))
+                                                                        } else {
+                                                                          GuestLedgerBook!(
+                                                                            *ledgerState,
+                                                                            *dId2, guestId,
+                                                                            listing, listingUri,
+                                                                            unitSlots, opId,
+                                                                            ret2)
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                    _ => {
+                                                                      GuestLedgerDrop!(
+                                                                        *ledgerState, opId) |
+                                                                      ret2!(li)
+                                                                    }
+                                                                  }
                                                                 }
                                                               }
                                                             }
-                                                            _ => {
-                                                              GuestLedgerDrop!(
-                                                                *ledgerState, opId) |
-                                                              ret2!(li)
-                                                            }
+                                                          }
+                                                        }
+                                                        (true, entry) => {
+                                                          if (entry.get("ok") == true) {
+                                                            ret2!((true,
+                                                                   entry.get("bookingId"),
+                                                                   entry.get("uri")))
+                                                          } else {
+                                                            ret2!((false,
+                                                                   entry.get("reason")))
                                                           }
                                                         }
                                                       }
                                                     }
                                                   }
                                                 }
-                                                (true, entry) => {
-                                                  if (entry.get("ok") == true) {
-                                                    ret2!((true,
-                                                           entry.get("bookingId"),
-                                                           entry.get("uri")))
-                                                  } else {
-                                                    ret2!((false,
-                                                           entry.get("reason")))
-                                                  }
-                                                }
+                                                _ => { ret2!((false, "paused")) }
                                               }
                                             }
                                           }

@@ -29,11 +29,16 @@ Authority order: `contracts/src` and the static gates > `docs/` > this file.
 - **Deploy lifespan is 50 blocks.** Anchor `validAfterBlockNumber` at the tip.
 - **r-cash capabilities are resolved per arm**, never captured in a bundle. Only the r-cash
   Root URI string is stored in the adapter.
+- **Admin actions call the deployed `AdminGuard`**; owner checks use the inlined `Auth`
+  fragment. `lib/Guard.rho` is inlined only in the bootstrap Root, which cannot resolve
+  itself before it is registered.
 
 ## Commands
 
 ```
 make spec-check      # build drift, budgets, arch, captures, no-select, money
+make metrics         # structural metrics (bytes, cells, arms, resolve sites)
+make metrics-compare # compare against contracts/metrics-baseline.json
 make parse-check     # render and parse with the target node's parser
 make docs            # build docs/book with mdBook
 make docs-check      # docs links, orphans, coverage, then mdBook build

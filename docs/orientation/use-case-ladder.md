@@ -37,7 +37,7 @@ A new rung should change only:
   certification hash, operating envelope hash);
 - slot IDs and slot windows — `room-1:2026-11-05`, `GA-A:12`,
   `bike-17:2026-11-05T09:00`, `car-7:2026-11-05`, `arm-3:2026-11-05T14:00`;
-- a pure `Policy` branch if the cancellation or no-show arithmetic differs;
+- a pure `Remedy` branch if the cancellation or no-show arithmetic differs;
 - the off-chain product around it.
 
 A new rung should **not** change the booking state machine, the escrow mechanics, the
@@ -49,7 +49,7 @@ change belongs in a fork or in a new primitive discussed with the community.
 - **Same business shape, different inventory?** Fork the repo, add a `kind` and `attrs`,
   keep the contracts. This is the bike/car/robot path.
 - **Different cancellation arithmetic?** Add a pure branch to
-  [`Policy`](../reference/arms.md), keep the booking arms.
+  [`Remedy`](../reference/arms.md), keep the booking arms.
 - **Different money flow (subscriptions, usage metering, revenue splits)?** That is a new
   primitive. Treat it as a design discussion, not a patch.
 - **Different trust model (custodial, regulated, insured)?** Keep r-share as the settlement

@@ -36,90 +36,29 @@ contract authIsOwner(dId, @ownerId, ret) = {
     }
   }
 } |
-// M-of-N secp256k1 verification over a canonical payload.
-//
-// Payload: "rshare:admin:v1|<domain>|<nonce>|<action>|<arg0>,<arg1>,..."
-// Digest:  blake2b256(utf8(payload)). Signatures are DER secp256k1 over the digest.
-// verifyAdmin replies (true, Bool); the caller decides the refusal string.
 
-contract guardArgsToString(@args, ret) = {
-  if (args.length() == 0) {
-    ret!("")
-  } else {
-    match args.nth(0) {
-      a => {
-        new restCh in {
-          guardArgsAppend!(args, 1, a.toString(), *restCh) |
-          for (@s <- restCh) { ret!(s) }
-        }
-      }
-    }
-  }
-} |
-
-contract guardArgsAppend(@args, @i, @acc, ret) = {
-  if (i >= args.length()) {
-    ret!(acc)
-  } else {
-    match args.nth(i) {
-      a => { guardArgsAppend!(args, i + 1, acc ++ "," ++ a.toString(), *ret) }
-    }
-  }
-} |
-
-contract guardAnySig(@digest, @sigs, @j, @key, ret) = {
-  if (j >= sigs.length()) {
-    ret!(false)
-  } else {
-    new verify(`rho:crypto:secp256k1Verify`), vCh in {
-      match sigs.nth(j) {
-        sig => {
-          verify!(digest, sig, key, *vCh) |
-          for (@ok <- vCh) {
-            if (ok) { ret!(true) }
-            else { guardAnySig!(digest, sigs, j + 1, key, *ret) }
+  contract adminGuard(@domain, @nonce, @action, @args, @sigs,
+                      @admins, @threshold, ret) = {
+    new rCh, Root, gCh, gc in {
+      rl!(`__ROOT_URI__`, *rCh) |
+      for (Root <- rCh) {
+        Root!("resolve", "component:admin-guard", 1, *gCh) |
+        for (@r <- gCh) {
+          match r {
+            (true, uri, _) => {
+              rl!(uri, *gc) |
+              for (AdminGuard <- gc) {
+                AdminGuard!("verify", domain, nonce, action, args, sigs,
+                            admins, threshold, *ret)
+              }
+            }
+            _ => { ret!((false, "below threshold")) }
           }
         }
       }
     }
-  }
-} |
+  } |
 
-contract guardCount(@digest, @sigs, @i, @count, @keys, @threshold, ret) = {
-  if (i >= keys.length()) {
-    ret!(count >= threshold)
-  } else {
-    match keys.nth(i) {
-      key => {
-        new anyCh in {
-          guardAnySig!(digest, sigs, 0, key, *anyCh) |
-          for (@any <- anyCh) {
-            if (any) { guardCount!(digest, sigs, i + 1, count + 1, keys, threshold, *ret) }
-            else { guardCount!(digest, sigs, i + 1, count, keys, threshold, *ret) }
-          }
-        }
-      }
-    }
-  }
-} |
-
-contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, ret) = {
-  new hash(`rho:crypto:blake2b256Hash`), strCh, hashCh, okCh in {
-    guardArgsToString!(args, *strCh) |
-    for (@argStr <- strCh) {
-      match "rshare:admin:v1|" ++ domain ++ "|" ++ nonce.toString()
-            ++ "|" ++ action ++ "|" ++ argStr {
-        payload => {
-          hash!(payload.toUtf8Bytes(), *hashCh) |
-          for (@digest <- hashCh) {
-            guardCount!(digest, sigs, 0, 0, keys, threshold, *okCh) |
-            for (@ok <- okCh) { ret!((true, ok)) }
-          }
-        }
-      }
-    }
-  }
-} |
 
   contract unitClock(ret) = {
     new rCh, Root, uCh, cCh in {
@@ -134,31 +73,31 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
     }
   } |
 
-  contract unitPolicy(ret) = {
+  contract unitTerms(ret) = {
     new rCh, Root, uCh, cCh in {
       rl!(`__ROOT_URI__`, *rCh) |
       for (Root <- rCh) {
-        Root!("resolve", "component:policy", 1, *uCh) |
+        Root!("resolve", "component:terms", 1, *uCh) |
         for (@(true, uri, _) <- uCh) {
           rl!(uri, *cCh) |
-          for (Policy <- cCh) { ret!((true, Policy)) }
+          for (Terms <- cCh) { ret!((true, Terms)) }
         }
       }
     }
   } |
 
   contract UnitFactory(@"validate", @kind, @slots, @maxLeadBlocks,
-                       @maxSlotBlocks, ret) = {
+                       @maxSlotBlocks, @contiguous, ret) = {
     new pCh, nCh in {
-      unitPolicy!(*pCh) |
+      unitTerms!(*pCh) |
       unitClock!(*nCh) |
       for (@p <- pCh; @n <- nCh) {
         match p {
-          (true, Policy) => {
+          (true, Terms) => {
             match n {
               (true, now) => {
-                @Policy!("scheduleOk", kind, slots, now,
-                         maxLeadBlocks, maxSlotBlocks, *ret)
+                @Terms!("scheduleOk", kind, slots, now,
+                        maxLeadBlocks, maxSlotBlocks, contiguous, *ret)
               }
               _ => { ret!(n) }
             }
@@ -436,12 +375,16 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
                         match n {
                           (true, now) => {
                             for (@st <<- unitState) {
-                              if (now >= untilHeight
-                                  || untilHeight > now + st.get("maxHoldBlocks")) {
-                                ret2!((false, "until"))
+                              if (st.get("status") != "active") {
+                                ret2!((false, "unit paused"))
                               } else {
-                                unitHoldSeq!(slotIds, 0, bookingId, untilHeight,
-                                             now, *releaseToken, *ret2)
+                                if (now >= untilHeight
+                                    || untilHeight > now + st.get("maxHoldBlocks")) {
+                                  ret2!((false, "until"))
+                                } else {
+                                  unitHoldSeq!(slotIds, 0, bookingId, untilHeight,
+                                               now, *releaseToken, *ret2)
+                                }
                               }
                             }
                           }
@@ -473,7 +416,7 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
                         unitState!(st) | ret2!((false, "replay"))
                       } else {
                         new vCh in {
-                          verifyAdmin!("unit:" ++ unitId, nonce, "pause", [], sigs,
+                          adminGuard!("unit:" ++ unitId, nonce, "pause", [], sigs,
                                        st.get("admins"), st.get("threshold"), *vCh) |
                           for (@v <- vCh) {
                             match v {
@@ -500,7 +443,7 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
                         unitState!(st) | ret2!((false, "replay"))
                       } else {
                         new vCh in {
-                          verifyAdmin!("unit:" ++ unitId, nonce, "setAdmins",
+                          adminGuard!("unit:" ++ unitId, nonce, "setAdmins",
                                        [newAdmins, newThreshold], sigs,
                                        st.get("admins"), st.get("threshold"), *vCh) |
                           for (@v <- vCh) {
@@ -673,6 +616,105 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
         }
       }
     }
+  } |
+
+  contract unitAllHold(@unitSlots, @i, @bookingId, @until, releaseToken, ret) = {
+    if (i >= unitSlots.length()) {
+      ret!((true, Nil))
+    } else {
+      match unitSlots.nth(i) {
+        us => {
+          new cCh in {
+            rl!(us.get("unitUri"), *cCh) |
+            for (Unit <- cCh) {
+              new hCh in {
+                Unit!("hold", bookingId, us.get("slots"), until,
+                      *releaseToken, *hCh) |
+                for (@h <- hCh) {
+                  match h {
+                    (true, Nil) => {
+                      unitAllHold!(unitSlots, i + 1, bookingId, until,
+                                   *releaseToken, *ret)
+                    }
+                    _ => {
+                      new relCh in {
+                        unitAllRelease!(unitSlots, 0, *releaseToken, *relCh) |
+                        for (@_ <- relCh) { ret!(h) }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract unitAllRelease(@unitSlots, @i, releaseToken, ret) = {
+    if (i >= unitSlots.length()) {
+      ret!((true, Nil))
+    } else {
+      match unitSlots.nth(i) {
+        us => {
+          new cCh in {
+            rl!(us.get("unitUri"), *cCh) |
+            for (Unit <- cCh) {
+              new rCh in {
+                Unit!("release", us.get("slots"), *releaseToken, *rCh) |
+                for (@_ <- rCh) {
+                  unitAllRelease!(unitSlots, i + 1, *releaseToken, *ret)
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract unitAllConfirm(@unitSlots, @i, releaseToken, ret) = {
+    if (i >= unitSlots.length()) {
+      ret!((true, Nil))
+    } else {
+      match unitSlots.nth(i) {
+        us => {
+          new cCh in {
+            rl!(us.get("unitUri"), *cCh) |
+            for (Unit <- cCh) {
+              new c2 in {
+                Unit!("confirm", us.get("slots"), *releaseToken, *c2) |
+                for (@r <- c2) {
+                  match r {
+                    (true, Nil) => {
+                      unitAllConfirm!(unitSlots, i + 1, *releaseToken, *ret)
+                    }
+                    _ => {
+                      new relCh in {
+                        unitAllRelease!(unitSlots, 0, *releaseToken, *relCh) |
+                        for (@_ <- relCh) { ret!((false, "slot lost")) }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract UnitFactory(@"holdAll", @unitSlots, @bookingId, @until,
+                       releaseToken, ret) = {
+    unitAllHold!(unitSlots, 0, bookingId, until, *releaseToken, *ret)
+  } |
+  contract UnitFactory(@"releaseAll", @unitSlots, releaseToken, ret) = {
+    unitAllRelease!(unitSlots, 0, *releaseToken, *ret)
+  } |
+  contract UnitFactory(@"confirmAll", @unitSlots, releaseToken, ret) = {
+    unitAllConfirm!(unitSlots, 0, *releaseToken, *ret)
   } |
 
   rl!(`__ROOT_URI__`, *rootCh) |

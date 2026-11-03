@@ -15,23 +15,21 @@ account after `40_payments.rho`.
 | 2 | `01_kernel.rho` | `component:clock`, `component:verifier`, `component:codec` |
 | 3 | `02_admin.rho` | `component:admin-guard`, `component:admin` |
 | 4 | `40_payments.rho` | `component:payments` |
-| 5 | `12_policy.rho` | `component:policy` |
-| 6 | `10_provider.rho` | `component:provider-book` |
-| 7 | `13_unit.rho` | `component:unit-factory` |
-| 8 | `11_listing.rho` | `component:listing-factory` |
-| 9 | `14_listing_contract.rho` | `component:listing-contract-factory` |
-| 10 | `20_booking.rho` | `component:guest-book` |
-| 11 | `23_guest_ledger.rho` | `component:guest-ledger-factory` |
-| 12 | `21_booking.rho` | `component:booking-factory` |
-| 13 | `22_booking_contract.rho` | `component:booking-contract-factory` |
+| 5 | `03_terms.rho` | `component:terms` |
+| 6 | `04_remedy.rho` | `component:remedy`, `component:policy` (alias) |
+| 7 | `10_provider.rho` | `component:provider-book` |
+| 8 | `13_unit.rho` | `component:unit-factory` |
+| 9 | `14_listing_contract.rho` | `component:listing-factory` |
+| 10 | `15_bond.rho` | `component:bond-factory` |
+| 11 | `22_booking_contract.rho` | `component:booking-factory` |
+| 12 | `23_guest_ledger.rho` | `component:guest-ledger-factory` |
+| 13 | `20_booking.rho` | `component:guest-book` |
 
-The numeric filenames are not the install order. `40_payments` and `12_policy` are deployed
-before the provider/listing/unit group; `13_unit` and `11_listing` are deployed before
-`14_listing_contract`; the booking and guest-ledger group comes last.
+`20_booking` comes last because GuestBook resolves the guest-ledger factory at runtime;
+`22_booking_contract` comes before the ledger because GuestLedger resolves the booking
+factory. The old `21_booking` pass-through is gone.
 
 ## Placeholders
-
-The installer renders these before deploying:
 
 | Placeholder | Value |
 |---|---|
@@ -46,9 +44,6 @@ The installer renders these before deploying:
 
 ## r-share component keys
 
-The Root registers these keys. Clients resolve them with `ShareRoot("resolve", key,
-minVersion, ret)`.
-
 ```
 component:root
 component:clock
@@ -57,16 +52,20 @@ component:codec
 component:admin-guard
 component:admin
 component:payments
-component:policy
+component:terms
+component:remedy
+component:policy        (one-release alias for remedy)
 component:provider-book
-component:listing-factory
 component:unit-factory
-component:listing-contract-factory
-component:guest-book
-component:guest-ledger-factory
+component:listing-factory
+component:bond-factory
 component:booking-factory
-component:booking-contract-factory
+component:guest-ledger-factory
+component:guest-book
 ```
+
+`component:listing-contract-factory` and `component:booking-contract-factory` are gone; the
+factories are internal to `14` and `22`, and `22` registers as `component:booking-factory`.
 
 ## r-cash component keys
 
@@ -84,11 +83,13 @@ component:clock
 ## Post-install checks
 
 - `ShareRoot("keys")` lists every r-share key above.
-- `ShareRoot("resolve", "component:clock", 1)` returns `(true, uri, 1)`.
+- `ShareRoot("resolveMany", ["component:clock", "component:terms", "component:remedy"], 1)`
+  returns the three URIs in one call.
+- `Terms("fields")` returns the ordered 20-field list.
+- `Remedy("fee", 1000, 500)` returns `(true, 50, 950)`.
 - `Payments("health")` returns all three r-cash versions.
 - `Payments("platformOwner")` returns the deployer's REV address.
-- The platform account exists (the installer ensures it).
-- `deployments/devnet.json` has the Root URI and the component results.
+- `Bond("info")` reports `paid: false` before settlement and `paid: true` after.
 
 ## Freeze
 

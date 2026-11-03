@@ -19,6 +19,8 @@ Conventions:
 ```
 ShareRoot("resolve", @key, @minVersion, ret) -> (true, uri, version)
                                              | (false, "unknown component" | "retired" | "stale")
+ShareRoot("resolveMany", @keys, @minVersion, ret)
+  -> (true, {key -> {uri, version}}) | (false, "unknown component" | "retired" | "stale", key)
 ShareRoot("get", @key, ret) -> (true, entry) | (false, "unknown component")
 ShareRoot("keys", ret) -> (true, keys)
 ShareRoot("register", @key, @uri, @version, @kind, dId, ret)
@@ -40,13 +42,14 @@ Verifier("hash", @bytes, ret) -> (true, digest)
 Verifier("sigOk", @digest, @sig, @pub, ret) -> (true, Bool)
 Codec("canonical", @schema, @items, ret) -> (true, text)
 Codec("hash", @schema, @items, ret) -> (true, digest)
+Codec("adminPayload", @domain, @nonce, @action, @args, ret) -> (true, text)
 ```
 
 ## Admin — `02_admin.rho`
 
 ```
-AdminGuard("verify", @domain, @nonce, @action, @argsHash, @sigs, @admins, @threshold, ret)
-  -> (true, Nil) | (false, "below threshold")
+AdminGuard("verify", @domain, @nonce, @action, @args, @sigs, @admins, @threshold, ret)
+  -> (true, Bool) | (false, "below threshold")
 ShareAdmin("keys", ret) -> (true, admins, threshold)
 ShareAdmin("isPaused", ret) -> (true, Bool)
 ShareAdmin("admin", @nonce, @action, @args, @sigs, ret)
@@ -71,20 +74,36 @@ Payments("admin", @nonce, @action, @args, @sigs, ret)
   -> (true, Nil) | (false, "replay" | "below threshold" | "rcash unavailable" | "unknown action")
 ```
 
-## Policy — `12_policy.rho`
+## Terms — `03_terms.rho`
 
 ```
-Policy("fee", @rent, @feeBps, ret) -> (true, fee, net) | (false, "bps")
-Policy("cancel", @kind, @policy, @now, @startHeight, @rent, @deposit, @actor, ret)
-  -> (true, Settlement) | (false, "actor" | "bps")
-Policy("noShow", @rent, @deposit, @feeBps, ret) -> (true, Settlement) | (false, "bps")
-Policy("depositSplit", @deposit, @providerBps, ret)
-  -> (true, {providerDamage, guestRefund}) | (false, "bps")
-Policy("termsOk", @kind, @terms, ret) -> (true, Nil) | (false, field)
-Policy("scheduleOk", @kind, @slots, @now, @maxLeadBlocks, @maxSlotBlocks, ret)
+Terms("fields", ret) -> (true, [field])
+Terms("values", @kind, @terms, ret) -> (true, [value])
+Terms("validate", @kind, @terms, ret) -> (true, Nil) | (false, field)
+Terms("hash", @kind, @terms, ret) -> (true, digest) | (false, "codec")
+Terms("booking", @terms, ret) -> (true, projection)
+Terms("remedy", @terms, ret) -> (true, projection)
+Terms("scheduleOk", @kind, @slots, @now, @maxLeadBlocks, @maxSlotBlocks, @contiguous, ret)
   -> (true, Nil) | (false, "slots" | "slot id" | "duplicate slot" | "slot order" |
                     "slot past" | "slot lead" | "slot duration" | "slot gap")
 ```
+
+`Terms` owns the only ordered field list. `booking` and `remedy` return the projections the
+booking and ledger consume; neither caller repeats the field order.
+
+## Remedy — `04_remedy.rho`
+
+```
+Remedy("fee", @rent, @feeBps, ret) -> (true, fee, net) | (false, "bps")
+Remedy("cancel", @kind, @policy, @now, @startHeight, @rent, @deposit, @actor, ret)
+  -> (true, Settlement) | (false, "actor" | "bps")
+Remedy("noShow", @rent, @deposit, @feeBps, ret) -> (true, Settlement) | (false, "bps")
+Remedy("depositSplit", @deposit, @providerBps, ret)
+  -> (true, {providerDamage, guestRefund}) | (false, "bps")
+```
+
+`Remedy` is the only place with cancellation/fee/no-show/deposit arithmetic. It is
+registered as `component:remedy`; `component:policy` remains as a one-release alias.
 
 ## Provider — `10_provider.rho`
 
@@ -99,6 +118,7 @@ ProviderBook("providers", ret) -> (true, providers)
 
 ```
 ProviderContract("info", ret) -> (true, state)
+ProviderContract("isActive", ret) -> (true, Bool)
 ProviderContract("owner", ret) -> (true, providerId)
 ProviderContract("profile", ret) -> (true, profile)
 ProviderContract("listings", ret) -> (true, listings)
@@ -118,11 +138,15 @@ ProviderContract("setAdmins", @nonce, @newAdmins, @newThreshold, @sigs, ret)
 ## Unit — `13_unit.rho`
 
 ```
-UnitFactory("validate", @kind, @slots, @maxLeadBlocks, @maxSlotBlocks, ret)
+UnitFactory("validate", @kind, @slots, @maxLeadBlocks, @maxSlotBlocks, @contiguous, ret)
   -> (true, Nil) | (false, schedule reason)
 UnitFactory("create", dId, @unitId, @providerId, @listingId, @kind, @attrs, @slots,
             @maxHoldBlocks, @admins, @threshold, ret)
   -> (true, unitUri) | (false, "not owner")
+UnitFactory("holdAll", @unitSlots, @bookingId, @until, releaseToken, ret)
+  -> (true, Nil) | (false, slot reason)
+UnitFactory("releaseAll", @unitSlots, releaseToken, ret) -> (true, Nil)
+UnitFactory("confirmAll", @unitSlots, releaseToken, ret) -> (true, Nil) | (false, "slot lost")
 ```
 
 `UnitContract` (spawned per unit):
@@ -133,7 +157,7 @@ UnitContract("slots", ret) -> (true, [slotId])
 UnitContract("schedule", @slotIds, ret) -> (true, {slotId -> SlotSpec}) | (false, "unknown slot")
 UnitContract("probe", @slotIds, ret) -> (true, {slotId -> state}) | (false, "unknown slot")
 UnitContract("hold", @bookingId, @slotIds, @untilHeight, releaseToken, ret)
-  -> (true, Nil) | (false, "until" | "unknown slot" | "slot held")
+  -> (true, Nil) | (false, "unit paused" | "until" | "unknown slot" | "slot held")
 UnitContract("release", @slotIds, releaseToken, ret) -> (true, Nil)
 UnitContract("confirm", @slotIds, releaseToken, ret) -> (true, Nil) | (false, "slot lost")
 UnitContract("reset", dId, @slotId, ret) -> (true, Nil) | (false, "not owner" | "unknown slot")
@@ -153,7 +177,7 @@ SlotContract("confirm", releaseToken, ret) -> (true, Nil) | (false, "not held")
 SlotContract("reset", resetToken, ret) -> (true, Nil) | (false, "not provider")
 ```
 
-## Listing — `11_listing.rho` and `14_listing_contract.rho`
+## Listing — `14_listing_contract.rho`
 
 ```
 ListingFactory("create", dId, @providerUri, @listingId, @kind, @terms, ret)
@@ -197,19 +221,31 @@ GuestLedgerFactory("create", dId, @guestId, ret) -> (true, ledgerUri) | (false, 
 GuestLedger("ops", dId, ret) -> (true, ops) | (false, "not owner")
 GuestLedger("book", dId, @listingUri, @unitSlots, @opId, @expectedTermsHash, ret)
   -> (true, bookingId, bookingUri)
-   | (false, "not owner" | "pending" | "listing inactive" | "terms" | "slots" | "units" |
-             "schedule" | "slot held" | "payments unavailable" | "account" | reason)
+   | (false, "not owner" | "pending" | "paused" | "provider paused" | "listing inactive" |
+             "terms" | "slots" | "units" | "schedule" | "slot held" |
+             "payments unavailable" | "account" | reason)
 ```
 
-## Booking — `21_booking.rho` and `22_booking_contract.rho`
+## Bond — `15_bond.rho`
 
 ```
-BookingFactory("create", dId, @data, escrowPurse, releaseToken, brand, ret)
-  -> (true, bookingUri) | (false, "not guest" | "booking factory unavailable")
-
-BookingContractFactory("create", dId, @data, escrowPurse, releaseToken, brand, ret)
-  -> (true, bookingUri) | (false, "not guest")
+BondFactory("create", escrowPurse, brand, @assetId, @expected, settleToken, ret)
+  -> (true, bondUri)
+Bond("pay", @buckets, @expected, settleToken, ret)
+  -> (true, Nil) | (false, "closed" | "not holder" | "amount")
+Bond("balance", ret) -> (true, amount)
+Bond("info", ret) -> (true, {paid, expected, remaining})
 ```
+
+## Booking — `22_booking_contract.rho`
+
+```
+BookingContractFactory("create", dId, @data, releaseToken, @bondUri, settleToken, ret)
+  -> (true, bookingUri) | (false, "not guest" | "bond factory unavailable")
+```
+
+The factory is registered as `component:booking-factory`. `GuestLedger` creates the Bond
+first, then passes its URI and the fresh `settleToken` to the factory.
 
 `BookingContract` (spawned per booking):
 
@@ -255,6 +291,10 @@ BookingContract("setAdmins", @nonce, @newAdmins, @newThreshold, @sigs, ret) -> (
 | `"below threshold"` | fewer than 2 valid signatures |
 | `"payments unavailable"` / `"rcash unavailable"` | the rail cannot be resolved |
 | `"pending"` | the same opId is in flight |
+| `"paused"` / `"provider paused"` / `"unit paused"` | a pause gate refused the action |
+| `"not holder"` | the Bond or slot token does not match |
+| `"bond factory unavailable"` | the Bond factory could not be resolved |
+| `"codec"` | the Terms hash could not resolve Codec |
 
 > **Where to go deeper.** [Contract map](contract-map.md) is the component list. [Data
 > schemas](data-schemas.md) is the state shapes. [Bookings and lifecycle](../concepts/bookings-and-lifecycle.md)

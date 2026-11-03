@@ -23,15 +23,15 @@ ORDER = [
     "01_kernel.rho",
     "02_admin.rho",
     "40_payments.rho",
-    "12_policy.rho",
+    "03_terms.rho",
+    "04_remedy.rho",
     "10_provider.rho",
     "13_unit.rho",
-    "11_listing.rho",
     "14_listing_contract.rho",
-    "20_booking.rho",
-    "23_guest_ledger.rho",
-    "21_booking.rho",
+    "15_bond.rho",
     "22_booking_contract.rho",
+    "23_guest_ledger.rho",
+    "20_booking.rho",
 ]
 
 
@@ -135,6 +135,10 @@ def main(argv: list[str] | None = None) -> int:
     build = ROOT / "contracts" / "build"
     rendered_dir = ROOT / ".devnet" / "rendered"
     rendered_dir.mkdir(parents=True, exist_ok=True)
+    if args.dry_run:
+        for stale in rendered_dir.glob("*.rho"):
+            if stale.name not in ORDER:
+                stale.unlink()
     state: dict[str, str] = {}
     root_uri = "rho:id:dryrun" if args.dry_run else None
     secret = keys["deployer"]["secret"]

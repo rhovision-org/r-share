@@ -57,7 +57,7 @@ maxSlotBlocks              1440
 eventTransferCutoffBlocks  0
 ```
 
-The terms are validated by `Policy.termsOk` when the listing is created. The validator
+The terms are validated by `Terms.validate` when the listing is created. The validator
 bounds every field; an out-of-range or missing field is refused with `"terms"` or the field
 name. The listing stores the terms and their hash.
 

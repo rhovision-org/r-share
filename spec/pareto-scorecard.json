@@ -1,0 +1,63 @@
+{
+  "generated_by": "tools/pareto.py",
+  "status": "current measured; target rows estimated",
+  "coverage": {
+    "total": 30,
+    "passing": 0,
+    "mapping": 20,
+    "design": 10,
+    "not_implemented": 0
+  },
+  "trust_assumptions": [
+    "Root/installer bootstrap.",
+    "2-of-3 admin/arbiter.",
+    "r-cash rail."
+  ],
+  "trust_count": 3,
+  "metrics": {
+    "terms": 13,
+    "components": 23,
+    "state_cell_types": 12,
+    "bytes_max": 22987,
+    "arm_declarations": 122,
+    "root_resolve_sites": 18,
+    "registry_lookup_sites": 65
+  },
+  "candidates": [
+    {
+      "name": "current",
+      "coverage_passing": 0,
+      "coverage_total": 30,
+      "trust": 3,
+      "bytes_max": 22987,
+      "components": 23,
+      "state_cell_types": 12,
+      "measured": true
+    },
+    {
+      "name": "bilateral-bond",
+      "coverage_target": 30,
+      "trust": 3,
+      "extra_bytes": "4-6 KiB (estimate)",
+      "cells_per_booking": "buyer + provider legs + booking",
+      "dispute_steps": "2 / 3",
+      "measured": false
+    },
+    {
+      "name": "oracle-sla",
+      "coverage_target": 35,
+      "trust": 4,
+      "extra_bytes": "10-15 KiB (estimate)",
+      "dispute_steps": "3 / 5",
+      "measured": false
+    },
+    {
+      "name": "bilateral+anchor",
+      "coverage_target": 32,
+      "trust": 3,
+      "extra_bytes": "5-8 KiB over current (estimate)",
+      "dispute_steps": "2 / 3",
+      "measured": false
+    }
+  ]
+}

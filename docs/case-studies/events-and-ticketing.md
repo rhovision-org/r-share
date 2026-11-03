@@ -93,7 +93,7 @@ no-show equivalent for events.
 - `attrs` for the section, seat number, accessibility and view;
 - `eventTransferCutoffBlocks` and `feeBps`;
 - a ticket display and a door scanner;
-- the `Policy.cancel` event branch if your refund arithmetic differs.
+- the `Remedy.cancel` event branch if your refund arithmetic differs.
 
 Do not add a new booking arm. The ticket is a projection, not a second state machine.
 

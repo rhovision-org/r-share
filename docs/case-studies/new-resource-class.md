@@ -17,8 +17,8 @@ Use a boat rental as the example.
 kind = "boat"
 ```
 
-`Policy.termsOk` currently accepts `lodging`, `event`, `bike`, `car` and `robot`. Add `boat`
-to that list in `contracts/src/deploy/12_policy.rho`. This is the only kind-specific code
+`Terms.validate` currently accepts `lodging`, `event`, `bike`, `car` and `robot`. Add `boat`
+to that list in `contracts/src/deploy/04_remedy.rho`. This is the only kind-specific code
 in the shared path.
 
 ### 2. Define the unit and the slot
@@ -59,8 +59,8 @@ maxSlotBlocks              1440
 eventTransferCutoffBlocks  0
 ```
 
-Validate the fields with `Policy.termsOk`. If your cancellation arithmetic is the standard
-one, no `Policy.cancel` change is needed. If it differs (for example, a weather clause),
+Validate the fields with `Terms.validate`. If your cancellation arithmetic is the standard
+one, no `Remedy.cancel` change is needed. If it differs (for example, a weather clause),
 add a pure `boat` branch; do not touch the booking arms.
 
 ### 4. Add a fixture and a suite
@@ -99,7 +99,7 @@ reference chapter in the same change.
 ## The one-file change
 
 If your class behaves like lodging with different labels, the only contract change is the
-`kind` list in `Policy.termsOk`. Everything else is `attrs`, slots, terms, a fixture and the
+`kind` list in `Terms.validate`. Everything else is `attrs`, slots, terms, a fixture and the
 off-chain product.
 
 ## When it is genuinely a new primitive

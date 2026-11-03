@@ -29,6 +29,36 @@ in {
     }
   } |
 
+  contract codecArgsAppend(@items, @i, @acc, ret) = {
+    if (i >= items.length()) {
+      ret!(acc)
+    } else {
+      match items.nth(i) {
+        x => { codecArgsAppend!(items, i + 1, acc ++ "," ++ x.toString(), *ret) }
+      }
+    }
+  } |
+
+  contract codecArgsJoin(@items, ret) = {
+    if (items.length() == 0) {
+      ret!("")
+    } else {
+      match items.nth(0) {
+        x => { codecArgsAppend!(items, 1, x.toString(), *ret) }
+      }
+    }
+  } |
+
+  contract Codec(@"adminPayload", @domain, @nonce, @action, @args, ret) = {
+    new aCh in {
+      codecArgsJoin!(args, *aCh) |
+      for (@argStr <- aCh) {
+        ret!("rshare:admin:v1|" ++ domain ++ "|" ++ nonce.toString()
+             ++ "|" ++ action ++ "|" ++ argStr)
+      }
+    }
+  } |
+
   contract codecJoin(@items, @i, @acc, ret) = {
     if (i >= items.length()) {
       ret!(acc)

@@ -15,7 +15,7 @@ as `Nil` is optional or absent.
 | `minSlots`, `maxSlots` | slot count bounds per booking |
 | `maxUnits` | units per booking (a RaaS session may use two) |
 | `instantBook` | confirm at booking instead of provider accept |
-| `contiguous` | lodging: each slot starts where the previous ended |
+| `contiguous` | the schedule requires each slot to start where the previous ended |
 | `holdBlocks` | hold lifetime from `now` |
 | `depositReviewBlocks` | deposit review after checkout |
 | `disputeWindowBlocks` | dispute window after a claim |
@@ -66,7 +66,7 @@ as `Nil` is optional or absent.
 ```
 {"bookingId", "guestId", "providerId", "listingId", "listingUri", "kind",
  "unitSlots": [{"unitUri", "slots": [slotId]}],
- "assetId", "rent", "deposit", "feeBps",
+ "assetId", "rent", "deposit", "feeBps", "bondUri",
  "holdUntilHeight", "checkInHeight", "checkOutHeight",
  "cancellation": Terms,
  "admins", "threshold",
@@ -80,6 +80,15 @@ as `Nil` is optional or absent.
 ```
 
 `rent = pricePerSlot * slotCount`. The deposit is separate.
+
+## Bond state
+
+```
+{"paid": Bool, "expected": Int, "remaining": Int}
+```
+
+The Bond owns the ERTP purse and the settle token in its closure. One `pay` is terminal; a
+second `pay` refuses `"closed"`.
 
 ## Ticket
 
