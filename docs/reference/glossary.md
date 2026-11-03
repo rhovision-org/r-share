@@ -73,7 +73,7 @@ and is no worse on bytes, cells, dispute steps or liveness, with one strict impr
 
 **RaaS** — robotics-as-a-service; the north star.
 
-**rent** — `pricePerSlot * slotCount`.
+**rent** — the sum of each booked unit's `pricePerSlot` times its slot count.
 
 **settlement** — the deterministic split of the escrow into buckets.
 

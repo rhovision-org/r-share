@@ -8,7 +8,8 @@
    every operation.
 5. A terminal booking's settlement buckets sum to `rent + deposit`.
 6. A slot releases only for the release token that holds it.
-7. A booking's `rent` equals `pricePerSlot * slotCount`; the deposit is always separate.
+7. A booking's `rent` equals the sum of each booked unit's `pricePerSlot` times its slot
+   count; the deposit is always separate.
 8. No two bookings hold the same slot at the same time; a lapsed hold may be reclaimed.
 9. `bookingId` is unique per `(guestId, opId)`; a replay returns the stored result.
 10. Provider, guest, listing and unit authority is derived from `deployerId`; no owner id is

@@ -185,7 +185,7 @@ states and verified signatures. Anything else is evidence, not adjudication.
 5. Provider-bond forfeiture never exceeds the provider leg; buyer-deposit forfeiture never
    exceeds the deposit.
 6. A slot releases only for its holder's token.
-7. A booking's `rent == pricePerSlot * slotCount`; the deposit is separate.
+7. A booking's `rent == Σ(unit.pricePerSlot * unit slot count)`; the deposit is separate.
 8. No two bookings hold one slot at once; a lapsed hold is reclaimable.
 9. Every non-terminal state has a permissionless terminal path after its deadline.
 

@@ -44,7 +44,7 @@ as `Nil` is optional or absent.
  "slots": {slotId -> slotUri},
  "schedule": {slotId -> {"startHeight", "endHeight",
                          "startHintMs", "endHintMs"}},
- "maxHoldBlocks", "status": "active" | "paused",
+ "pricePerSlot", "maxHoldBlocks", "status": "active" | "paused",
  "admins", "threshold", "nonce"}
 ```
 
@@ -80,7 +80,9 @@ as `Nil` is optional or absent.
  "ops": {opId -> result}, "nonce"}
 ```
 
-`rent = pricePerSlot * slotCount`. The deposit is separate.
+`rent = Σ(unit.pricePerSlot * slots booked from that unit)`. Each unit stores its own
+price; the deposit is separate. A single-price booking is the special case where every
+unit carries the listing price.
 
 ## Bond state
 

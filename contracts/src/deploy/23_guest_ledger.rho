@@ -192,9 +192,25 @@ in {
                         (true, specMap) => {
                           match ps {
                             (true, stateMap) => {
-                              ledgerSlotScan!(slotIds, 0, specMap, stateMap,
-                                              now, maxLead, maxSlot,
-                                              0, now + maxLead + 1, 0, *ret)
+                              new scanCh in {
+                                ledgerSlotScan!(slotIds, 0, specMap, stateMap,
+                                                now, maxLead, maxSlot,
+                                                0, now + maxLead + 1, 0, *scanCh) |
+                                for (@part <- scanCh) {
+                                  match part {
+                                    (true, summary) => {
+                                      match unit.get("pricePerSlot") {
+                                        Nil => { ret!((false, "price")) }
+                                        price => {
+                                          ret!((true, summary.set(
+                                            "rent", price * summary.get("count"))))
+                                        }
+                                      }
+                                    }
+                                    _ => { ret!(part) }
+                                  }
+                                }
+                              }
                             }
                             _ => { ret!(ps) }
                           }
@@ -214,9 +230,10 @@ in {
   } |
 
   contract ledgerScanUnits(@unitSlots, @i, @listingId, @now, @maxLead,
-                           @maxSlot, @count, @minStart, @maxEnd, ret) = {
+                           @maxSlot, @count, @minStart, @maxEnd, @rent, ret) = {
     if (i >= unitSlots.length()) {
-      ret!((true, {"count": count, "minStart": minStart, "maxEnd": maxEnd}))
+      ret!((true, {"count": count, "minStart": minStart, "maxEnd": maxEnd,
+                   "rent": rent}))
     } else {
       match unitSlots.nth(i) {
         us => {
@@ -232,7 +249,7 @@ in {
                     for (@mn <- mnCh; @mx <- mxCh) {
                       ledgerScanUnits!(unitSlots, i + 1, listingId, now, maxLead,
                                        maxSlot, count + part.get("count"),
-                                       mn, mx, *ret)
+                                       mn, mx, rent + part.get("rent"), *ret)
                     }
                   }
                 }
@@ -337,7 +354,7 @@ in {
                                listing.get("terms").get("maxLeadBlocks"),
                                listing.get("terms").get("maxSlotBlocks"),
                                0, now + listing.get("terms").get("maxLeadBlocks") + 1,
-                               0, *scanCh) |
+                               0, 0, *scanCh) |
               for (@scan <- scanCh) {
                 match scan {
                   (true, summary) => {
@@ -364,6 +381,7 @@ in {
                                       *ledgerState, *dId, guestId, listing,
                                       listingUri, unitSlots, opId, bId,
                                       untilHeight, summary.get("count"),
+                                      summary.get("rent"),
                                       summary.get("minStart"), summary.get("maxEnd"),
                                       *releaseToken, *ret)
                                   }
@@ -410,7 +428,7 @@ in {
 
   contract GuestLedgerPay(ledgerState, dId, @guestId, @listing, @listingUri,
                           @unitSlots, @opId, @bookingId, @untilHeight,
-                          @slotCount, @checkInHeight, @checkOutHeight,
+                          @slotCount, @rent, @checkInHeight, @checkOutHeight,
                           releaseToken, ret) = {
     new pCh in {
       ledgerPayments!(*pCh) |
@@ -437,9 +455,7 @@ in {
                                     (true, purse) => {
                                       new totalCh in {
                                         totalCh!(
-                                          listing.get("terms").get("pricePerSlot")
-                                            * slotCount
-                                          + listing.get("terms").get("deposit")) |
+                                          rent + listing.get("terms").get("deposit")) |
                                         for (@total <- totalCh) {
                                           new wCh in {
                                             @account!("withdraw", *dId,
@@ -467,8 +483,7 @@ in {
                                                                       bookingBond!(
                                                                         purse, brand,
                                                                         listing.get("terms").get("assetId"),
-                                                                        listing.get("terms").get("pricePerSlot") * slotCount
-                                                                        + listing.get("terms").get("deposit"),
+                                                                        rent + listing.get("terms").get("deposit"),
                                                                         *settleToken, *bondCh) |
                                                                       for (@br <- bondCh) {
                                                                         match br {
@@ -487,6 +502,7 @@ in {
                                                                               checkInHeight,
                                                                               checkOutHeight,
                                                                               slotCount,
+                                                                              rent,
                                                                               bondUri,
                                                                               *settleToken,
                                                                               *ret)
@@ -550,7 +566,7 @@ in {
   contract GuestLedgerSpawn(ledgerState, releaseToken, dId,
                             @guestId, @listing, @listingUri, @unitSlots,
                             @opId, @bookingId, @untilHeight, @checkInHeight,
-                            @checkOutHeight, @slotCount, @bondUri,
+                            @checkOutHeight, @slotCount, @rent, @bondUri,
                             settleToken, ret) = {
     new fCh in {
       ledgerBookingFactory!(*fCh) |
@@ -584,7 +600,7 @@ in {
                         "kind": listing.get("kind"),
                         "unitSlots": unitSlots,
                         "assetId": listing.get("terms").get("assetId"),
-                        "rent": listing.get("terms").get("pricePerSlot") * slotCount,
+                        "rent": rent,
                         "deposit": listing.get("terms").get("deposit"),
                         "feeBps": listing.get("terms").get("feeBps"),
                         "holdUntilHeight": untilHeight,

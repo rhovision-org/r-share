@@ -11,7 +11,7 @@ canonical signature list.
 1. `ProviderBook.register(dId, profile)` creates the provider and ensures its r-cash account.
 2. `ListingFactory.create(dId, providerUri, listingId, kind, terms)` validates the terms,
    hashes them, and spawns a `ListingContract` in `draft`.
-3. `ListingContract.ensureUnit(dId, unitId, attrs, slots)` validates the schedule, spawns a
+3. `ListingContract.ensureUnit(dId, unitId, attrs, slots, pricePerSlot)` validates the schedule, spawns a
    `UnitContract`, and creates one `SlotContract` per slot.
 4. `ListingContract.activate(dId)` makes the listing bookable.
 

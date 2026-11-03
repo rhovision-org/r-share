@@ -24,6 +24,7 @@ unit-lifecycle pass   dispute from requested refuses;
                       arbitrate outside dispute refuses;
                       checked-out booking resolves through resolveDispute
 unit-claims    pass   four claim classes x five kinds (20/30 coverage cells)
+unit-pricing   pass   units store 10 and 20; a zero price refuses "price"
 ```
 
 The runner writes `deployments/suite-results.json` (gitignored) and exits 0 only when every
@@ -52,6 +53,12 @@ The same three scenarios run for lodging, event, bike, car and robot. They exerc
 remedy arithmetic and the booking state machine; they do not exercise a real Bond, slots,
 or ERTP conservation.
 
+## What the pricing suite proves
+
+Two units created with prices 10 and 20 report those prices from `UnitContract("info")`,
+and a price of zero refuses `"price"`. It does not yet prove that the guest ledger sums
+per-unit prices into a booking's rent; that needs a full listing/unit/booking scenario.
+
 ## r-cash caveat
 
 The pinned r-cash installer currently stops at its `51_pool` step because the node reports
@@ -65,6 +72,7 @@ clock, asset resolver and account factory; the AMM pool is not on its path.
 - `providerDeliveryBreach` and `partialPerformance`, which have no code;
 - concurrency races, conservation, pause and admin;
 - event-only ticket arms (`redeem`, `closeEvent`, `transferTicket`);
-- slot settlement and ERTP conservation (the claim fixture uses a stub Bond).
+- slot settlement and ERTP conservation (the claim fixture uses a stub Bond);
+- an end-to-end booking whose rent is the sum of different per-unit prices.
 
 Do not describe those as passing. The coverage manifest records the real status.

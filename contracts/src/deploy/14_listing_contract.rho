@@ -272,7 +272,7 @@ in {
                 }
               } |
               contract ListingContract(@"ensureUnit", dId2, @unitId,
-                                       @attrs, @slots, ret2) = {
+                                       @attrs, @slots, @pricePerSlot, ret2) = {
                 for (@st <- listingState) {
                   if (st.get("status") == "paused" || st.get("status") == "delisted") {
                     listingState!(st) | ret2!((false, "not active"))
@@ -315,6 +315,7 @@ in {
                                                             st.get("terms").get("holdBlocks"),
                                                             st.get("admins"),
                                                             st.get("threshold"),
+                                                            pricePerSlot,
                                                             *pc) |
                                                           for (@u <- pc) {
                                                             match u {

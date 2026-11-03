@@ -49,6 +49,7 @@ ListingContract!("ensureUnit", *deployerId, "room-1",
                    "endHeight": 12576},
                   {"slotId": "room-1:2026-11-07", "startHeight": 12576,
                    "endHeight": 12864}],
+                 100,
                  *ret)
 ```
 

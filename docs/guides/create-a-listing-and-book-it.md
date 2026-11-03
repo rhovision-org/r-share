@@ -12,7 +12,7 @@ narrative.
 |---|---|---|---|
 | 1 | `ProviderBook("register", dId, profile)` | provider | `(true, providerUri, providerId)` |
 | 2 | `ListingFactory("create", dId, providerUri, listingId, kind, terms)` | provider | `(true, listingUri)` |
-| 3 | `ListingContract("ensureUnit", dId, unitId, attrs, slots)` | provider | `(true, unitUri)` |
+| 3 | `ListingContract("ensureUnit", dId, unitId, attrs, slots, pricePerSlot)` | provider | `(true, unitUri)` |
 | 4 | `ListingContract("activate", dId)` | provider | `(true, Nil)` |
 | 5 | `GuestBook("getOrCreate", dId)` | guest | `(true, ledgerUri, guestId)` |
 | 6 | `GuestLedger("book", dId, listingUri, unitSlots, opId, termsHash)` | guest | `(true, bookingId, bookingUri)` |

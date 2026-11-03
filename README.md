@@ -46,8 +46,9 @@ r-cash `49b441d` recorded passing runs for `unit_root`, `unit_payments` and
 `unit_lifecycle` and `unit_claims`. The lifecycle suite verifies the dispute gate, the
 arbitration gate and permissionless `resolveDispute`; the claims suite verifies
 `buyerUseBreach`, `noFaultCancellation`, `noShow` and `damage` for lodging, events, bike,
-car and robot. Coverage is 20/30 `passing`; `providerDeliveryBreach` and
-`partialPerformance` remain design. The remaining suites are placeholders that exit 2. See
+car and robot. `unit_pricing` verifies that a unit stores and validates its own price.
+Coverage is 20/30 `passing`; `providerDeliveryBreach` and `partialPerformance` remain
+design. End-to-end rent aggregation across differently priced units is not yet tested. The remaining suites are placeholders that exit 2. See
 [Status, scope and honest limits](docs/orientation/status-and-scope.md).
 
 ## Quickstart

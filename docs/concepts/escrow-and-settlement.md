@@ -91,7 +91,7 @@ decide whether it wants a platform fee at all; setting `feeBps` to zero is allow
 ## What is not escrowed
 
 - Off-chain deposits, insurance or security held by a regulated provider.
-- Usage metering beyond `pricePerSlot * slotCount`.
+- Usage metering beyond per-unit slot pricing.
 - Fiat on-ramp or off-ramp.
 - Tax withholding.
 

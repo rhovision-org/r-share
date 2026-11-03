@@ -124,12 +124,16 @@ contract authIsOwner(dId, @ownerId, ret) = {
   } |
 
   contract UnitFactory(@"create", dId, @unitId, @providerId, @listingId, @kind,
-                       @attrs, @slots, @maxHoldBlocks, @admins, @threshold, ret) = {
+                       @attrs, @slots, @maxHoldBlocks, @admins, @threshold,
+                       @pricePerSlot, ret) = {
     new oCh in {
       authIsOwner!(*dId, providerId, *oCh) |
       for (@v <- oCh) {
         match v {
           (true, Nil) => {
+            if (pricePerSlot < 1 || pricePerSlot > 1000000000000) {
+              ret!((false, "price"))
+            } else {
             new schCh in {
               unitSchedule!(slots, 0, {}, *schCh) |
               for (@schedule <- schCh) {
@@ -150,6 +154,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
                     "status": "active",
                     "admins": admins,
                     "threshold": threshold,
+                    "pricePerSlot": pricePerSlot,
                     "nonce": 0
                   }) |
 
@@ -636,6 +641,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
                     }
                   }
                 }
+              }
               }
             }
           }
