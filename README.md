@@ -16,12 +16,12 @@ off-chain database in this repo.
 
 | Stage | What it proves | Status |
 |---|---|---|
-| Short-term holiday letting | full stay lifecycle, deposit, cancellation, dispute | Lifecycle and claim suites pass; slot settlement not exercised |
-| Events management | capacity across show times and sections | Claim path passes; event-only ticket arms not exercised |
-| Ticketing | transferable, redeemable proof of admission | Claim path passes; event-only ticket arms not exercised |
-| Municipal bike share | fleet, station-hour capacity, unlock credential | Claim path passes for the kind; fleet/station behavior not exercised |
-| Car rental | vehicle windows, inspection, damage deposit | Claim path passes for the kind; inspection not exercised |
-| Robotics-as-a-service | machine windows, operators, SLAs, session evidence | Claim path, per-unit pricing and per-unit windows pass; SLAs/evidence enforcement not implemented |
+| Short-term holiday letting | full stay lifecycle, deposit, cancellation, dispute | Booking, lifecycle, claim and conservation suites pass; slot settlement exercised |
+| Events management | capacity across show times and sections | Claim suite and unit_events ticket arms pass; section capacity is mapping only |
+| Ticketing | transferable, redeemable proof of admission | unit_events redeem, transfer and close pass |
+| Municipal bike share | fleet, station-hour capacity, unlock credential | unit_generality passes for the kind; fleet/station capacity is mapping only |
+| Car rental | vehicle windows, inspection, damage deposit | unit_generality passes for the kind; inspection and insurance are mapping only |
+| Robotics-as-a-service | machine windows, operators, SLAs, session evidence | Booking, allocator, per-unit pricing/windows and claims pass; SLAs and evidence enforcement are design |
 
 ## What is here
 

@@ -24,7 +24,7 @@ deploy rolls back.
 
 ```
 Bond("pay", @buckets, @expected, settleToken, ret)
-  -> (true, Nil) | (false, "closed" | "not holder" | "amount" | "payments unavailable")
+  -> (true, Nil) | (false, "closed" | "not holder" | "amount")
 Bond("balance", ret) -> (true, amount)
 Bond("info", ret) -> (true, {paid, expected, remaining})
 ```

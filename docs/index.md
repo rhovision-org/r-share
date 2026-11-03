@@ -74,7 +74,7 @@ throughout the book.
   [Robotics-as-a-service](case-studies/robotics-raas.md).
 - **Forking the repo?** Read [Fork and run](guides/fork-and-run.md) and
   [Adding a new resource class](case-studies/new-resource-class.md).
-- **Designing the universal core?** Read [Space-time primitives](concepts/space-time-primitives.md),
+- **Designing the core primitives?** Read [Space-time primitives](concepts/space-time-primitives.md),
   [Obligations and bonds](concepts/obligations-and-bonds.md), and
   [Remedies and claims](concepts/remedies-and-claims.md).
 - **Checking a fact?** Use the [reference](reference/contract-map.md) part; it is the

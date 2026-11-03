@@ -1,4 +1,4 @@
-# Pareto analysis of universal primitive cores
+# Pareto analysis of candidate primitive cores
 
 **Status:** Analysis and proposal. The "current" column is measured; the other columns are
 estimates and are marked as such.
@@ -41,13 +41,13 @@ A dominates B iff:
 - bytes, cells, dispute steps and liveness are no worse;
 - at least one dimension is strictly better.
 
-A candidate that violates a hard constraint is not on the frontier.
+A candidate that violates a hard constraint is not on the estimated frontier.
 
 ## 4. Candidate cores
 
 | Candidate | Coverage | Trust | Bytes | Cells / booking | Dispute steps | Liveness |
 |---|---|---|---|---|---|---|
-| Current buyer-deposit core | 20 passing; 0 mapping; 10 design | 3 | 23,284 B max measured; 13 terms; one per-listing allocator cell | 2 + listing cell | 2 / 3 | permissionless settle/expire/resolve; allocator proofs and behavioural run |
+| Current buyer-deposit core | 20 passing; 0 mapping; 10 design | 3 | 23,289 B max measured; 13 terms; one per-listing allocator cell | 2 + listing cell | 2 / 3 | permissionless settle/expire/resolve; allocator proofs and behavioural run |
 | **Bilateral bond + generalized claim** | target 30/30; all cells design until suites pass | 3 | +4–6 KiB est. | 2 bond legs + booking + N slots | 2 / 3 | permissionless resolveClaim/expire/settle |
 | Oracle/SLA | + quality and metering | 4 (adds oracle) | +10–15 KiB est. | 2 + attestations | 3 / 5 | depends on oracle quorum/freshness |
 | Bilateral + evidence anchors | + evidence classes | 3 | +1–2 KiB over bilateral | 2 + evidence log | 2 / 3 | same as bilateral |
@@ -112,7 +112,7 @@ classes remain design, and the alternative rows are estimates.
 
 The Phase 3 evidence anchor is the next Pareto improvement. The Phase 4 provider bond/cure
 is the implementation of the bilateral leg. Phase 5 metering is a separate, bounded
-extension and is not on the core frontier.
+extension and is not on the estimated core frontier.
 
 ## 9. Phase roadmap and monotonicity
 

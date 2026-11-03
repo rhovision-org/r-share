@@ -3,7 +3,7 @@
 > **Status:** Design proposal. Phase 1 implements capacity, slots, terms, a buyer bond and
 > deterministic remedies; the bilateral obligation model below is the Phase 2 target.
 
-A rental is a right to use capacity over an interval. The universal core makes that right
+A rental is a right to use capacity over an interval. The proposed core makes that right
 explicit, attaches the two obligations that come with it, and leaves every fact that cannot
 be reproduced on every node off-chain.
 

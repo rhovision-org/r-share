@@ -1,11 +1,13 @@
-# Universal space-time primitives with bilateral obligations
+# Space-time primitives with bilateral obligations: a design proposal
 
 **Status:** Design proposal. Phase 1 (the modular base layer) is implemented; the bilateral
 obligation model in this document is the Phase 2 target. It is not implemented or verified.
-"Universal" is a design goal, not a measured result: the recorded base run covers the root,
-payments, lifecycle and four claim classes across all five kinds (`unit_root`,
-`unit_payments`, `unit_lifecycle`, `unit_claims`). `providerDeliveryBreach`,
-`partialPerformance` are not verified; the allocator, conservation and pause suites pass, and the allocator cornerstone is proved in `spec/lean`.
+"Universal" is a design goal, not a measured result: the recorded base run is the 16-suite
+campaign in `docs/reference/verification.md`, including the allocator, conservation,
+pause, lifecycle and four claim classes across all five kinds. `providerDeliveryBreach`
+and `partialPerformance` are not verified. The allocator cornerstone is proved in
+`spec/lean` and tied to the arms by `spec/flows/core.yaml`; that is `proved-model`, not a
+refinement of Rholang.
 
 ## 1. Purpose and scope
 
@@ -55,7 +57,7 @@ There are no timers; expiry is lazy and permissionless.
 - **Unit** is a resource instance: room, seat, bike, vehicle or machine, with `attrs` and a
   schedule.
 - **Slot** is the atomic reservable interval. Slots live in the per-listing allocation cell. A slot is exactly
-  `free`, `held` or `booked`. A disjoint slot never contends with another.
+  `free`, `held` or `booked`. Slots in one listing share an allocator cell and serialize.
 
 The current implementation keeps units and slots in one per-listing allocation cell owned
 by `ListingContract`. `UnitFactory` is stateless and only validates schedules and scans a

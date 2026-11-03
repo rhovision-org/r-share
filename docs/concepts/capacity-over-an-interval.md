@@ -44,7 +44,7 @@ interval". The difference matters:
 Modeling capacity as a set of independent slots is what lets the chain arbitrate with one
 consumed datum per slot instead of a global lock.
 
-## The universal shape
+## The shared shape
 
 Every class is the same shape with different labels:
 
