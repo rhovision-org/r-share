@@ -1,0 +1,49 @@
+# r-share operating notes
+
+Authority order: `contracts/src` and the static gates > `docs/` > this file.
+
+## Platform pitfalls
+
+- **`select` is not committed choice.** `rholang/src/normalizer.rs:256-274` desugars
+  `PChoice` into parallel `for` receives. Never use it for exclusivity. `make check-select`
+  fails the build. Use one consumable datum.
+- **Deploy term cap is 64 KiB inclusive** (`casper/src/multi_parent_casper.rs:99`). The hard
+  budget is 56 KiB per term. Measure after every change.
+- **A deploy is atomic, blocks are sequential.** Deploys do not interleave. A multi-slot
+  acquire may be sequential as long as every consumed record is reposted before the arm
+  replies. Do not describe it as one comm event.
+- **Peeks are hints.** Never carry a peeked record across an external await into a write.
+  Never use a peek as a lock or reservation.
+- **Unmatched `for` is silent.** A wrong arity means a deploy that never replies, not an
+  error. Match reply shapes exhaustively.
+- **`*x` sends a name; `@x` sends data.** Names (payments, purses, facets, tokens) are
+  passed with `*`.
+- **After value moves, fail.** Return `(false, reason)` only before a withdrawal/deposit;
+  afterwards an unexpected branch calls `1/0` so the deploy rolls back.
+- **`rho:block:data` timestamp is the proposer's wall clock**, not a consensus input. Use
+  only the block number.
+- **No timers.** Expiry is lazy: a later holder may reclaim an expired hold, and
+  `expire`/`settle`/`closeEvent` are permissionless.
+- **`explore-deploy` has no block context.** Anything reading `rho:block:data` must be a
+  signed deploy.
+- **Deploy lifespan is 50 blocks.** Anchor `validAfterBlockNumber` at the tip.
+- **r-cash capabilities are resolved per arm**, never captured in a bundle. Only the r-cash
+  Root URI string is stored in the adapter.
+
+## Commands
+
+```
+make spec-check      # build drift, budgets, arch, captures, no-select, money
+make devnet          # r-cash devnet via RCASH_DIR/RHOLO_DIR
+make rcash-install   # install r-cash components
+make keys install    # install r-share
+make unit-all        # all behavioural suites
+```
+
+## Rules for changes
+
+- A new resource class changes only `kind`, `attrs`, and a pure `Policy` branch. If it needs
+  a new booking arm, the primitive is wrong.
+- Never add a shared mutable counter or a mutable availability cache.
+- Every new arm needs a refusal test and an idempotency test.
+- Every value-moving path needs a balance-conservation assertion.

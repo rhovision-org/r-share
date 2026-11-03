@@ -1,0 +1,686 @@
+// UnitFactory: one UnitContract per bookable unit, one SlotContract per slot.
+// A Unit stores slot URIs (data), never live slot capabilities, so no capability is
+// captured in a bundle. Each slot has its own cell: disjoint slots commit independently.
+// Placeholders: __ROOT_URI__.
+new
+  UnitFactory,
+  rl(`rho:registry:lookup`),
+  rs(`rho:registry:insertArbitrary`),
+  deployerId(`rho:rchain:deployerId`),
+  deployId(`rho:rchain:deployId`),
+  rootCh, c, ack
+in {
+// Deployer identity helpers. r-cash owns accounts; r-share only derives the owner id.
+
+contract authOwner(dId, ret) = {
+  new dops(`rho:rchain:deployerId:ops`), rev(`rho:rev:address`), pkCh, addrCh in {
+    dops!("pubKeyBytes", *dId, *pkCh) |
+    for (@pk <- pkCh) {
+      rev!("fromPublicKey", pk, *addrCh) |
+      for (@addr <- addrCh) { ret!((true, addr)) }
+    }
+  }
+} |
+
+contract authIsOwner(dId, @ownerId, ret) = {
+  new c in {
+    authOwner!(*dId, *c) |
+    for (@r <- c) {
+      match r {
+        (true, addr) => {
+          if (addr == ownerId) { ret!((true, Nil)) }
+          else { ret!((false, "not owner")) }
+        }
+        _ => { ret!((false, "not owner")) }
+      }
+    }
+  }
+} |
+// M-of-N secp256k1 verification over a canonical payload.
+//
+// Payload: "rshare:admin:v1|<domain>|<nonce>|<action>|<arg0>,<arg1>,..."
+// Digest:  blake2b256(utf8(payload)). Signatures are DER secp256k1 over the digest.
+// verifyAdmin replies (true, Bool); the caller decides the refusal string.
+
+contract guardArgsToString(@args, ret) = {
+  if (args.length() == 0) {
+    ret!("")
+  } else {
+    match args.nth(0) {
+      a => {
+        new restCh in {
+          guardArgsAppend!(args, 1, a.toString(), *restCh) |
+          for (@s <- restCh) { ret!(s) }
+        }
+      }
+    }
+  }
+} |
+
+contract guardArgsAppend(@args, @i, @acc, ret) = {
+  if (i >= args.length()) {
+    ret!(acc)
+  } else {
+    match args.nth(i) {
+      a => { guardArgsAppend!(args, i + 1, acc ++ "," ++ a.toString(), *ret) }
+    }
+  }
+} |
+
+contract guardAnySig(@digest, @sigs, @j, @key, ret) = {
+  if (j >= sigs.length()) {
+    ret!(false)
+  } else {
+    new verify(`rho:crypto:secp256k1Verify`), vCh in {
+      match sigs.nth(j) {
+        sig => {
+          verify!(digest, sig, key, *vCh) |
+          for (@ok <- vCh) {
+            if (ok) { ret!(true) }
+            else { guardAnySig!(digest, sigs, j + 1, key, *ret) }
+          }
+        }
+      }
+    }
+  }
+} |
+
+contract guardCount(@digest, @sigs, @i, @count, @keys, @threshold, ret) = {
+  if (i >= keys.length()) {
+    ret!(count >= threshold)
+  } else {
+    match keys.nth(i) {
+      key => {
+        new anyCh in {
+          guardAnySig!(digest, sigs, 0, key, *anyCh) |
+          for (@any <- anyCh) {
+            if (any) { guardCount!(digest, sigs, i + 1, count + 1, keys, threshold, *ret) }
+            else { guardCount!(digest, sigs, i + 1, count, keys, threshold, *ret) }
+          }
+        }
+      }
+    }
+  }
+} |
+
+contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, ret) = {
+  new hash(`rho:crypto:blake2b256Hash`), strCh, hashCh, okCh in {
+    guardArgsToString!(args, *strCh) |
+    for (@argStr <- strCh) {
+      match "rshare:admin:v1|" ++ domain ++ "|" ++ nonce.toString()
+            ++ "|" ++ action ++ "|" ++ argStr {
+        payload => {
+          hash!(payload.toUtf8Bytes(), *hashCh) |
+          for (@digest <- hashCh) {
+            guardCount!(digest, sigs, 0, 0, keys, threshold, *okCh) |
+            for (@ok <- okCh) { ret!((true, ok)) }
+          }
+        }
+      }
+    }
+  }
+} |
+
+  contract unitClock(ret) = {
+    new rCh, Root, uCh, cCh in {
+      rl!(`__ROOT_URI__`, *rCh) |
+      for (Root <- rCh) {
+        Root!("resolve", "component:clock", 1, *uCh) |
+        for (@(true, uri, _) <- uCh) {
+          rl!(uri, *cCh) |
+          for (Clock <- cCh) { Clock!("now", *ret) }
+        }
+      }
+    }
+  } |
+
+  contract unitPolicy(ret) = {
+    new rCh, Root, uCh, cCh in {
+      rl!(`__ROOT_URI__`, *rCh) |
+      for (Root <- rCh) {
+        Root!("resolve", "component:policy", 1, *uCh) |
+        for (@(true, uri, _) <- uCh) {
+          rl!(uri, *cCh) |
+          for (Policy <- cCh) { ret!((true, Policy)) }
+        }
+      }
+    }
+  } |
+
+  contract UnitFactory(@"validate", @kind, @slots, @maxLeadBlocks,
+                       @maxSlotBlocks, ret) = {
+    new pCh, nCh in {
+      unitPolicy!(*pCh) |
+      unitClock!(*nCh) |
+      for (@p <- pCh; @n <- nCh) {
+        match p {
+          (true, Policy) => {
+            match n {
+              (true, now) => {
+                @Policy!("scheduleOk", kind, slots, now,
+                         maxLeadBlocks, maxSlotBlocks, *ret)
+              }
+              _ => { ret!(n) }
+            }
+          }
+          _ => { ret!(p) }
+        }
+      }
+    }
+  } |
+
+  contract unitSchedule(@specs, @i, @acc, ret) = {
+    if (i >= specs.length()) {
+      ret!(acc)
+    } else {
+      match specs.nth(i) {
+        spec => {
+          match spec.get("slotId") {
+            slotId => { unitSchedule!(specs, i + 1, acc.set(slotId, spec), *ret) }
+          }
+        }
+      }
+    }
+  } |
+
+  contract UnitFactory(@"create", dId, @unitId, @providerId, @listingId, @kind,
+                       @attrs, @slots, @maxHoldBlocks, @admins, @threshold, ret) = {
+    new oCh in {
+      authIsOwner!(*dId, providerId, *oCh) |
+      for (@v <- oCh) {
+        match v {
+          (true, Nil) => {
+            new schCh in {
+              unitSchedule!(slots, 0, {}, *schCh) |
+              for (@schedule <- schCh) {
+                new UnitContract, unitState, resetToken, uCh in {
+                  unitState!({
+                    "unitId": unitId,
+                    "listingId": listingId,
+                    "providerId": providerId,
+                    "kind": kind,
+                    "attrs": attrs,
+                    "slots": {},
+                    "schedule": schedule,
+                    "maxHoldBlocks": maxHoldBlocks,
+                    "status": "active",
+                    "admins": admins,
+                    "threshold": threshold,
+                    "nonce": 0
+                  }) |
+
+                  contract unitSlotUri(@slotId, ret2) = {
+                    for (@st <<- unitState) {
+                      match st.get("slots").get(slotId) {
+                        Nil => { ret2!((false, "unknown slot")) }
+                        uri => { ret2!((true, uri)) }
+                      }
+                    }
+                  } |
+
+                  contract unitSlotHold(@slotId, @bId, @until, @now,
+                                        releaseToken, ret2) = {
+                    new sCh in {
+                      unitSlotUri!(slotId, *sCh) |
+                      for (@r <- sCh) {
+                        match r {
+                          (true, uri) => {
+                            new cCh in {
+                              rl!(uri, *cCh) |
+                              for (Slot <- cCh) {
+                                Slot!("hold", bId, until, now, *releaseToken, *ret2)
+                              }
+                            }
+                          }
+                          _ => { ret2!(r) }
+                        }
+                      }
+                    }
+                  } |
+
+                  contract unitSlotRelease(@slotId, releaseToken, ret2) = {
+                    new sCh in {
+                      unitSlotUri!(slotId, *sCh) |
+                      for (@r <- sCh) {
+                        match r {
+                          (true, uri) => {
+                            new cCh in {
+                              rl!(uri, *cCh) |
+                              for (Slot <- cCh) {
+                                Slot!("release", *releaseToken, *ret2)
+                              }
+                            }
+                          }
+                          _ => { ret2!(r) }
+                        }
+                      }
+                    }
+                  } |
+
+                  contract unitSlotConfirm(@slotId, releaseToken, ret2) = {
+                    new sCh in {
+                      unitSlotUri!(slotId, *sCh) |
+                      for (@r <- sCh) {
+                        match r {
+                          (true, uri) => {
+                            new cCh in {
+                              rl!(uri, *cCh) |
+                              for (Slot <- cCh) {
+                                Slot!("confirm", *releaseToken, *ret2)
+                              }
+                            }
+                          }
+                          _ => { ret2!(r) }
+                        }
+                      }
+                    }
+                  } |
+
+                  contract unitSlotProbe(@slotId, ret2) = {
+                    new sCh in {
+                      unitSlotUri!(slotId, *sCh) |
+                      for (@r <- sCh) {
+                        match r {
+                          (true, uri) => {
+                            new cCh in {
+                              rl!(uri, *cCh) |
+                              for (Slot <- cCh) { Slot!("probe", *ret2) }
+                            }
+                          }
+                          _ => { ret2!(r) }
+                        }
+                      }
+                    }
+                  } |
+
+                  contract unitSlotReset(@slotId, ret2) = {
+                    new sCh in {
+                      unitSlotUri!(slotId, *sCh) |
+                      for (@r <- sCh) {
+                        match r {
+                          (true, uri) => {
+                            new cCh in {
+                              rl!(uri, *cCh) |
+                              for (Slot <- cCh) {
+                                Slot!("reset", *resetToken, *ret2)
+                              }
+                            }
+                          }
+                          _ => { ret2!(r) }
+                        }
+                      }
+                    }
+                  } |
+
+                  contract unitHoldSeq(@ids, @i, @bId, @until, @now,
+                                       releaseToken, ret2) = {
+                    if (i >= ids.length()) {
+                      ret2!((true, Nil))
+                    } else {
+                      new hCh in {
+                        unitSlotHold!(ids.nth(i), bId, until, now,
+                                      *releaseToken, *hCh) |
+                        for (@h <- hCh) {
+                          match h {
+                            (true, Nil) => {
+                              unitHoldSeq!(ids, i + 1, bId, until, now,
+                                           *releaseToken, *ret2)
+                            }
+                            _ => {
+                              new rCh in {
+                                unitReleaseSeq!(ids, 0, *releaseToken, *rCh) |
+                                for (@_ <- rCh) { ret2!(h) }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  } |
+
+                  contract unitReleaseSeq(@ids, @i, releaseToken, ret2) = {
+                    if (i >= ids.length()) {
+                      ret2!((true, Nil))
+                    } else {
+                      new rCh in {
+                        unitSlotRelease!(ids.nth(i), *releaseToken, *rCh) |
+                        for (@_ <- rCh) {
+                          unitReleaseSeq!(ids, i + 1, *releaseToken, *ret2)
+                        }
+                      }
+                    }
+                  } |
+
+                  contract unitConfirmSeq(@ids, @i, releaseToken, ret2) = {
+                    if (i >= ids.length()) {
+                      ret2!((true, Nil))
+                    } else {
+                      new c2 in {
+                        unitSlotConfirm!(ids.nth(i), *releaseToken, *c2) |
+                        for (@r <- c2) {
+                          match r {
+                            (true, Nil) => {
+                              unitConfirmSeq!(ids, i + 1, *releaseToken, *ret2)
+                            }
+                            _ => {
+                              new relCh in {
+                                unitReleaseSeq!(ids, 0, *releaseToken, *relCh) |
+                                for (@_ <- relCh) { ret2!((false, "slot lost")) }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  } |
+
+                  contract unitProbeSeq(@ids, @i, @acc, ret2) = {
+                    if (i >= ids.length()) {
+                      ret2!((true, acc))
+                    } else {
+                      new pCh in {
+                        unitSlotProbe!(ids.nth(i), *pCh) |
+                        for (@p <- pCh) {
+                          match p {
+                            (true, state) => {
+                              unitProbeSeq!(ids, i + 1,
+                                            acc.set(ids.nth(i), state), *ret2)
+                            }
+                            _ => { ret2!(p) }
+                          }
+                        }
+                      }
+                    }
+                  } |
+
+                  contract unitScheduleCollect(@ids, @i, @schedule, @acc, ret2) = {
+                    if (i >= ids.length()) {
+                      ret2!((true, acc))
+                    } else {
+                      match schedule.get(ids.nth(i)) {
+                        Nil => { ret2!((false, "unknown slot")) }
+                        spec => {
+                          unitScheduleCollect!(ids, i + 1, schedule,
+                                               acc.set(ids.nth(i), spec), *ret2)
+                        }
+                      }
+                    }
+                  } |
+
+                  contract UnitContract(@"info", ret2) = {
+                    for (@st <<- unitState) { ret2!((true, st)) }
+                  } |
+                  contract UnitContract(@"slots", ret2) = {
+                    for (@st <<- unitState) { ret2!((true, st.get("slots").keys())) }
+                  } |
+                  contract UnitContract(@"schedule", @slotIds, ret2) = {
+                    for (@st <<- unitState) {
+                      new sCh in {
+                        unitScheduleCollect!(slotIds, 0, st.get("schedule"), {},
+                                             *sCh) |
+                        for (@r <- sCh) { ret2!(r) }
+                      }
+                    }
+                  } |
+                  contract UnitContract(@"probe", @slotIds, ret2) = {
+                    new pCh in {
+                      unitProbeSeq!(slotIds, 0, {}, *pCh) |
+                      for (@r <- pCh) { ret2!(r) }
+                    }
+                  } |
+                  contract UnitContract(@"hold", @bookingId, @slotIds,
+                                        @untilHeight, releaseToken, ret2) = {
+                    new nowCh in {
+                      unitClock!(*nowCh) |
+                      for (@n <- nowCh) {
+                        match n {
+                          (true, now) => {
+                            for (@st <<- unitState) {
+                              if (now >= untilHeight
+                                  || untilHeight > now + st.get("maxHoldBlocks")) {
+                                ret2!((false, "until"))
+                              } else {
+                                unitHoldSeq!(slotIds, 0, bookingId, untilHeight,
+                                             now, *releaseToken, *ret2)
+                              }
+                            }
+                          }
+                          _ => { ret2!(n) }
+                        }
+                      }
+                    }
+                  } |
+                  contract UnitContract(@"release", @slotIds, releaseToken, ret2) = {
+                    unitReleaseSeq!(slotIds, 0, *releaseToken, *ret2)
+                  } |
+                  contract UnitContract(@"confirm", @slotIds, releaseToken, ret2) = {
+                    unitConfirmSeq!(slotIds, 0, *releaseToken, *ret2)
+                  } |
+                  contract UnitContract(@"reset", dId2, @slotId, ret2) = {
+                    new oCh2 in {
+                      authIsOwner!(*dId2, providerId, *oCh2) |
+                      for (@v <- oCh2) {
+                        match v {
+                          (true, Nil) => { unitSlotReset!(slotId, *ret2) }
+                          _ => { ret2!(v) }
+                        }
+                      }
+                    }
+                  } |
+                  contract UnitContract(@"adminPause", @nonce, @sigs, ret2) = {
+                    for (@st <- unitState) {
+                      if (nonce <= st.get("nonce")) {
+                        unitState!(st) | ret2!((false, "replay"))
+                      } else {
+                        new vCh in {
+                          verifyAdmin!("unit:" ++ unitId, nonce, "pause", [], sigs,
+                                       st.get("admins"), st.get("threshold"), *vCh) |
+                          for (@v <- vCh) {
+                            match v {
+                              (true, ok) => {
+                                if (ok == false) {
+                                  unitState!(st) | ret2!((false, "below threshold"))
+                                } else {
+                                  unitState!(st.set("status", "paused")
+                                               .set("nonce", nonce)) |
+                                  ret2!((true, Nil))
+                                }
+                              }
+                              _ => { unitState!(st) | ret2!((false, "below threshold")) }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  } |
+                  contract UnitContract(@"setAdmins", @nonce, @newAdmins,
+                                        @newThreshold, @sigs, ret2) = {
+                    for (@st <- unitState) {
+                      if (nonce <= st.get("nonce")) {
+                        unitState!(st) | ret2!((false, "replay"))
+                      } else {
+                        new vCh in {
+                          verifyAdmin!("unit:" ++ unitId, nonce, "setAdmins",
+                                       [newAdmins, newThreshold], sigs,
+                                       st.get("admins"), st.get("threshold"), *vCh) |
+                          for (@v <- vCh) {
+                            match v {
+                              (true, ok) => {
+                                if (ok == false) {
+                                  unitState!(st) | ret2!((false, "below threshold"))
+                                } else {
+                                  if (newThreshold < 1
+                                      || newThreshold > newAdmins.length()) {
+                                    unitState!(st) | ret2!((false, "threshold"))
+                                  } else {
+                                    unitState!(st.set("admins", newAdmins)
+                                                 .set("threshold", newThreshold)
+                                                 .set("nonce", nonce)) |
+                                    ret2!((true, Nil))
+                                  }
+                                }
+                              }
+                              _ => { unitState!(st) | ret2!((false, "below threshold")) }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  } |
+
+                  contract unitMakeSlots(@specs, @i, @acc, ret2) = {
+                    if (i >= specs.length()) {
+                      ret2!(acc)
+                    } else {
+                      match specs.nth(i) {
+                        spec => {
+                          match spec.get("slotId") {
+                            slotId => {
+                              new SlotContract, slotState, sCh in {
+                                slotState!(["free", 0]) |
+                                contract SlotContract(@"probe", ret3) = {
+                                  for (@sl <<- slotState) {
+                                    match sl {
+                                      ["free", gen] => { ret3!((true, sl)) }
+                                      ["held", bId, until, token] => {
+                                        ret3!((true, ["held", bId, until]))
+                                      }
+                                      ["booked", bId, token] => {
+                                        ret3!((true, ["booked", bId]))
+                                      }
+                                      _ => { ret3!((true, ["invalid"])) }
+                                    }
+                                  }
+                                } |
+                                contract SlotContract(@"hold", @bookingId, @untilHeight,
+                                                      @now, releaseToken, ret3) = {
+                                  for (@sl <- slotState) {
+                                    match sl {
+                                      ["free", gen] => {
+                                        slotState!(["held", bookingId, untilHeight,
+                                                    *releaseToken]) |
+                                        ret3!((true, Nil))
+                                      }
+                                      ["held", oldId, oldUntil, oldToken] => {
+                                        if (now >= oldUntil) {
+                                          slotState!(["held", bookingId, untilHeight,
+                                                      *releaseToken]) |
+                                          ret3!((true, Nil))
+                                        } else {
+                                          slotState!(sl) |
+                                          ret3!((false, "slot held", oldUntil))
+                                        }
+                                      }
+                                      _ => {
+                                        slotState!(sl) | ret3!((false, "slot held"))
+                                      }
+                                    }
+                                  }
+                                } |
+                                contract SlotContract(@"release", releaseToken, ret3) = {
+                                  for (@sl <- slotState) {
+                                    match sl {
+                                      ["free", gen] => {
+                                        slotState!(sl) | ret3!((true, Nil))
+                                      }
+                                      ["held", bId, until, token] => {
+                                        if (token == *releaseToken) {
+                                          slotState!(["free", 0]) |
+                                          ret3!((true, Nil))
+                                        } else {
+                                          slotState!(sl) |
+                                          ret3!((false, "not holder"))
+                                        }
+                                      }
+                                      ["booked", bId, token] => {
+                                        if (token == *releaseToken) {
+                                          slotState!(["free", 0]) |
+                                          ret3!((true, Nil))
+                                        } else {
+                                          slotState!(sl) |
+                                          ret3!((false, "not holder"))
+                                        }
+                                      }
+                                      _ => {
+                                        slotState!(sl) | ret3!((false, "not holder"))
+                                      }
+                                    }
+                                  }
+                                } |
+                                contract SlotContract(@"confirm", releaseToken, ret3) = {
+                                  for (@sl <- slotState) {
+                                    match sl {
+                                      ["held", bId, until, token] => {
+                                        if (token == *releaseToken) {
+                                          slotState!(["booked", bId, token]) |
+                                          ret3!((true, Nil))
+                                        } else {
+                                          slotState!(sl) |
+                                          ret3!((false, "not held"))
+                                        }
+                                      }
+                                      _ => {
+                                        slotState!(sl) | ret3!((false, "not held"))
+                                      }
+                                    }
+                                  }
+                                } |
+                                contract SlotContract(@"reset", resetToken2, ret3) = {
+                                  for (@sl <- slotState) {
+                                    if (resetToken2 == *resetToken) {
+                                      match sl {
+                                        ["free", gen] => {
+                                          slotState!(sl) | ret3!((true, Nil))
+                                        }
+                                        _ => {
+                                          slotState!(["free", 0]) |
+                                          ret3!((true, Nil))
+                                        }
+                                      }
+                                    } else {
+                                      slotState!(sl) | ret3!((false, "not provider"))
+                                    }
+                                  }
+                                } |
+                                rs!(bundle+{*SlotContract}, *sCh) |
+                                for (@uri <- sCh) {
+                                  unitMakeSlots!(specs, i + 1,
+                                                 acc.set(slotId, uri), *ret2)
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  } |
+
+                  new slotsCh in {
+                    unitMakeSlots!(slots, 0, {}, *slotsCh) |
+                    for (@slotMap <- slotsCh) {
+                      for (@st <- unitState) {
+                        unitState!(st.set("slots", slotMap)) |
+                        rs!(bundle+{*UnitContract}, *uCh) |
+                        for (@uri <- uCh) { ret!((true, uri)) }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          _ => { ret!(v) }
+        }
+      }
+    }
+  } |
+
+  rl!(`__ROOT_URI__`, *rootCh) |
+  for (Root <- rootCh) {
+    rs!(bundle+{*UnitFactory}, *c) |
+    for (@uri <- c) {
+      Root!("register", "component:unit-factory", uri, 1, "unit", *deployerId, *ack) |
+      for (@r <- ack) { deployId!([uri]) }
+    }
+  }
+}

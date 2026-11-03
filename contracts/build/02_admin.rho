@@ -1,0 +1,214 @@
+// AdminGuard and ShareAdmin. 2-of-3 from day one.
+// Placeholders: __ROOT_URI__, __ADMINS__, __THRESHOLD__.
+new
+  AdminGuard, ShareAdmin, adminState,
+  rl(`rho:registry:lookup`),
+  rs(`rho:registry:insertArbitrary`),
+  deployerId(`rho:rchain:deployerId`),
+  deployId(`rho:rchain:deployId`),
+  rootCh, c1, c2
+in {
+// M-of-N secp256k1 verification over a canonical payload.
+//
+// Payload: "rshare:admin:v1|<domain>|<nonce>|<action>|<arg0>,<arg1>,..."
+// Digest:  blake2b256(utf8(payload)). Signatures are DER secp256k1 over the digest.
+// verifyAdmin replies (true, Bool); the caller decides the refusal string.
+
+contract guardArgsToString(@args, ret) = {
+  if (args.length() == 0) {
+    ret!("")
+  } else {
+    match args.nth(0) {
+      a => {
+        new restCh in {
+          guardArgsAppend!(args, 1, a.toString(), *restCh) |
+          for (@s <- restCh) { ret!(s) }
+        }
+      }
+    }
+  }
+} |
+
+contract guardArgsAppend(@args, @i, @acc, ret) = {
+  if (i >= args.length()) {
+    ret!(acc)
+  } else {
+    match args.nth(i) {
+      a => { guardArgsAppend!(args, i + 1, acc ++ "," ++ a.toString(), *ret) }
+    }
+  }
+} |
+
+contract guardAnySig(@digest, @sigs, @j, @key, ret) = {
+  if (j >= sigs.length()) {
+    ret!(false)
+  } else {
+    new verify(`rho:crypto:secp256k1Verify`), vCh in {
+      match sigs.nth(j) {
+        sig => {
+          verify!(digest, sig, key, *vCh) |
+          for (@ok <- vCh) {
+            if (ok) { ret!(true) }
+            else { guardAnySig!(digest, sigs, j + 1, key, *ret) }
+          }
+        }
+      }
+    }
+  }
+} |
+
+contract guardCount(@digest, @sigs, @i, @count, @keys, @threshold, ret) = {
+  if (i >= keys.length()) {
+    ret!(count >= threshold)
+  } else {
+    match keys.nth(i) {
+      key => {
+        new anyCh in {
+          guardAnySig!(digest, sigs, 0, key, *anyCh) |
+          for (@any <- anyCh) {
+            if (any) { guardCount!(digest, sigs, i + 1, count + 1, keys, threshold, *ret) }
+            else { guardCount!(digest, sigs, i + 1, count, keys, threshold, *ret) }
+          }
+        }
+      }
+    }
+  }
+} |
+
+contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, ret) = {
+  new hash(`rho:crypto:blake2b256Hash`), strCh, hashCh, okCh in {
+    guardArgsToString!(args, *strCh) |
+    for (@argStr <- strCh) {
+      match "rshare:admin:v1|" ++ domain ++ "|" ++ nonce.toString()
+            ++ "|" ++ action ++ "|" ++ argStr {
+        payload => {
+          hash!(payload.toUtf8Bytes(), *hashCh) |
+          for (@digest <- hashCh) {
+            guardCount!(digest, sigs, 0, 0, keys, threshold, *okCh) |
+            for (@ok <- okCh) { ret!((true, ok)) }
+          }
+        }
+      }
+    }
+  }
+} |
+
+  contract AdminGuard(@"verify", @domain, @nonce, @action, @argsHash,
+                      @sigs, @admins, @threshold, ret) = {
+    new hash(`rho:crypto:blake2b256Hash`), hCh, okCh in {
+      match "rshare:admin:v1|" ++ domain ++ "|" ++ nonce.toString()
+            ++ "|" ++ action ++ "|" ++ argsHash {
+        payload => {
+          hash!(payload.toUtf8Bytes(), *hCh) |
+          for (@digest <- hCh) {
+            guardCount!(digest, sigs, 0, 0, admins, threshold, *okCh) |
+            for (@ok <- okCh) {
+              if (ok) { ret!((true, Nil)) }
+              else { ret!((false, "below threshold")) }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract ShareAdmin(@"keys", ret) = {
+    for (@s <<- adminState) {
+      ret!((true, s.get("admins"), s.get("threshold")))
+    }
+  } |
+
+  contract ShareAdmin(@"isPaused", ret) = {
+    for (@s <<- adminState) {
+      ret!((true, s.get("pausedAll")))
+    }
+  } |
+
+  contract ShareAdmin(@"admin", @nonce, @action, @args, @sigs, ret) = {
+    for (@s <- adminState) {
+      if (nonce <= s.get("nonce")) {
+        adminState!(s) | ret!((false, "replay"))
+      } else {
+        new vCh in {
+          verifyAdmin!("admin", nonce, action, args, sigs,
+                       s.get("admins"), s.get("threshold"), *vCh) |
+          for (@v <- vCh) {
+            match v {
+              (true, ok) => {
+                if (ok == false) {
+                  adminState!(s) | ret!((false, "below threshold"))
+                } else {
+                  match action {
+                    "pauseAll" => {
+                      adminState!(s.set("pausedAll", true).set("nonce", nonce)) |
+                      ret!((true, Nil))
+                    }
+                    "resumeAll" => {
+                      adminState!(s.set("pausedAll", false).set("nonce", nonce)) |
+                      ret!((true, Nil))
+                    }
+                    "setAdmins" => {
+                      match args.nth(0) {
+                        newAdmins => {
+                          match args.nth(1) {
+                            newThreshold => {
+                              if (newThreshold < 1 || newThreshold > newAdmins.length()) {
+                                adminState!(s) | ret!((false, "threshold"))
+                              } else {
+                                adminState!(s.set("admins", newAdmins)
+                                             .set("threshold", newThreshold)
+                                             .set("nonce", nonce)) |
+                                ret!((true, Nil))
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                    "setThreshold" => {
+                      match args.nth(0) {
+                        newThreshold => {
+                          if (newThreshold < 1 || newThreshold > s.get("admins").length()) {
+                            adminState!(s) | ret!((false, "threshold"))
+                          } else {
+                            adminState!(s.set("threshold", newThreshold)
+                                         .set("nonce", nonce)) |
+                            ret!((true, Nil))
+                          }
+                        }
+                      }
+                    }
+                    _ => { adminState!(s) | ret!((false, "unknown action")) }
+                  }
+                }
+              }
+              _ => { adminState!(s) | ret!((false, "below threshold")) }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  adminState!({
+    "admins": __ADMINS__,
+    "threshold": __THRESHOLD__,
+    "nonce": 0,
+    "pausedAll": false
+  }) |
+
+  rl!(`__ROOT_URI__`, *rootCh) |
+  for (Root <- rootCh) {
+    rs!(bundle+{*AdminGuard}, *c1) |
+    rs!(bundle+{*ShareAdmin}, *c2) |
+    for (@uGuard <- c1; @uAdmin <- c2) {
+      new a1, a2 in {
+        Root!("register", "component:admin-guard", uGuard, 1, "admin", *deployerId, *a1) |
+        Root!("register", "component:admin", uAdmin, 1, "admin", *deployerId, *a2) |
+        for (@r1 <- a1; @r2 <- a2) {
+          deployId!([uGuard, uAdmin])
+        }
+      }
+    }
+  }
+}

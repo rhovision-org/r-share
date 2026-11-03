@@ -1,0 +1,32 @@
+// Canonical string and hash helpers. The canonical form is `schema|v0|v1|...`;
+// the hash is BLAKE2b-256 of its UTF-8 bytes. Callers pass an ordered list of values.
+
+contract termsJoin(@items, @i, @acc, ret) = {
+  if (i >= items.length()) {
+    ret!(acc)
+  } else {
+    match items.nth(i) {
+      x => { termsJoin!(items, i + 1, acc ++ "|" ++ x.toString(), *ret) }
+    }
+  }
+} |
+
+contract termsCanonical(@schema, @items, ret) = {
+  if (items.length() == 0) {
+    ret!(schema)
+  } else {
+    match items.nth(0) {
+      x => { termsJoin!(items, 1, schema ++ "|" ++ x.toString(), *ret) }
+    }
+  }
+} |
+
+contract termsHash(@schema, @items, ret) = {
+  new hash(`rho:crypto:blake2b256Hash`), cCh, hCh in {
+    termsCanonical!(schema, items, *cCh) |
+    for (@text <- cCh) {
+      hash!(text.toUtf8Bytes(), *hCh) |
+      for (@digest <- hCh) { ret!(digest) }
+    }
+  }
+} |

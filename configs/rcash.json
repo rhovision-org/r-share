@@ -1,0 +1,12 @@
+{
+  "pinned_commit": "49b441d",
+  "min_version": 1,
+  "assets": ["REV"],
+  "root_state_path": "../Rholphin/.devnet/v3-install.json",
+  "root_manifest_path": "../Rholphin/deployments/devnet-v4.json",
+  "required_components": [
+    "component:account-factory",
+    "component:asset-resolver",
+    "component:clock"
+  ]
+}

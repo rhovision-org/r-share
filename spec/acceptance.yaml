@@ -1,0 +1,24 @@
+# Milestone acceptance map. Each entry names the suite that must pass.
+M0:
+  static: [build-check, measure-check, check-arch, check-captures, check-select,
+           check-placeholders, check-money, parse-check]
+M1:
+  suite: unit_root
+  also: unit_payments
+M2:
+  suite: unit_provider
+  also: [unit_listing]
+M3:
+  suite: unit_booking
+  also: [unit_concurrency]
+M4:
+  suite: unit_lifecycle
+M5:
+  suite: unit_events
+M6:
+  suite: unit_admin
+M7:
+  suite: unit_generality
+M8:
+  suite: unit_all
+  invariants: spec/invariants.md

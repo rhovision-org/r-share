@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.devnet/
+deployments/*.json
+!deployments/.gitkeep
+.pytest_cache/
+.DS_Store

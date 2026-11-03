@@ -1,0 +1,456 @@
+// ListingContractFactory + one ListingContract per listing.
+// Placeholders: __ROOT_URI__.
+new
+  ListingContractFactory,
+  rl(`rho:registry:lookup`),
+  rs(`rho:registry:insertArbitrary`),
+  deployerId(`rho:rchain:deployerId`),
+  deployId(`rho:rchain:deployId`),
+  rootCh, c, ack
+in {
+// Deployer identity helpers. r-cash owns accounts; r-share only derives the owner id.
+
+contract authOwner(dId, ret) = {
+  new dops(`rho:rchain:deployerId:ops`), rev(`rho:rev:address`), pkCh, addrCh in {
+    dops!("pubKeyBytes", *dId, *pkCh) |
+    for (@pk <- pkCh) {
+      rev!("fromPublicKey", pk, *addrCh) |
+      for (@addr <- addrCh) { ret!((true, addr)) }
+    }
+  }
+} |
+
+contract authIsOwner(dId, @ownerId, ret) = {
+  new c in {
+    authOwner!(*dId, *c) |
+    for (@r <- c) {
+      match r {
+        (true, addr) => {
+          if (addr == ownerId) { ret!((true, Nil)) }
+          else { ret!((false, "not owner")) }
+        }
+        _ => { ret!((false, "not owner")) }
+      }
+    }
+  }
+} |
+// M-of-N secp256k1 verification over a canonical payload.
+//
+// Payload: "rshare:admin:v1|<domain>|<nonce>|<action>|<arg0>,<arg1>,..."
+// Digest:  blake2b256(utf8(payload)). Signatures are DER secp256k1 over the digest.
+// verifyAdmin replies (true, Bool); the caller decides the refusal string.
+
+contract guardArgsToString(@args, ret) = {
+  if (args.length() == 0) {
+    ret!("")
+  } else {
+    match args.nth(0) {
+      a => {
+        new restCh in {
+          guardArgsAppend!(args, 1, a.toString(), *restCh) |
+          for (@s <- restCh) { ret!(s) }
+        }
+      }
+    }
+  }
+} |
+
+contract guardArgsAppend(@args, @i, @acc, ret) = {
+  if (i >= args.length()) {
+    ret!(acc)
+  } else {
+    match args.nth(i) {
+      a => { guardArgsAppend!(args, i + 1, acc ++ "," ++ a.toString(), *ret) }
+    }
+  }
+} |
+
+contract guardAnySig(@digest, @sigs, @j, @key, ret) = {
+  if (j >= sigs.length()) {
+    ret!(false)
+  } else {
+    new verify(`rho:crypto:secp256k1Verify`), vCh in {
+      match sigs.nth(j) {
+        sig => {
+          verify!(digest, sig, key, *vCh) |
+          for (@ok <- vCh) {
+            if (ok) { ret!(true) }
+            else { guardAnySig!(digest, sigs, j + 1, key, *ret) }
+          }
+        }
+      }
+    }
+  }
+} |
+
+contract guardCount(@digest, @sigs, @i, @count, @keys, @threshold, ret) = {
+  if (i >= keys.length()) {
+    ret!(count >= threshold)
+  } else {
+    match keys.nth(i) {
+      key => {
+        new anyCh in {
+          guardAnySig!(digest, sigs, 0, key, *anyCh) |
+          for (@any <- anyCh) {
+            if (any) { guardCount!(digest, sigs, i + 1, count + 1, keys, threshold, *ret) }
+            else { guardCount!(digest, sigs, i + 1, count, keys, threshold, *ret) }
+          }
+        }
+      }
+    }
+  }
+} |
+
+contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, ret) = {
+  new hash(`rho:crypto:blake2b256Hash`), strCh, hashCh, okCh in {
+    guardArgsToString!(args, *strCh) |
+    for (@argStr <- strCh) {
+      match "rshare:admin:v1|" ++ domain ++ "|" ++ nonce.toString()
+            ++ "|" ++ action ++ "|" ++ argStr {
+        payload => {
+          hash!(payload.toUtf8Bytes(), *hashCh) |
+          for (@digest <- hashCh) {
+            guardCount!(digest, sigs, 0, 0, keys, threshold, *okCh) |
+            for (@ok <- okCh) { ret!((true, ok)) }
+          }
+        }
+      }
+    }
+  }
+} |
+
+  contract listingResolve(@key, ret) = {
+    new rCh, Root, kCh in {
+      rl!(`__ROOT_URI__`, *rCh) |
+      for (Root <- rCh) {
+        Root!("resolve", key, 1, *kCh) |
+        for (@r <- kCh) {
+          match r {
+            (true, uri, _) => {
+              new cCh in {
+                rl!(uri, *cCh) |
+                for (C <- cCh) { ret!((true, C)) }
+              }
+            }
+            _ => { ret!((false, "unavailable", key)) }
+          }
+        }
+      }
+    }
+  } |
+
+  contract listingNow(ret) = {
+    new cCh in {
+      listingResolve!("component:clock", *cCh) |
+      for (@r <- cCh) {
+        match r {
+          (true, Clock) => { @Clock!("now", *ret) }
+          _ => { ret!(r) }
+        }
+      }
+    }
+  } |
+
+  contract ListingContractFactory(@"create", dId, @providerId, @listingId,
+                                  @kind, @terms, @termsHash, @admins,
+                                  @threshold, ret) = {
+    new oCh in {
+      authIsOwner!(*dId, providerId, *oCh) |
+      for (@v <- oCh) {
+        match v {
+          (true, Nil) => {
+            new ListingContract, listingState, uCh in {
+              listingState!({
+                "listingId": listingId,
+                "providerId": providerId,
+                "kind": kind,
+                "terms": terms,
+                "termsHash": termsHash,
+                "status": "draft",
+                "units": {},
+                "nonce": 0,
+                "admins": admins,
+                "threshold": threshold
+              }) |
+
+              contract ListingContract(@"info", ret2) = {
+                for (@st <<- listingState) { ret2!((true, st)) }
+              } |
+              contract ListingContract(@"terms", ret2) = {
+                for (@st <<- listingState) { ret2!((true, st.get("terms"))) }
+              } |
+              contract ListingContract(@"isActive", ret2) = {
+                for (@st <<- listingState) {
+                  ret2!((true, st.get("status") == "active"))
+                }
+              } |
+              contract ListingContract(@"units", ret2) = {
+                for (@st <<- listingState) { ret2!((true, st.get("units"))) }
+              } |
+              contract ListingContract(@"unit", @unitId, ret2) = {
+                for (@st <<- listingState) {
+                  match st.get("units").get(unitId) {
+                    Nil => { ret2!((false, "unknown unit")) }
+                    uri => { ret2!((true, uri)) }
+                  }
+                }
+              } |
+              contract ListingContract(@"activate", dId2, ret2) = {
+                for (@st <- listingState) {
+                  new o2 in {
+                    authIsOwner!(*dId2, providerId, *o2) |
+                    for (@v2 <- o2) {
+                      match v2 {
+                        (true, Nil) => {
+                          if (st.get("status") != "draft") {
+                            listingState!(st) | ret2!((false, "already"))
+                          } else {
+                            if (st.get("units").size() == 0) {
+                              listingState!(st) | ret2!((false, "no units"))
+                            } else {
+                              listingState!(st.set("status", "active")) |
+                              ret2!((true, Nil))
+                            }
+                          }
+                        }
+                        _ => { listingState!(st) | ret2!(v2) }
+                      }
+                    }
+                  }
+                }
+              } |
+              contract ListingContract(@"pause", dId2, ret2) = {
+                for (@st <- listingState) {
+                  new o2 in {
+                    authIsOwner!(*dId2, providerId, *o2) |
+                    for (@v2 <- o2) {
+                      match v2 {
+                        (true, Nil) => {
+                          listingState!(st.set("status", "paused")) |
+                          ret2!((true, Nil))
+                        }
+                        _ => { listingState!(st) | ret2!(v2) }
+                      }
+                    }
+                  }
+                }
+              } |
+              contract ListingContract(@"resume", dId2, ret2) = {
+                for (@st <- listingState) {
+                  new o2 in {
+                    authIsOwner!(*dId2, providerId, *o2) |
+                    for (@v2 <- o2) {
+                      match v2 {
+                        (true, Nil) => {
+                          listingState!(st.set("status", "active")) |
+                          ret2!((true, Nil))
+                        }
+                        _ => { listingState!(st) | ret2!(v2) }
+                      }
+                    }
+                  }
+                }
+              } |
+              contract ListingContract(@"delist", dId2, ret2) = {
+                for (@st <- listingState) {
+                  new o2 in {
+                    authIsOwner!(*dId2, providerId, *o2) |
+                    for (@v2 <- o2) {
+                      match v2 {
+                        (true, Nil) => {
+                          listingState!(st.set("status", "delisted")) |
+                          ret2!((true, Nil))
+                        }
+                        _ => { listingState!(st) | ret2!(v2) }
+                      }
+                    }
+                  }
+                }
+              } |
+              contract ListingContract(@"ensureUnit", dId2, @unitId,
+                                       @attrs, @slots, ret2) = {
+                for (@st <- listingState) {
+                  if (st.get("status") == "paused" || st.get("status") == "delisted") {
+                    listingState!(st) | ret2!((false, "not active"))
+                  } else {
+                    match st.get("units").get(unitId) {
+                      Nil => {
+                        new o2 in {
+                          authIsOwner!(*dId2, st.get("providerId"), *o2) |
+                          for (@v2 <- o2) {
+                            match v2 {
+                              (true, Nil) => {
+                                new nCh in {
+                                  listingNow!(*nCh) |
+                                  for (@n <- nCh) {
+                                    match n {
+                                      (true, height) => {
+                                        new ufCh in {
+                                          listingResolve!("component:unit-factory",
+                                                          *ufCh) |
+                                          for (@uf <- ufCh) {
+                                            match uf {
+                                              (true, UnitFactory) => {
+                                                new vch in {
+                                                  @UnitFactory!("validate",
+                                                    st.get("kind"), slots,
+                                                    st.get("terms").get("maxLeadBlocks"),
+                                                    st.get("terms").get("maxSlotBlocks"),
+                                                    *vch) |
+                                                  for (@vv <- vch) {
+                                                    match vv {
+                                                      (true, Nil) => {
+                                                        new pc in {
+                                                          @UnitFactory!("create",
+                                                            *dId2, unitId,
+                                                            st.get("providerId"),
+                                                            st.get("listingId"),
+                                                            st.get("kind"),
+                                                            attrs, slots,
+                                                            st.get("terms").get("holdBlocks"),
+                                                            st.get("admins"),
+                                                            st.get("threshold"),
+                                                            *pc) |
+                                                          for (@u <- pc) {
+                                                            match u {
+                                                              (true, unitUri) => {
+                                                                listingState!(
+                                                                  st.set("units",
+                                                                    st.get("units").set(
+                                                                      unitId, unitUri))) |
+                                                                ret2!((true, unitUri))
+                                                              }
+                                                              _ => {
+                                                                listingState!(st) |
+                                                                ret2!(u)
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                      _ => {
+                                                        listingState!(st) | ret2!(vv)
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                              _ => {
+                                                listingState!(st) |
+                                                ret2!((false, "unit factory unavailable"))
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                      _ => { listingState!(st) | ret2!(n) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { listingState!(st) | ret2!(v2) }
+                            }
+                          }
+                        }
+                      }
+                      _ => { listingState!(st) | ret2!((false, "unit exists")) }
+                    }
+                  }
+                }
+              } |
+              contract ListingContract(@"adminPause", @nonce, @action,
+                                       @args, @sigs, ret2) = {
+                for (@st <- listingState) {
+                  if (nonce <= st.get("nonce")) {
+                    listingState!(st) | ret2!((false, "replay"))
+                  } else {
+                    new vCh in {
+                      verifyAdmin!("listing:" ++ listingId, nonce, action,
+                                   args, sigs, st.get("admins"),
+                                   st.get("threshold"), *vCh) |
+                      for (@v <- vCh) {
+                        match v {
+                          (true, ok) => {
+                            if (ok == false) {
+                              listingState!(st) | ret2!((false, "below threshold"))
+                            } else {
+                              match action {
+                                "pause" => {
+                                  listingState!(st.set("status", "paused")
+                                                  .set("nonce", nonce)) |
+                                  ret2!((true, Nil))
+                                }
+                                "delist" => {
+                                  listingState!(st.set("status", "delisted")
+                                                  .set("nonce", nonce)) |
+                                  ret2!((true, Nil))
+                                }
+                                _ => {
+                                  listingState!(st) |
+                                  ret2!((false, "unknown action"))
+                                }
+                              }
+                            }
+                          }
+                          _ => { listingState!(st) | ret2!((false, "below threshold")) }
+                        }
+                      }
+                    }
+                  }
+                }
+              } |
+              contract ListingContract(@"setAdmins", @nonce, @newAdmins,
+                                       @newThreshold, @sigs, ret2) = {
+                for (@st <- listingState) {
+                  if (nonce <= st.get("nonce")) {
+                    listingState!(st) | ret2!((false, "replay"))
+                  } else {
+                    new vCh in {
+                      verifyAdmin!("listing:" ++ listingId, nonce, "setAdmins",
+                                   [newAdmins, newThreshold], sigs,
+                                   st.get("admins"), st.get("threshold"), *vCh) |
+                      for (@v <- vCh) {
+                        match v {
+                          (true, ok) => {
+                            if (ok == false) {
+                              listingState!(st) | ret2!((false, "below threshold"))
+                            } else {
+                              if (newThreshold < 1
+                                  || newThreshold > newAdmins.length()) {
+                                listingState!(st) | ret2!((false, "threshold"))
+                              } else {
+                                listingState!(st.set("admins", newAdmins)
+                                                 .set("threshold", newThreshold)
+                                                 .set("nonce", nonce)) |
+                                ret2!((true, Nil))
+                              }
+                            }
+                          }
+                          _ => { listingState!(st) | ret2!((false, "below threshold")) }
+                        }
+                      }
+                    }
+                  }
+                }
+              } |
+
+              rs!(bundle+{*ListingContract}, *uCh) |
+              for (@uri <- uCh) { ret!((true, uri)) }
+            }
+          }
+          _ => { ret!(v) }
+        }
+      }
+    }
+  } |
+
+  rl!(`__ROOT_URI__`, *rootCh) |
+  for (Root <- rootCh) {
+    rs!(bundle+{*ListingContractFactory}, *c) |
+    for (@uri <- c) {
+      Root!("register", "component:listing-contract-factory", uri, 1,
+            "listing", *deployerId, *ack) |
+      for (@r <- ack) { deployId!([uri]) }
+    }
+  }
+}

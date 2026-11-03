@@ -1,0 +1,98 @@
+// GuestBook: guestId -> ledger URI. Ledger instances live in 23_guest_ledger.rho.
+// Placeholders: __ROOT_URI__.
+new
+  GuestBook, guestBookState,
+  rl(`rho:registry:lookup`),
+  rs(`rho:registry:insertArbitrary`),
+  deployerId(`rho:rchain:deployerId`),
+  deployId(`rho:rchain:deployId`),
+  rootCh, c, ack
+in {
+  // @@INLINE:lib/Auth.rho@@
+
+  contract guestResolve(@key, ret) = {
+    new rCh, Root, kCh in {
+      rl!(`__ROOT_URI__`, *rCh) |
+      for (Root <- rCh) {
+        Root!("resolve", key, 1, *kCh) |
+        for (@r <- kCh) {
+          match r {
+            (true, uri, _) => {
+              new cCh in {
+                rl!(uri, *cCh) |
+                for (C <- cCh) { ret!((true, C)) }
+              }
+            }
+            _ => { ret!((false, "unavailable", key)) }
+          }
+        }
+      }
+    }
+  } |
+
+  contract GuestBook(@"getOrCreate", dId, ret) = {
+    new oCh in {
+      authOwner!(*dId, *oCh) |
+      for (@o <- oCh) {
+        match o {
+          (true, guestId) => {
+            for (@s <- guestBookState) {
+              match s.get(guestId) {
+                Nil => {
+                  new fCh in {
+                    guestResolve!("component:guest-ledger-factory", *fCh) |
+                    for (@f <- fCh) {
+                      match f {
+                        (true, Factory) => {
+                          new lCh in {
+                            @Factory!("create", *dId, guestId, *lCh) |
+                            for (@lr <- lCh) {
+                              match lr {
+                                (true, ledgerUri) => {
+                                  guestBookState!(s.set(guestId, ledgerUri)) |
+                                  ret!((true, ledgerUri, guestId))
+                                }
+                                _ => { ret!(lr) }
+                              }
+                            }
+                          }
+                        }
+                        _ => { ret!((false, "ledger factory unavailable")) }
+                      }
+                    }
+                  }
+                }
+                uri => { guestBookState!(s) | ret!((true, uri, guestId)) }
+              }
+            }
+          }
+          _ => { ret!(o) }
+        }
+      }
+    }
+  } |
+
+  contract GuestBook(@"ledger", @guestId, ret) = {
+    for (@s <<- guestBookState) {
+      match s.get(guestId) {
+        Nil => { ret!((false, "no ledger")) }
+        uri => { ret!((true, uri)) }
+      }
+    }
+  } |
+
+  contract GuestBook(@"ledgers", ret) = {
+    for (@s <<- guestBookState) { ret!((true, s)) }
+  } |
+
+  guestBookState!({}) |
+
+  rl!(`__ROOT_URI__`, *rootCh) |
+  for (Root <- rootCh) {
+    rs!(bundle+{*GuestBook}, *c) |
+    for (@uri <- c) {
+      Root!("register", "component:guest-book", uri, 1, "booking", *deployerId, *ack) |
+      for (@r <- ack) { deployId!([uri]) }
+    }
+  }
+}

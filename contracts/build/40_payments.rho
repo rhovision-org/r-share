@@ -1,0 +1,348 @@
+// Payments: the r-cash adapter. Every arm resolves the r-cash Root at entry.
+// Placeholders: __ROOT_URI__, __RCASH_ROOT_URI__, __PLATFORM_OWNER__.
+new
+  Payments, paymentsState,
+  rl(`rho:registry:lookup`),
+  rs(`rho:registry:insertArbitrary`),
+  dops(`rho:rchain:deployerId:ops`),
+  deployerId(`rho:rchain:deployerId`),
+  deployId(`rho:rchain:deployId`),
+  rootCh, c, ack
+in {
+// M-of-N secp256k1 verification over a canonical payload.
+//
+// Payload: "rshare:admin:v1|<domain>|<nonce>|<action>|<arg0>,<arg1>,..."
+// Digest:  blake2b256(utf8(payload)). Signatures are DER secp256k1 over the digest.
+// verifyAdmin replies (true, Bool); the caller decides the refusal string.
+
+contract guardArgsToString(@args, ret) = {
+  if (args.length() == 0) {
+    ret!("")
+  } else {
+    match args.nth(0) {
+      a => {
+        new restCh in {
+          guardArgsAppend!(args, 1, a.toString(), *restCh) |
+          for (@s <- restCh) { ret!(s) }
+        }
+      }
+    }
+  }
+} |
+
+contract guardArgsAppend(@args, @i, @acc, ret) = {
+  if (i >= args.length()) {
+    ret!(acc)
+  } else {
+    match args.nth(i) {
+      a => { guardArgsAppend!(args, i + 1, acc ++ "," ++ a.toString(), *ret) }
+    }
+  }
+} |
+
+contract guardAnySig(@digest, @sigs, @j, @key, ret) = {
+  if (j >= sigs.length()) {
+    ret!(false)
+  } else {
+    new verify(`rho:crypto:secp256k1Verify`), vCh in {
+      match sigs.nth(j) {
+        sig => {
+          verify!(digest, sig, key, *vCh) |
+          for (@ok <- vCh) {
+            if (ok) { ret!(true) }
+            else { guardAnySig!(digest, sigs, j + 1, key, *ret) }
+          }
+        }
+      }
+    }
+  }
+} |
+
+contract guardCount(@digest, @sigs, @i, @count, @keys, @threshold, ret) = {
+  if (i >= keys.length()) {
+    ret!(count >= threshold)
+  } else {
+    match keys.nth(i) {
+      key => {
+        new anyCh in {
+          guardAnySig!(digest, sigs, 0, key, *anyCh) |
+          for (@any <- anyCh) {
+            if (any) { guardCount!(digest, sigs, i + 1, count + 1, keys, threshold, *ret) }
+            else { guardCount!(digest, sigs, i + 1, count, keys, threshold, *ret) }
+          }
+        }
+      }
+    }
+  }
+} |
+
+contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, ret) = {
+  new hash(`rho:crypto:blake2b256Hash`), strCh, hashCh, okCh in {
+    guardArgsToString!(args, *strCh) |
+    for (@argStr <- strCh) {
+      match "rshare:admin:v1|" ++ domain ++ "|" ++ nonce.toString()
+            ++ "|" ++ action ++ "|" ++ argStr {
+        payload => {
+          hash!(payload.toUtf8Bytes(), *hashCh) |
+          for (@digest <- hashCh) {
+            guardCount!(digest, sigs, 0, 0, keys, threshold, *okCh) |
+            for (@ok <- okCh) { ret!((true, ok)) }
+          }
+        }
+      }
+    }
+  }
+} |
+
+  contract payResolveUri(@key, ret) = {
+    for (@s <<- paymentsState) {
+      new rCh, Root, kCh in {
+        rl!(s.get("rcashRootUri"), *rCh) |
+        for (Root <- rCh) {
+          Root!("resolve", key, s.get("minVersion"), *kCh) |
+          for (@r <- kCh) {
+            match r {
+              (true, uri, version) => { ret!((true, uri, version)) }
+              _ => { ret!((false, "rcash unavailable", key)) }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract payShareResolve(@key, ret) = {
+    new rCh, Root, kCh in {
+      rl!(`__ROOT_URI__`, *rCh) |
+      for (Root <- rCh) {
+        Root!("resolve", key, 1, *kCh) |
+        for (@r <- kCh) {
+          match r {
+            (true, uri, _) => {
+              new cCh in {
+                rl!(uri, *cCh) |
+                for (C <- cCh) { ret!((true, C)) }
+              }
+            }
+            _ => { ret!((false, "unavailable", key)) }
+          }
+        }
+      }
+    }
+  } |
+
+  contract Payments(@"health", ret) = {
+    new afCh, arCh, clkCh in {
+      payResolveUri!("component:account-factory", *afCh) |
+      payResolveUri!("component:asset-resolver", *arCh) |
+      payResolveUri!("component:clock", *clkCh) |
+      for (@a <- afCh; @b <- arCh; @c <- clkCh) {
+        match a {
+          (true, _, av) => {
+            match b {
+              (true, _, bv) => {
+                match c {
+                  (true, _, cv) => {
+                    ret!((true, {"accountFactory": av, "assetResolver": bv, "clock": cv}))
+                  }
+                  _ => { ret!(c) }
+                }
+              }
+              _ => { ret!(b) }
+            }
+          }
+          _ => { ret!(a) }
+        }
+      }
+    }
+  } |
+
+  contract Payments(@"ensureAccount", dId, ret) = {
+    new uCh in {
+      payResolveUri!("component:account-factory", *uCh) |
+      for (@u <- uCh) {
+        match u {
+          (true, uri, _) => {
+            new cCh, pkCh in {
+              rl!(uri, *cCh) |
+              dops!("pubKeyBytes", *dId, *pkCh) |
+              for (AccountFactory <- cCh; @pk <- pkCh) {
+                AccountFactory!("getOrCreate", pk, *ret)
+              }
+            }
+          }
+          _ => { ret!(u) }
+        }
+      }
+    }
+  } |
+
+  contract Payments(@"accountOf", @ownerId, ret) = {
+    new uCh in {
+      payResolveUri!("component:account-factory", *uCh) |
+      for (@u <- uCh) {
+        match u {
+          (true, uri, _) => {
+            new cCh in {
+              rl!(uri, *cCh) |
+              for (AccountFactory <- cCh) {
+                AccountFactory!("accountOf", ownerId, *ret)
+              }
+            }
+          }
+          _ => { ret!(u) }
+        }
+      }
+    }
+  } |
+
+  contract Payments(@"depositFacet", @ownerId, @assetId, ret) = {
+    new aCh in {
+      Payments!("accountOf", ownerId, *aCh) |
+      for (@a <- aCh) {
+        match a {
+          (true, account) => { @account!("depositFacet", assetId, *ret) }
+          _ => { ret!(a) }
+        }
+      }
+    }
+  } |
+
+  contract Payments(@"issuer", @assetId, ret) = {
+    new uCh in {
+      payResolveUri!("component:asset-resolver", *uCh) |
+      for (@u <- uCh) {
+        match u {
+          (true, uri, _) => {
+            new cCh in {
+              rl!(uri, *cCh) |
+              for (AssetResolver <- cCh) {
+                AssetResolver!("issuer", assetId, *ret)
+              }
+            }
+          }
+          _ => { ret!(u) }
+        }
+      }
+    }
+  } |
+
+  contract Payments(@"now", ret) = {
+    new uCh in {
+      payResolveUri!("component:clock", *uCh) |
+      for (@u <- uCh) {
+        match u {
+          (true, uri, _) => {
+            new cCh in {
+              rl!(uri, *cCh) |
+              for (Clock <- cCh) { Clock!("now", *ret) }
+            }
+          }
+          _ => { ret!(u) }
+        }
+      }
+    }
+  } |
+
+  contract Payments(@"platformOwner", ret) = {
+    for (@s <<- paymentsState) { ret!((true, s.get("platformOwnerId"))) }
+  } |
+
+  contract Payments(@"admin", @nonce, @action, @args, @sigs, ret) = {
+    for (@s <- paymentsState) {
+      if (nonce <= s.get("nonce")) {
+        paymentsState!(s) | ret!((false, "replay"))
+      } else {
+        new uCh in {
+          payShareResolve!("component:admin", *uCh) |
+          for (@u <- uCh) {
+            match u {
+              (true, uri, _) => {
+                new cCh, kCh in {
+                  rl!(uri, *cCh) |
+                  for (ShareAdmin <- cCh) {
+                    ShareAdmin!("keys", *kCh) |
+                    for (@k <- kCh) {
+                      match k {
+                        (true, admins, threshold) => {
+                          new vCh in {
+                            verifyAdmin!("payments", nonce, action, args, sigs,
+                                         admins, threshold, *vCh) |
+                            for (@v <- vCh) {
+                              match v {
+                                (true, ok) => {
+                                  if (ok == false) {
+                                    paymentsState!(s) | ret!((false, "below threshold"))
+                                  } else {
+                                    match action {
+                                      "setPlatformOwner" => {
+                                        match args.nth(0) {
+                                          ownerId => {
+                                            paymentsState!(s.set("platformOwnerId", ownerId)
+                                                            .set("nonce", nonce)) |
+                                            ret!((true, Nil))
+                                          }
+                                        }
+                                      }
+                                      "setAssets" => {
+                                        match args.nth(0) {
+                                          assets => {
+                                            paymentsState!(s.set("assets", assets)
+                                                            .set("nonce", nonce)) |
+                                            ret!((true, Nil))
+                                          }
+                                        }
+                                      }
+                                      "setRcashRoot" => {
+                                        match args.nth(0) {
+                                          newRoot => {
+                                            paymentsState!(s.set("rcashRootUri", newRoot)
+                                                            .set("nonce", nonce)) |
+                                            ret!((true, Nil))
+                                          }
+                                        }
+                                      }
+                                      _ => {
+                                        paymentsState!(s) | ret!((false, "unknown action"))
+                                      }
+                                    }
+                                  }
+                                }
+                                _ => {
+                                  paymentsState!(s) | ret!((false, "below threshold"))
+                                }
+                              }
+                            }
+                          }
+                        }
+                        _ => { paymentsState!(s) | ret!((false, "admin unavailable")) }
+                      }
+                    }
+                  }
+                }
+              }
+              _ => { paymentsState!(s) | ret!((false, "rcash unavailable", "component:admin")) }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  paymentsState!({
+    "rcashRootUri": "__RCASH_ROOT_URI__",
+    "minVersion": 1,
+    "platformOwnerId": "__PLATFORM_OWNER__",
+    "assets": ["REV"],
+    "nonce": 0
+  }) |
+
+  rl!(`__ROOT_URI__`, *rootCh) |
+  for (Root <- rootCh) {
+    rs!(bundle+{*Payments}, *c) |
+    for (@uri <- c) {
+      Root!("register", "component:payments", uri, 1, "payments", *deployerId, *ack) |
+      for (@r <- ack) { deployId!([uri]) }
+    }
+  }
+}

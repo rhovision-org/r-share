@@ -1,0 +1,1315 @@
+// BookingContractFactory + one BookingContract per booking.
+// The contract closes over its escrow purse, release token and asset brand; its state cell
+// holds only data. Every mutating arm consumes the cell, decides, and reposts exactly once.
+// Placeholders: __ROOT_URI__.
+new
+  BookingContractFactory,
+  rl(`rho:registry:lookup`),
+  rs(`rho:registry:insertArbitrary`),
+  deployerId(`rho:rchain:deployerId`),
+  deployId(`rho:rchain:deployId`),
+  rootCh, c, ack
+in {
+  // @@INLINE:lib/Auth.rho@@
+  // @@INLINE:lib/Guard.rho@@
+
+contract bookingResolve(@key, ret) = {
+    new rCh, Root, kCh in {
+      rl!(`__ROOT_URI__`, *rCh) |
+      for (Root <- rCh) {
+        Root!("resolve", key, 1, *kCh) |
+        for (@r <- kCh) {
+          match r {
+            (true, uri, _) => {
+              new cCh in {
+                rl!(uri, *cCh) |
+                for (C <- cCh) { ret!((true, C)) }
+              }
+            }
+            _ => { ret!((false, "unavailable", key)) }
+          }
+        }
+      }
+    }
+  } |
+  contract bookingNow(ret) = {
+    new cCh in {
+      bookingResolve!("component:clock", *cCh) |
+      for (@r <- cCh) {
+        match r { (true, Clock) => { @Clock!("now", *ret) } _ => { ret!(r) } }
+      }
+    }
+  } |
+  contract bookingPayments(ret) = { bookingResolve!("component:payments", *ret) } |
+  contract bookingPolicy(ret) = { bookingResolve!("component:policy", *ret) } |
+
+  contract BookingContractFactory(@"create", dId, @data, escrowPurse,
+                                  releaseToken, brand, ret) = {
+    new oCh in {
+      authOwner!(*dId, *oCh) |
+      for (@(true, guestId) <- oCh) {
+        if (guestId != data.get("guestId")) {
+          ret!((false, "not guest"))
+        } else {
+          new BookingContract, bookingState, uCh in {
+                    bookingState!({
+                      "bookingId": data.get("bookingId"),
+                      "guestId": guestId,
+                      "providerId": data.get("providerId"),
+                      "listingId": data.get("listingId"),
+                      "listingUri": data.get("listingUri"),
+                      "kind": data.get("kind"),
+                      "unitSlots": data.get("unitSlots"),
+                      "assetId": data.get("assetId"),
+                      "rent": data.get("rent"),
+                      "deposit": data.get("deposit"),
+                      "feeBps": data.get("feeBps"),
+                      "holdUntilHeight": data.get("holdUntilHeight"),
+                      "checkInHeight": data.get("checkInHeight"),
+                      "checkOutHeight": data.get("checkOutHeight"),
+                      "cancellation": data.get("cancellation"),
+                      "admins": data.get("admins"),
+                      "threshold": data.get("threshold"),
+                      "status": match data.get("instantBook") { true => "confirmed" false => "requested" },
+                      "checkInAtHeight": 0,
+                      "checkOutAtHeight": 0,
+                      "depositReleaseHeight": 0,
+                      "ticket": {"holderId": guestId, "redeemed": false,
+                                 "redeemedAtHeight": 0,
+                                 "transferCutoffHeight":
+                                   data.get("checkOutHeight")
+                                   - data.get("cancellation").get("eventTransferCutoffBlocks")},
+                      "claim": {"amount": 0, "evidenceHash": "", "atHeight": 0},
+                      "ops": {},
+                      "nonce": 0
+                    }) |
+
+                    contract bcPost(@st, @opId, @status, ret2) = {
+                      bookingState!(st.set("status", status)
+                                      .set("ops", st.get("ops").set(opId, (true, Nil)))) |
+                      ret2!((true, Nil))
+                    } |
+                    contract bcRefuse(@st, @reason, ret2) = {
+                      bookingState!(st) | ret2!((false, reason))
+                    } |
+                    contract bcReplay(@st, @prev, ret2) = {
+                      bookingState!(st) | ret2!(prev)
+                    } |
+
+                    contract bcRelease(@unitSlots, ret2) = {
+                      bookingUnitRelease!(unitSlots, 0, *releaseToken, *ret2)
+                    } |
+                    contract bookingUnitRelease(@unitSlots, @i, token, ret2) = {
+                      if (i >= unitSlots.length()) {
+                        ret2!((true, Nil))
+                      } else {
+                        match unitSlots.nth(i) {
+                          us => {
+                            new cCh in {
+                              rl!(us.get("unitUri"), *cCh) |
+                              for (Unit <- cCh) {
+                                new rCh in {
+                                  Unit!("release", us.get("slots"), *token, *rCh) |
+                                  for (@_ <- rCh) {
+                                    bookingUnitRelease!(unitSlots, i + 1, *token, *ret2)
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    } |
+                    contract bcConfirm(@unitSlots, ret2) = {
+                      bookingUnitConfirm!(unitSlots, 0, *releaseToken, *ret2)
+                    } |
+                    contract bookingUnitConfirm(@unitSlots, @i, token, ret2) = {
+                      if (i >= unitSlots.length()) {
+                        ret2!((true, Nil))
+                      } else {
+                        match unitSlots.nth(i) {
+                          us => {
+                            new cCh in {
+                              rl!(us.get("unitUri"), *cCh) |
+                              for (Unit <- cCh) {
+                                new rCh in {
+                                  Unit!("confirm", us.get("slots"), *token, *rCh) |
+                                  for (@r <- rCh) {
+                                    match r {
+                                      (true, Nil) => {
+                                        bookingUnitConfirm!(unitSlots, i + 1,
+                                                            *token, *ret2)
+                                      }
+                                      _ => { ret2!((false, "slot lost")) }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract bcPlatform(ret2) = {
+                      new pCh in {
+                        bookingPayments!(*pCh) |
+                        for (@p <- pCh) {
+                          match p {
+                            (true, Payments) => {
+                              @Payments!("platformOwner", *ret2)
+                            }
+                            _ => { 1/0 }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract bcPaySequence(@buckets, @i, @assetId, @expected, @acc, ret2) = {
+                      if (i >= buckets.length()) {
+                        if (acc == expected) { ret2!((true, Nil)) } else { 1/0 }
+                      } else {
+                        match buckets.nth(i) {
+                          b => {
+                            if (b.get("amount") == 0) {
+                              bcPaySequence!(buckets, i + 1, assetId,
+                                             expected, acc, *ret2)
+                            } else {
+                              if (b.get("amount") < 0) { 1/0 } else {
+                              new pCh in {
+                                bookingPayments!(*pCh) |
+                                for (@p <- pCh) {
+                                  match p {
+                                    (true, Payments) => {
+                                      new fCh in {
+                                        @Payments!("depositFacet", b.get("owner"),
+                                                   assetId, *fCh) |
+                                        for (@f <- fCh) {
+                                          match f {
+                                            (true, facet) => {
+                                              new wCh in {
+                                                @escrowPurse!("withdraw",
+                                                  (brand, b.get("amount")), *wCh) |
+                                                for (@w <- wCh) {
+                                                  match w {
+                                                    (true, payment) => {
+                                                      new dCh in {
+                                                        @facet!("deposit", *payment, *dCh) |
+                                                        for (@_ <- dCh) {
+                                                          bcPaySequence!(buckets,
+                                                                         i + 1,
+                                                                         assetId,
+                                                                         expected,
+                                                                         acc + b.get("amount"),
+                                                                         *ret2)
+                                                        }
+                                                      }
+                                                    }
+                                                    _ => { 1/0 }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                            _ => { 1/0 }
+                                          }
+                                        }
+                                      }
+                                    }
+                                    _ => { 1/0 }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  } |
+
+                    contract bcSettleWith(@st, @opId, @buckets, @status, @assetId, ret2) = {
+                      new pCh in {
+                        bcPaySequence!(buckets, 0, assetId, st.get("rent") + st.get("deposit"), 0, *pCh) |
+                        for (@p <- pCh) {
+                          match p {
+                            (true, Nil) => { bcPost!(st, opId, status, *ret2) }
+                            _ => { 1/0 }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"info", ret2) = {
+                      for (@st <<- bookingState) { ret2!((true, st)) }
+                    } |
+                    contract BookingContract(@"status", ret2) = {
+                      for (@st <<- bookingState) { ret2!((true, st.get("status"))) }
+                    } |
+                    contract BookingContract(@"ticket", ret2) = {
+                      for (@st <<- bookingState) { ret2!((true, st.get("ticket"))) }
+                    } |
+                    contract BookingContract(@"ops", ret2) = {
+                      for (@st <<- bookingState) { ret2!((true, st.get("ops"))) }
+                    } |
+
+                    contract BookingContract(@"accept", dId2, @opId, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                new oCh2 in {
+                                  authIsOwner!(*dId2, st.get("providerId"), *oCh2) |
+                                  for (@v <- oCh2) {
+                                    match v {
+                                      (true, Nil) => {
+                                        if (st.get("status") != "requested") {
+                                          bcRefuse!(st, "closed", *ret2)
+                                        } else {
+                                          new nCh in {
+                                            bookingNow!(*nCh) |
+                                            for (@n <- nCh) {
+                                              match n {
+                                                (true, now) => {
+                                                  if (now >= st.get("holdUntilHeight")) {
+                                                    bcRefuse!(st, "expired", *ret2)
+                                                  } else {
+                                                    new cfCh in {
+                                                      bcConfirm!(st.get("unitSlots"), *cfCh) |
+                                                      for (@cf <- cfCh) {
+                                                        match cf {
+                                                          (true, Nil) => {
+                                                            bcPost!(st, opId, "confirmed", *ret2)
+                                                          }
+                                                          _ => {
+                                                            bcRefuse!(st, "slot lost", *ret2)
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                                _ => { bcRefuse!(st, "clock", *ret2) }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                      _ => { bcRefuse!(st, v, *ret2) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"reject", dId2, @opId, @reason, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                new oCh2 in {
+                                  authIsOwner!(*dId2, st.get("providerId"), *oCh2) |
+                                  for (@v <- oCh2) {
+                                    match v {
+                                      (true, Nil) => {
+                                        if (st.get("status") != "requested") {
+                                          bcRefuse!(st, "closed", *ret2)
+                                        } else {
+                                          new rCh in {
+                                            bcRelease!(st.get("unitSlots"), *rCh) |
+                                            for (@_ <- rCh) {
+                                              bcSettleWith!(st, opId, [
+                                                {"owner": st.get("providerId"), "amount": 0},
+                                                {"owner": st.get("guestId"),
+                                                 "amount": st.get("rent") + st.get("deposit")}
+                                              ], "rejected", st.get("assetId"), *ret2)
+                                            }
+                                          }
+                                        }
+                                      }
+                                      _ => { bcRefuse!(st, v, *ret2) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"cancel", dId2, @opId, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                new oCh2 in {
+                                  authIsOwner!(*dId2, st.get("guestId"), *oCh2) |
+                                  for (@v <- oCh2) {
+                                    match v {
+                                      (true, Nil) => {
+                                        if (st.get("status") != "requested"
+                                            && st.get("status") != "confirmed") {
+                                          bcRefuse!(st, "closed", *ret2)
+                                        } else {
+                                          new nCh in {
+                                            bookingNow!(*nCh) |
+                                            for (@n <- nCh) {
+                                              match n {
+                                                (true, now) => {
+                                                  new polCh in {
+                                                    bookingPolicy!(*polCh) |
+                                                    for (@p <- polCh) {
+                                                      match p {
+                                                        (true, Policy) => {
+                                                          new sc in {
+                                                            @Policy!("cancel",
+                                                              st.get("kind"),
+                                                              st.get("cancellation"),
+                                                              now,
+                                                              st.get("checkInHeight"),
+                                                              st.get("rent"),
+                                                              st.get("deposit"),
+                                                              "guest", *sc) |
+                                                            for (@s <- sc) {
+                                                              match s {
+                                                                (true, split) => {
+                                                                  new relCh in {
+                                                                    bcRelease!(st.get("unitSlots"), *relCh) |
+                                                                    for (@_ <- relCh) {
+                                                                      new ppCh in {
+                                                                        bcPlatform!(*ppCh) |
+                                                                        for (@pp <- ppCh) {
+                                                                          match pp {
+                                                                            (true, platform) => {
+                                                                              bcSettleWith!(st, opId, [
+                                                                                {"owner": st.get("providerId"),
+                                                                                 "amount": split.get("providerRent")},
+                                                                                {"owner": platform,
+                                                                                 "amount": split.get("platformFee")},
+                                                                                {"owner": st.get("guestId"),
+                                                                                 "amount": split.get("guestRefund")}
+                                                                              ], "cancelled", st.get("assetId"), *ret2)
+                                                                            }
+                                                                            _ => { 1/0 }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                                _ => { bcRefuse!(st, s, *ret2) }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                        _ => { bcRefuse!(st, p, *ret2) }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                                _ => { bcRefuse!(st, "clock", *ret2) }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                      _ => { bcRefuse!(st, v, *ret2) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"cancelByProvider", dId2, @opId, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                new oCh2 in {
+                                  authIsOwner!(*dId2, st.get("providerId"), *oCh2) |
+                                  for (@v <- oCh2) {
+                                    match v {
+                                      (true, Nil) => {
+                                        if (st.get("status") != "requested"
+                                            && st.get("status") != "confirmed") {
+                                          bcRefuse!(st, "closed", *ret2)
+                                        } else {
+                                          new relCh in {
+                                            bcRelease!(st.get("unitSlots"), *relCh) |
+                                            for (@_ <- relCh) {
+                                              bcSettleWith!(st, opId, [
+                                                {"owner": st.get("providerId"), "amount": 0},
+                                                {"owner": st.get("guestId"),
+                                                 "amount": st.get("rent") + st.get("deposit")}
+                                              ], "cancelled", st.get("assetId"), *ret2)
+                                            }
+                                          }
+                                        }
+                                      }
+                                      _ => { bcRefuse!(st, v, *ret2) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"checkIn", dId2, @opId, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                new oCh2 in {
+                                  authIsOwner!(*dId2, st.get("providerId"), *oCh2) |
+                                  for (@v <- oCh2) {
+                                    match v {
+                                      (true, Nil) => {
+                                        if (st.get("status") != "confirmed") {
+                                          bcRefuse!(st, "closed", *ret2)
+                                        } else {
+                                          new nCh in {
+                                            bookingNow!(*nCh) |
+                                            for (@n <- nCh) {
+                                              match n {
+                                                (true, now) => {
+                                                  if (now < st.get("checkInHeight")) {
+                                                    bcRefuse!(st, "too early", *ret2)
+                                                  } else {
+                                                    if (now > st.get("checkOutHeight")) {
+                                                      bcRefuse!(st, "too late", *ret2)
+                                                    } else {
+                                                      bcPost!(st.set("checkInAtHeight", now),
+                                                              opId, "checkedIn", *ret2)
+                                                    }
+                                                  }
+                                                }
+                                                _ => { bcRefuse!(st, "clock", *ret2) }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                      _ => { bcRefuse!(st, v, *ret2) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"checkOut", dId2, @opId, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                new oCh2 in {
+                                  authIsOwner!(*dId2, st.get("providerId"), *oCh2) |
+                                  for (@v <- oCh2) {
+                                    match v {
+                                      (true, Nil) => {
+                                        if (st.get("status") != "checkedIn") {
+                                          bcRefuse!(st, "closed", *ret2)
+                                        } else {
+                                          new nCh in {
+                                            bookingNow!(*nCh) |
+                                            for (@n <- nCh) {
+                                              match n {
+                                                (true, now) => {
+                                                  bcPost!(
+                                                    st.set("checkOutAtHeight", now)
+                                                      .set("depositReleaseHeight",
+                                                           now + st.get("cancellation").get("depositReviewBlocks")),
+                                                    opId, "checkedOut", *ret2)
+                                                }
+                                                _ => { bcRefuse!(st, "clock", *ret2) }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                      _ => { bcRefuse!(st, v, *ret2) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"guestCheckOut", dId2, @opId, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                new oCh2 in {
+                                  authIsOwner!(*dId2, st.get("guestId"), *oCh2) |
+                                  for (@v <- oCh2) {
+                                    match v {
+                                      (true, Nil) => {
+                                        if (st.get("status") != "checkedIn") {
+                                          bcRefuse!(st, "closed", *ret2)
+                                        } else {
+                                          new nCh in {
+                                            bookingNow!(*nCh) |
+                                            for (@n <- nCh) {
+                                              match n {
+                                                (true, now) => {
+                                                  if (now < st.get("checkOutHeight")) {
+                                                    bcRefuse!(st, "too early", *ret2)
+                                                  } else {
+                                                    bcPost!(
+                                                      st.set("checkOutAtHeight", now)
+                                                        .set("depositReleaseHeight",
+                                                             now + st.get("cancellation").get("depositReviewBlocks")),
+                                                      opId, "checkedOut", *ret2)
+                                                  }
+                                                }
+                                                _ => { bcRefuse!(st, "clock", *ret2) }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                      _ => { bcRefuse!(st, v, *ret2) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"settle", @opId, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                if (st.get("status") != "checkedOut"
+                                    && st.get("status") != "redeemed") {
+                                  bcRefuse!(st, "closed", *ret2)
+                                } else {
+                                  if (st.get("claim").get("amount") > 0) {
+                                    bcRefuse!(st, "claim pending", *ret2)
+                                  } else {
+                                    new nCh in {
+                                      bookingNow!(*nCh) |
+                                      for (@n <- nCh) {
+                                        match n {
+                                          (true, now) => {
+                                            if (st.get("status") == "checkedOut"
+                                                && now < st.get("depositReleaseHeight")) {
+                                              bcRefuse!(st, "too early", *ret2)
+                                            } else {
+                                              new polCh in {
+                                                bookingPolicy!(*polCh) |
+                                                for (@p <- polCh) {
+                                                  match p {
+                                                    (true, Policy) => {
+                                                      new fCh in {
+                                                        @Policy!("fee", st.get("rent"),
+                                                                 st.get("feeBps"), *fCh) |
+                                                        for (@ff <- fCh) {
+                                                          match ff {
+                                                            (true, fee, net) => {
+                                                              new ppCh in {
+                                                                bcPlatform!(*ppCh) |
+                                                                for (@pp <- ppCh) {
+                                                                  match pp {
+                                                                    (true, platform) => {
+                                                                      bcSettleWith!(st, opId, [
+                                                                        {"owner": st.get("providerId"),
+                                                                         "amount": net},
+                                                                        {"owner": platform,
+                                                                         "amount": fee},
+                                                                        {"owner": st.get("guestId"),
+                                                                         "amount": st.get("deposit")}
+                                                                      ], "settled", st.get("assetId"), *ret2)
+                                                                    }
+                                                                    _ => { 1/0 }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                            _ => { bcRefuse!(st, "bps", *ret2) }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                    _ => { bcRefuse!(st, p, *ret2) }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                          _ => { bcRefuse!(st, "clock", *ret2) }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"claimDeposit", dId2, @opId,
+                                             @amount, @evidenceHash, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                new oCh2 in {
+                                  authIsOwner!(*dId2, st.get("providerId"), *oCh2) |
+                                  for (@v <- oCh2) {
+                                    match v {
+                                      (true, Nil) => {
+                                        if (st.get("status") != "checkedOut") {
+                                          bcRefuse!(st, "closed", *ret2)
+                                        } else {
+                                          new nCh in {
+                                            bookingNow!(*nCh) |
+                                            for (@n <- nCh) {
+                                              match n {
+                                                (true, now) => {
+                                                  if (now >= st.get("depositReleaseHeight")) {
+                                                    bcRefuse!(st, "too late", *ret2)
+                                                  } else {
+                                                    if (amount < 0
+                                                        || amount > st.get("deposit")) {
+                                                      bcRefuse!(st, "amount", *ret2)
+                                                    } else {
+                                                      bcPost!(st.set("claim", {
+                                                        "amount": amount,
+                                                        "evidenceHash": evidenceHash,
+                                                        "atHeight": now
+                                                      }), opId, st.get("status"), *ret2)
+                                                    }
+                                                  }
+                                                }
+                                                _ => { bcRefuse!(st, "clock", *ret2) }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                      _ => { bcRefuse!(st, v, *ret2) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"resolveDeposit", @opId, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                if (st.get("status") != "checkedOut") {
+                                  bcRefuse!(st, "closed", *ret2)
+                                } else {
+                                  if (st.get("claim").get("amount") <= 0) {
+                                    bcRefuse!(st, "not claimed", *ret2)
+                                  } else {
+                                    new nCh in {
+                                      bookingNow!(*nCh) |
+                                      for (@n <- nCh) {
+                                        match n {
+                                          (true, now) => {
+                                            if (now < st.get("claim").get("atHeight")
+                                                       + st.get("cancellation").get("disputeWindowBlocks")) {
+                                              bcRefuse!(st, "too early", *ret2)
+                                            } else {
+                                              new polCh in {
+                                                bookingPolicy!(*polCh) |
+                                                for (@p <- polCh) {
+                                                  match p {
+                                                    (true, Policy) => {
+                                                      new fCh in {
+                                                        @Policy!("fee", st.get("rent"),
+                                                                 st.get("feeBps"), *fCh) |
+                                                        for (@ff <- fCh) {
+                                                          match ff {
+                                                            (true, fee, net) => {
+                                                              new ppCh in {
+                                                                bcPlatform!(*ppCh) |
+                                                                for (@pp <- ppCh) {
+                                                                  match pp {
+                                                                    (true, platform) => {
+                                                                      bcSettleWith!(st, opId, [
+                                                                        {"owner": st.get("providerId"),
+                                                                         "amount": net + st.get("claim").get("amount")},
+                                                                        {"owner": platform,
+                                                                         "amount": fee},
+                                                                        {"owner": st.get("guestId"),
+                                                                         "amount": st.get("deposit") - st.get("claim").get("amount")}
+                                                                      ], "settled", st.get("assetId"), *ret2)
+                                                                    }
+                                                                    _ => { 1/0 }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                            _ => { bcRefuse!(st, "bps", *ret2) }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                    _ => { bcRefuse!(st, p, *ret2) }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                          _ => { bcRefuse!(st, "clock", *ret2) }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"dispute", dId2, @opId,
+                                             @reasonHash, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                new oCh2 in {
+                                  authOwner!(*dId2, *oCh2) |
+                                  for (@o <- oCh2) {
+                                    match o {
+                                      (true, caller) => {
+                                        if (caller != st.get("guestId")
+                                            && caller != st.get("providerId")) {
+                                          bcRefuse!(st, "not party", *ret2)
+                                        } else {
+                                          if (st.get("status") == "settled"
+                                              || st.get("status") == "rejected"
+                                              || st.get("status") == "cancelled"
+                                              || st.get("status") == "expired"
+                                              || st.get("status") == "noShow") {
+                                            bcRefuse!(st, "closed", *ret2)
+                                          } else {
+                                            bcPost!(st.set("disputeHash", reasonHash),
+                                                    opId, "disputed", *ret2)
+                                          }
+                                        }
+                                      }
+                                      _ => { bcRefuse!(st, o, *ret2) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"arbitrate", @nonce, @splitBps,
+                                             @sigs, @opId, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                if (nonce <= st.get("nonce")) {
+                                  bcRefuse!(st, "replay", *ret2)
+                                } else {
+                                  new vCh in {
+                                    verifyAdmin!("arbiter", nonce, "split",
+                                                 [st.get("bookingId"), splitBps],
+                                                 sigs, st.get("admins"),
+                                                 st.get("threshold"), *vCh) |
+                                    for (@v <- vCh) {
+                                      match v {
+                                        (true, ok) => {
+                                          if (ok == false) {
+                                            bcRefuse!(st, "below threshold", *ret2)
+                                          } else {
+                                            if (splitBps < 0 || splitBps > 10000) {
+                                              bcRefuse!(st, "bps", *ret2)
+                                            } else {
+                                              new polCh in {
+                                                bookingPolicy!(*polCh) |
+                                                for (@p <- polCh) {
+                                                  match p {
+                                                    (true, Policy) => {
+                                                      new dsCh in {
+                                                        @Policy!("depositSplit",
+                                                          st.get("deposit"), splitBps, *dsCh) |
+                                                        for (@ds <- dsCh) {
+                                                          match ds {
+                                                            (true, split) => {
+                                                              new fCh in {
+                                                                @Policy!("fee", st.get("rent"),
+                                                                         st.get("feeBps"), *fCh) |
+                                                                for (@ff <- fCh) {
+                                                                  match ff {
+                                                                    (true, fee, net) => {
+                                                                      new ppCh in {
+                                                                        bcPlatform!(*ppCh) |
+                                                                        for (@pp <- ppCh) {
+                                                                          match pp {
+                                                                            (true, platform) => {
+                                                                              bcSettleWith!(st.set("nonce", nonce), opId, [
+                                                                                {"owner": st.get("providerId"),
+                                                                                 "amount": net + split.get("providerDamage")},
+                                                                                {"owner": platform,
+                                                                                 "amount": fee},
+                                                                                {"owner": st.get("guestId"),
+                                                                                 "amount": split.get("guestRefund")}
+                                                                              ], "settled", st.get("assetId"), *ret2)
+                                                                            }
+                                                                            _ => { 1/0 }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                    _ => { bcRefuse!(st, "bps", *ret2) }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                            _ => { bcRefuse!(st, "bps", *ret2) }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                    _ => { bcRefuse!(st, p, *ret2) }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                        _ => { bcRefuse!(st, "below threshold", *ret2) }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"expire", @opId, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                if (st.get("status") != "requested") {
+                                  bcRefuse!(st, "closed", *ret2)
+                                } else {
+                                  new nCh in {
+                                    bookingNow!(*nCh) |
+                                    for (@n <- nCh) {
+                                      match n {
+                                        (true, now) => {
+                                          if (now < st.get("holdUntilHeight")) {
+                                            bcRefuse!(st, "too early", *ret2)
+                                          } else {
+                                            new relCh in {
+                                              bcRelease!(st.get("unitSlots"), *relCh) |
+                                              for (@_ <- relCh) {
+                                                bcSettleWith!(st, opId, [
+                                                  {"owner": st.get("providerId"), "amount": 0},
+                                                  {"owner": st.get("guestId"),
+                                                   "amount": st.get("rent") + st.get("deposit")}
+                                                ], "expired", st.get("assetId"), *ret2)
+                                              }
+                                            }
+                                          }
+                                        }
+                                        _ => { bcRefuse!(st, "clock", *ret2) }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"claimNoShow", dId2, @opId, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                new oCh2 in {
+                                  authIsOwner!(*dId2, st.get("providerId"), *oCh2) |
+                                  for (@v <- oCh2) {
+                                    match v {
+                                      (true, Nil) => {
+                                        if (st.get("status") != "confirmed") {
+                                          bcRefuse!(st, "closed", *ret2)
+                                        } else {
+                                          new nCh in {
+                                            bookingNow!(*nCh) |
+                                            for (@n <- nCh) {
+                                              match n {
+                                                (true, now) => {
+                                                  if (now < st.get("checkInHeight")
+                                                             + st.get("cancellation").get("noShowBlocks")) {
+                                                    bcRefuse!(st, "too early", *ret2)
+                                                  } else {
+                                                    new polCh in {
+                                                      bookingPolicy!(*polCh) |
+                                                      for (@p <- polCh) {
+                                                        match p {
+                                                          (true, Policy) => {
+                                                            new nsCh in {
+                                                              @Policy!("noShow", st.get("rent"),
+                                                                       st.get("deposit"),
+                                                                       st.get("feeBps"), *nsCh) |
+                                                              for (@ns <- nsCh) {
+                                                                match ns {
+                                                                  (true, split) => {
+                                                                    new relCh in {
+                                                                      bcRelease!(st.get("unitSlots"), *relCh) |
+                                                                      for (@_ <- relCh) {
+                                                                        new ppCh in {
+                                                                          bcPlatform!(*ppCh) |
+                                                                          for (@pp <- ppCh) {
+                                                                            match pp {
+                                                                              (true, platform) => {
+                                                                                bcSettleWith!(st, opId, [
+                                                                                  {"owner": st.get("providerId"),
+                                                                                   "amount": split.get("providerRent")},
+                                                                                  {"owner": platform,
+                                                                                   "amount": split.get("platformFee")},
+                                                                                  {"owner": st.get("guestId"),
+                                                                                   "amount": split.get("guestRefund")}
+                                                                                ], "noShow", st.get("assetId"), *ret2)
+                                                                              }
+                                                                              _ => { 1/0 }
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                  _ => { bcRefuse!(st, "bps", *ret2) }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                          _ => { bcRefuse!(st, p, *ret2) }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                                _ => { bcRefuse!(st, "clock", *ret2) }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                      _ => { bcRefuse!(st, v, *ret2) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"redeem", dId2, @opId, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                new oCh2 in {
+                                  authIsOwner!(*dId2, st.get("providerId"), *oCh2) |
+                                  for (@v <- oCh2) {
+                                    match v {
+                                      (true, Nil) => {
+                                        if (st.get("kind") != "event") {
+                                          bcRefuse!(st, "not event", *ret2)
+                                        } else {
+                                          if (st.get("status") != "confirmed") {
+                                            bcRefuse!(st, "closed", *ret2)
+                                          } else {
+                                            if (st.get("ticket").get("redeemed") == true) {
+                                              bcRefuse!(st, "already", *ret2)
+                                            } else {
+                                              new nCh in {
+                                                bookingNow!(*nCh) |
+                                                for (@n <- nCh) {
+                                                  match n {
+                                                    (true, now) => {
+                                                      bcPost!(
+                                                        st.set("ticket",
+                                                          st.get("ticket")
+                                                            .set("redeemed", true)
+                                                            .set("redeemedAtHeight", now)),
+                                                        opId, "redeemed", *ret2)
+                                                    }
+                                                    _ => { bcRefuse!(st, "clock", *ret2) }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                      _ => { bcRefuse!(st, v, *ret2) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"closeEvent", @opId, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                if (st.get("kind") != "event") {
+                                  bcRefuse!(st, "not event", *ret2)
+                                } else {
+                                  if (st.get("status") != "confirmed"
+                                      && st.get("status") != "redeemed") {
+                                    bcRefuse!(st, "closed", *ret2)
+                                  } else {
+                                    new nCh in {
+                                      bookingNow!(*nCh) |
+                                      for (@n <- nCh) {
+                                        match n {
+                                          (true, now) => {
+                                            if (now < st.get("checkOutHeight")) {
+                                              bcRefuse!(st, "too early", *ret2)
+                                            } else {
+                                              new polCh in {
+                                                bookingPolicy!(*polCh) |
+                                                for (@p <- polCh) {
+                                                  match p {
+                                                    (true, Policy) => {
+                                                      new feeCh in {
+                                                        @Policy!("fee", st.get("rent"),
+                                                                 st.get("feeBps"), *feeCh) |
+                                                        for (@ff <- feeCh) {
+                                                          match ff {
+                                                            (true, fee, net) => {
+                                                              new ppCh in {
+                                                                bcPlatform!(*ppCh) |
+                                                                for (@pp <- ppCh) {
+                                                                  match pp {
+                                                                    (true, platform) => {
+                                                                      bcSettleWith!(st, opId, [
+                                                                        {"owner": st.get("providerId"),
+                                                                         "amount": net},
+                                                                        {"owner": platform,
+                                                                         "amount": fee},
+                                                                        {"owner": st.get("guestId"),
+                                                                         "amount": st.get("deposit")}
+                                                                      ], "settled", st.get("assetId"), *ret2)
+                                                                    }
+                                                                    _ => { 1/0 }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                            _ => { bcRefuse!(st, "bps", *ret2) }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                    _ => { bcRefuse!(st, p, *ret2) }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                          _ => { bcRefuse!(st, "clock", *ret2) }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"transferTicket", dId2, @newGuestId,
+                                             @opId, ret2) = {
+                      for (@st <- bookingState) {
+                        match st.get("ops").get(opId) {
+                          prev => {
+                            match prev {
+                              Nil => {
+                                new oCh2 in {
+                                  authIsOwner!(*dId2, st.get("guestId"), *oCh2) |
+                                  for (@v <- oCh2) {
+                                    match v {
+                                      (true, Nil) => {
+                                        if (st.get("kind") != "event") {
+                                          bcRefuse!(st, "not event", *ret2)
+                                        } else {
+                                          if (st.get("status") != "confirmed") {
+                                            bcRefuse!(st, "closed", *ret2)
+                                          } else {
+                                            new nCh in {
+                                              bookingNow!(*nCh) |
+                                              for (@n <- nCh) {
+                                                match n {
+                                                  (true, now) => {
+                                                    if (now >= st.get("ticket").get("transferCutoffHeight")) {
+                                                      bcRefuse!(st, "too late", *ret2)
+                                                    } else {
+                                                      if (st.get("deposit") != 0) {
+                                                        bcRefuse!(st, "deposit", *ret2)
+                                                      } else {
+                                                        bcPost!(
+                                                          st.set("ticket",
+                                                            st.get("ticket").set("holderId", newGuestId)),
+                                                          opId, st.get("status"), *ret2)
+                                                      }
+                                                    }
+                                                  }
+                                                  _ => { bcRefuse!(st, "clock", *ret2) }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                      _ => { bcRefuse!(st, v, *ret2) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { bcReplay!(st, prev, *ret2) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract BookingContract(@"setAdmins", @nonce, @newAdmins,
+                                             @newThreshold, @sigs, ret2) = {
+                      for (@st <- bookingState) {
+                        if (nonce <= st.get("nonce")) {
+                          bcRefuse!(st, "replay", *ret2)
+                        } else {
+                          new vCh in {
+                            verifyAdmin!("booking:" ++ st.get("bookingId"), nonce,
+                                         "setAdmins", [newAdmins, newThreshold],
+                                         sigs, st.get("admins"),
+                                         st.get("threshold"), *vCh) |
+                            for (@v <- vCh) {
+                              match v {
+                                (true, ok) => {
+                                  if (ok == false) {
+                                    bcRefuse!(st, "below threshold", *ret2)
+                                  } else {
+                                    if (newThreshold < 1
+                                        || newThreshold > newAdmins.length()) {
+                                      bcRefuse!(st, "threshold", *ret2)
+                                    } else {
+                                      bookingState!(st.set("admins", newAdmins)
+                                                      .set("threshold", newThreshold)
+                                                      .set("nonce", nonce)) |
+                                      ret2!((true, Nil))
+                                    }
+                                  }
+                                }
+                                _ => { bcRefuse!(st, "below threshold", *ret2) }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    rs!(bundle+{*BookingContract}, *uCh) |
+                    for (@uri <- uCh) { ret!((true, uri)) }
+                  }
+        }
+      }
+    }
+  } |
+
+  rl!(`__ROOT_URI__`, *rootCh) |
+  for (Root <- rootCh) {
+    rs!(bundle+{*BookingContractFactory}, *c) |
+    for (@uri <- c) {
+      Root!("register", "component:booking-contract-factory", uri, 1,
+            "booking", *deployerId, *ack) |
+      for (@r <- ack) { deployId!([uri]) }
+    }
+  }
+}

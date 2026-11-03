@@ -1,0 +1,306 @@
+// Policy: pure cancellation, fee, deposit, terms and schedule rules.
+// Placeholders: __ROOT_URI__.
+new
+  Policy,
+  rl(`rho:registry:lookup`),
+  rs(`rho:registry:insertArbitrary`),
+  deployerId(`rho:rchain:deployerId`),
+  deployId(`rho:rchain:deployId`),
+  rootCh, c, ack
+in {
+// Integer money helpers. Amounts are minor units; bps denominators are 10000.
+// Division is integer division and rounds toward zero (non-negative amounts only).
+
+contract moneyFee(@rent, @bps, ret) = {
+  if (rent < 0 || bps < 0 || bps > 10000) {
+    ret!((false, "bps"))
+  } else {
+    match rent * bps / 10000 {
+      fee => { ret!((true, fee, rent - fee)) }
+    }
+  }
+} |
+
+contract moneyPart(@amount, @bps, ret) = {
+  if (amount < 0 || bps < 0 || bps > 10000) {
+    ret!((false, "bps"))
+  } else {
+    match amount * bps / 10000 {
+      part => { ret!((true, part, amount - part)) }
+    }
+  }
+} |
+
+  contract Policy(@"fee", @rent, @feeBps, ret) = {
+    moneyFee!(rent, feeBps, *ret)
+  } |
+
+  contract Policy(@"cancel", @kind, @policy, @now, @startHeight,
+                  @rent, @deposit, @actor, ret) = {
+    if (actor == "provider") {
+      ret!((true, {"providerRent": 0, "platformFee": 0,
+                   "guestRefund": rent + deposit, "providerDamage": 0,
+                   "reason": "provider"}))
+    } else {
+      if (actor != "guest") {
+        ret!((false, "actor"))
+      } else {
+        if (kind == "event") {
+          match startHeight - policy.get("eventTransferCutoffBlocks") {
+            cutoff => {
+              if (now <= cutoff) {
+                ret!((true, {"providerRent": 0, "platformFee": 0,
+                             "guestRefund": rent + deposit, "providerDamage": 0,
+                             "reason": "full"}))
+              } else {
+                ret!((true, {"providerRent": rent, "platformFee": 0,
+                             "guestRefund": deposit, "providerDamage": 0,
+                             "reason": "late"}))
+              }
+            }
+          }
+        } else {
+          match startHeight - policy.get("fullRefundBeforeBlocks") {
+            fullCut => {
+              if (now <= fullCut) {
+                ret!((true, {"providerRent": 0, "platformFee": 0,
+                             "guestRefund": rent + deposit, "providerDamage": 0,
+                             "reason": "full"}))
+              } else {
+                match startHeight - policy.get("partialRefundBeforeBlocks") {
+                  partialCut => {
+                    if (now <= partialCut) {
+                      new pCh in {
+                        moneyPart!(rent, policy.get("partialRefundBps"), *pCh) |
+                        for (@p <- pCh) {
+                          match p {
+                            (true, refund, retained) => {
+                              ret!((true, {"providerRent": retained,
+                                           "platformFee": 0,
+                                           "guestRefund": refund + deposit,
+                                           "providerDamage": 0,
+                                           "reason": "partial"}))
+                            }
+                            _ => { ret!((false, "bps")) }
+                          }
+                        }
+                      }
+                    } else {
+                      ret!((true, {"providerRent": rent, "platformFee": 0,
+                                   "guestRefund": deposit, "providerDamage": 0,
+                                   "reason": "late"}))
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract Policy(@"noShow", @rent, @deposit, @feeBps, ret) = {
+    new fCh in {
+      moneyFee!(rent, feeBps, *fCh) |
+      for (@f <- fCh) {
+        match f {
+          (true, fee, net) => {
+            ret!((true, {"providerRent": net, "platformFee": fee,
+                         "guestRefund": deposit, "providerDamage": 0,
+                         "reason": "no-show"}))
+          }
+          _ => { ret!((false, "bps")) }
+        }
+      }
+    }
+  } |
+
+  contract Policy(@"depositSplit", @deposit, @providerBps, ret) = {
+    new pCh in {
+      moneyPart!(deposit, providerBps, *pCh) |
+      for (@p <- pCh) {
+        match p {
+          (true, providerDamage, guestRefund) => {
+            ret!((true, {"providerDamage": providerDamage,
+                         "guestRefund": guestRefund}))
+          }
+          _ => { ret!((false, "bps")) }
+        }
+      }
+    }
+  } |
+
+  contract policyNumOk(@terms, @check, ret) = {
+    match check.get("key") {
+      key => {
+        match terms.get(key) {
+          Nil => { ret!((false, key)) }
+          v => {
+            if (v < check.get("min") || v > check.get("max")) {
+              ret!((false, key))
+            } else {
+              ret!((true, Nil))
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract policyCheckList(@checks, @i, @terms, ret) = {
+    if (i >= checks.length()) {
+      ret!((true, Nil))
+    } else {
+      new cCh in {
+        policyNumOk!(terms, checks.nth(i), *cCh) |
+        for (@r <- cCh) {
+          match r {
+            (true, Nil) => { policyCheckList!(checks, i + 1, terms, *ret) }
+            _ => { ret!(r) }
+          }
+        }
+      }
+    }
+  } |
+
+  contract Policy(@"termsOk", @kind, @terms, ret) = {
+    if ((kind == "lodging" || kind == "event" || kind == "bike"
+           || kind == "car" || kind == "robot") == false) {
+      ret!((false, "kind"))
+    } else {
+      if (terms.get("assetId").length() == 0) {
+        ret!((false, "asset"))
+      } else {
+        if ((terms.get("instantBook") == true || terms.get("instantBook") == false) == false) {
+          ret!((false, "instant"))
+        } else {
+          if ((terms.get("contiguous") == true || terms.get("contiguous") == false) == false) {
+            ret!((false, "contiguous"))
+          } else {
+            new cCh in {
+              policyCheckList!([
+                {"key": "pricePerSlot", "min": 1, "max": 1000000000000},
+                {"key": "deposit", "min": 0, "max": 1000000000000},
+                {"key": "minSlots", "min": 1, "max": 14},
+                {"key": "maxSlots", "min": 1, "max": 14},
+                {"key": "maxUnits", "min": 1, "max": 8},
+                {"key": "feeBps", "min": 0, "max": 10000},
+                {"key": "partialRefundBps", "min": 0, "max": 10000},
+                {"key": "holdBlocks", "min": 1, "max": 1000},
+                {"key": "depositReviewBlocks", "min": 0, "max": 100000},
+                {"key": "disputeWindowBlocks", "min": 0, "max": 100000},
+                {"key": "noShowBlocks", "min": 0, "max": 100000},
+                {"key": "fullRefundBeforeBlocks", "min": 0, "max": 100000},
+                {"key": "partialRefundBeforeBlocks", "min": 0, "max": 100000},
+                {"key": "maxLeadBlocks", "min": 1, "max": 10000000},
+                {"key": "maxSlotBlocks", "min": 1, "max": 10000000},
+                {"key": "eventTransferCutoffBlocks", "min": 0, "max": 100000}
+              ], 0, terms, *cCh) |
+              for (@r <- cCh) {
+                match r {
+                  (true, Nil) => {
+                    if (terms.get("minSlots") > terms.get("maxSlots")) {
+                      ret!((false, "slots"))
+                    } else {
+                      if (terms.get("partialRefundBeforeBlocks")
+                          < terms.get("fullRefundBeforeBlocks")) {
+                        ret!((false, "refund window"))
+                      } else {
+                        ret!((true, Nil))
+                      }
+                    }
+                  }
+                  _ => { ret!(r) }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract policySchedule(@slots, @i, @kind, @now, @maxLead, @maxSlot,
+                          @prevEnd, @seen, ret) = {
+    if (i >= slots.length()) {
+      ret!((true, Nil))
+    } else {
+      match slots.nth(i) {
+        s => {
+          match s.get("slotId") {
+            Nil => { ret!((false, "slot id")) }
+            slotId => {
+              match s.get("startHeight") {
+                Nil => { ret!((false, "slot start")) }
+                startHeight => {
+                  match s.get("endHeight") {
+                    Nil => { ret!((false, "slot end")) }
+                    endHeight => {
+                      if (slotId.toUtf8Bytes().length() == 0
+                          || slotId.toUtf8Bytes().length() > 64) {
+                        ret!((false, "slot id"))
+                      } else {
+                        if (seen.get(slotId) != Nil) {
+                          ret!((false, "duplicate slot"))
+                        } else {
+                          if (startHeight >= endHeight) {
+                            ret!((false, "slot order"))
+                          } else {
+                            if (startHeight <= now) {
+                              ret!((false, "slot past"))
+                            } else {
+                              if (startHeight > now + maxLead) {
+                                ret!((false, "slot lead"))
+                              } else {
+                                if (endHeight - startHeight > maxSlot) {
+                                  ret!((false, "slot duration"))
+                                } else {
+                                  if (kind == "lodging" && i > 0 && startHeight != prevEnd) {
+                                    ret!((false, "slot gap"))
+                                  } else {
+                                    policySchedule!(slots, i + 1, kind, now, maxLead,
+                                                    maxSlot, endHeight,
+                                                    seen.set(slotId, true), *ret)
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract Policy(@"scheduleOk", @kind, @slots, @now, @maxLeadBlocks,
+                  @maxSlotBlocks, ret) = {
+    if (slots.length() == 0 || slots.length() > 64) {
+      ret!((false, "slots"))
+    } else {
+      new oneCh in {
+        oneCh!({}) |
+        for (@empty <- oneCh) {
+          policySchedule!(slots, 0, kind, now, maxLeadBlocks, maxSlotBlocks,
+                          now, empty, *ret)
+        }
+      }
+    }
+  } |
+
+  rl!(`__ROOT_URI__`, *rootCh) |
+  for (Root <- rootCh) {
+    rs!(bundle+{*Policy}, *c) |
+    for (@uri <- c) {
+      Root!("register", "component:policy", uri, 1, "policy", *deployerId, *ack) |
+      for (@r <- ack) { deployId!([uri]) }
+    }
+  }
+}

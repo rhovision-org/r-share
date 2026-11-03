@@ -1,0 +1,22 @@
+// Integer money helpers. Amounts are minor units; bps denominators are 10000.
+// Division is integer division and rounds toward zero (non-negative amounts only).
+
+contract moneyFee(@rent, @bps, ret) = {
+  if (rent < 0 || bps < 0 || bps > 10000) {
+    ret!((false, "bps"))
+  } else {
+    match rent * bps / 10000 {
+      fee => { ret!((true, fee, rent - fee)) }
+    }
+  }
+} |
+
+contract moneyPart(@amount, @bps, ret) = {
+  if (amount < 0 || bps < 0 || bps > 10000) {
+    ret!((false, "bps"))
+  } else {
+    match amount * bps / 10000 {
+      part => { ret!((true, part, amount - part)) }
+    }
+  }
+} |

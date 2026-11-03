@@ -1,0 +1,67 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: make venv
+      - run: make spec-check
+
+  parse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rchain-community/rchain-rust
+          path: rnode-rust
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - run: make venv
+      - run: make build
+      - name: Parse built and rendered terms with the node parser
+        env:
+          RCHAIN_RUST_DIR: ${{ github.workspace }}/rnode-rust
+        run: make parse-check
+
+  devnet:
+    # The behavioural campaign needs Docker, r-cash and a local rholo devnet. It is not
+    # run on every PR. Run it manually or on a nightly schedule.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rhovision-org/r-cash
+          ref: 49b441d
+          path: rholo
+      - uses: actions/checkout@v4
+        with:
+          repository: rchain-community/rchain-rust
+          path: rnode-rust
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: make venv
+      - name: devnet and suites
+        env:
+          RCASH_DIR: ${{ github.workspace }}/rholo
+          RHOLO_DIR: ${{ github.workspace }}/rnode-rust
+        run: |
+          make devnet
+          make rcash-install
+          make keys install
+          make unit-all

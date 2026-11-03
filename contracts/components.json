@@ -1,0 +1,190 @@
+{
+  "limits": {
+    "bytes": 57344,
+    "depth": 96,
+    "contracts": 32
+  },
+  "components": {
+    "ShareRoot": {
+      "file": "00_root.rho",
+      "state_cells": [
+        "rootState"
+      ],
+      "depends_on": []
+    },
+    "Clock": {
+      "file": "01_kernel.rho",
+      "state_cells": [],
+      "depends_on": []
+    },
+    "Verifier": {
+      "file": "01_kernel.rho",
+      "state_cells": [],
+      "depends_on": []
+    },
+    "Codec": {
+      "file": "01_kernel.rho",
+      "state_cells": [],
+      "depends_on": []
+    },
+    "AdminGuard": {
+      "file": "02_admin.rho",
+      "state_cells": [],
+      "depends_on": [
+        "Verifier"
+      ]
+    },
+    "ShareAdmin": {
+      "file": "02_admin.rho",
+      "state_cells": [
+        "adminState"
+      ],
+      "depends_on": [
+        "AdminGuard"
+      ]
+    },
+    "Policy": {
+      "file": "12_policy.rho",
+      "state_cells": [],
+      "depends_on": []
+    },
+    "Payments": {
+      "file": "40_payments.rho",
+      "state_cells": [
+        "paymentsState"
+      ],
+      "depends_on": [
+        "ShareAdmin"
+      ]
+    },
+    "ProviderBook": {
+      "file": "10_provider.rho",
+      "state_cells": [
+        "providerBookState"
+      ],
+      "depends_on": [
+        "Payments",
+        "ShareAdmin"
+      ]
+    },
+    "ProviderContract": {
+      "file": "10_provider.rho",
+      "state_cells": [
+        "providerState"
+      ],
+      "depends_on": [
+        "ShareAdmin"
+      ]
+    },
+    "ListingFactory": {
+      "file": "11_listing.rho",
+      "state_cells": [],
+      "depends_on": [
+        "ProviderContract",
+        "Policy",
+        "Codec",
+        "ShareAdmin",
+        "ListingContractFactory"
+      ]
+    },
+    "ListingContractFactory": {
+      "file": "14_listing_contract.rho",
+      "state_cells": [],
+      "depends_on": [
+        "UnitFactory",
+        "AdminGuard"
+      ]
+    },
+    "ListingContract": {
+      "file": "14_listing_contract.rho",
+      "state_cells": [
+        "listingState"
+      ],
+      "depends_on": [
+        "UnitFactory",
+        "AdminGuard"
+      ]
+    },
+    "UnitFactory": {
+      "file": "13_unit.rho",
+      "state_cells": [],
+      "depends_on": [
+        "Policy",
+        "Clock"
+      ]
+    },
+    "UnitContract": {
+      "file": "13_unit.rho",
+      "state_cells": [
+        "unitState"
+      ],
+      "depends_on": [
+        "Clock",
+        "ShareAdmin"
+      ]
+    },
+    "SlotContract": {
+      "file": "13_unit.rho",
+      "state_cells": [
+        "slotState"
+      ],
+      "depends_on": []
+    },
+    "GuestBook": {
+      "file": "20_booking.rho",
+      "state_cells": [
+        "guestBookState"
+      ],
+      "depends_on": [
+        "GuestLedgerFactory"
+      ]
+    },
+    "GuestLedger": {
+      "file": "23_guest_ledger.rho",
+      "state_cells": [
+        "ledgerState"
+      ],
+      "depends_on": [
+        "Payments",
+        "ListingContract",
+        "UnitContract",
+        "BookingFactory",
+        "Clock"
+      ]
+    },
+    "BookingFactory": {
+      "file": "21_booking.rho",
+      "state_cells": [],
+      "depends_on": [
+        "BookingContractFactory"
+      ]
+    },
+    "BookingContract": {
+      "file": "22_booking_contract.rho",
+      "state_cells": [
+        "bookingState"
+      ],
+      "depends_on": [
+        "UnitContract",
+        "Policy",
+        "Payments",
+        "Clock",
+        "AdminGuard"
+      ]
+    },
+    "GuestLedgerFactory": {
+      "file": "23_guest_ledger.rho",
+      "state_cells": [],
+      "depends_on": [
+        "Payments"
+      ]
+    },
+    "BookingContractFactory": {
+      "file": "22_booking_contract.rho",
+      "state_cells": [],
+      "depends_on": [
+        "AdminGuard"
+      ]
+    }
+  }
+}
