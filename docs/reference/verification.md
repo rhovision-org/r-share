@@ -23,6 +23,7 @@ unit-payments  pass   health, platform owner, REV issuer, unknown asset
 unit-lifecycle pass   dispute from requested refuses;
                       arbitrate outside dispute refuses;
                       checked-out booking resolves through resolveDispute
+unit-claims    pass   four claim classes x five kinds (20/30 coverage cells)
 ```
 
 The runner writes `deployments/suite-results.json` (gitignored) and exits 0 only when every
@@ -40,6 +41,17 @@ selected suite passes.
 The suite uses a stub Bond and an empty unit set. It is a state-machine test, not a
 marketplace scenario; it does not prove slot settlement or ERTP conservation.
 
+## What the claims suite proves
+
+- `cancel` from a requested booking returns the full rent and deposit.
+- `claimNoShow` after the no-show window pays the provider rent net of fee and releases the
+  deposit.
+- `claimDeposit` followed by `resolveDeposit` splits the deposit between provider and guest.
+
+The same three scenarios run for lodging, event, bike, car and robot. They exercise the
+remedy arithmetic and the booking state machine; they do not exercise a real Bond, slots,
+or ERTP conservation.
+
 ## r-cash caveat
 
 The pinned r-cash installer currently stops at its `51_pool` step because the node reports
@@ -50,9 +62,9 @@ clock, asset resolver and account factory; the AMM pool is not on its path.
 
 ## What is still not run
 
-- claim-class scenarios (`buyerUseBreach`, `damage`, `noShow`, `noFaultCancellation`);
 - `providerDeliveryBreach` and `partialPerformance`, which have no code;
-- concurrency races, conservation, pause, admin, events and generality;
-- any scenario on bike, car or robot fixtures.
+- concurrency races, conservation, pause and admin;
+- event-only ticket arms (`redeem`, `closeEvent`, `transferTicket`);
+- slot settlement and ERTP conservation (the claim fixture uses a stub Bond).
 
 Do not describe those as passing. The coverage manifest records the real status.

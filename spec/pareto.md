@@ -101,8 +101,8 @@ It changes if:
 
 The **bilateral bond + generalized claim + deterministic remedy table + evidence hashes** is
 the candidate with the best coverage/trust trade-off in this analysis. It is a hypothesis,
-not a measured frontier: `coverage_passing` is 0 until the claim-class scenarios run, and
-the alternative rows are estimates.
+not a measured frontier: `coverage_passing` is 20 after `unit_claims`; the two Phase 2
+classes remain design, and the alternative rows are estimates.
 
 - It covers both obligations with no new trusted party; the 2-of-3 arbiter already exists.
 - It adds one bond contract and one claim class parameter, not a new state machine.

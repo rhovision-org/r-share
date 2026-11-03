@@ -4,45 +4,53 @@ classes:
   - name: lodging
     kind: lodging
     claims:
-      buyerUseBreach: mapping
+      buyerUseBreach: passing
       providerDeliveryBreach: design
-      noFaultCancellation: mapping
-      noShow: mapping
-      damage: mapping
+      noFaultCancellation: passing
+      noShow: passing
+      damage: passing
       partialPerformance: design
   - name: event
     kind: event
     claims:
-      buyerUseBreach: mapping
+      buyerUseBreach: passing
       providerDeliveryBreach: design
-      noFaultCancellation: mapping
-      noShow: mapping
-      damage: mapping
+      noFaultCancellation: passing
+      noShow: passing
+      damage: passing
       partialPerformance: design
   - name: bike
     kind: bike
     claims:
-      buyerUseBreach: mapping
+      buyerUseBreach: passing
       providerDeliveryBreach: design
-      noFaultCancellation: mapping
-      noShow: mapping
-      damage: mapping
+      noFaultCancellation: passing
+      noShow: passing
+      damage: passing
       partialPerformance: design
   - name: car
     kind: car
     claims:
-      buyerUseBreach: mapping
+      buyerUseBreach: passing
       providerDeliveryBreach: design
-      noFaultCancellation: mapping
-      noShow: mapping
-      damage: mapping
+      noFaultCancellation: passing
+      noShow: passing
+      damage: passing
       partialPerformance: design
   - name: robot
     kind: robot
     claims:
-      buyerUseBreach: mapping
+      buyerUseBreach: passing
       providerDeliveryBreach: design
-      noFaultCancellation: mapping
-      noShow: mapping
-      damage: mapping
+      noFaultCancellation: passing
+      noShow: passing
+      damage: passing
       partialPerformance: design
+
+# Evidence for every `passing` cell. The claim suite runs each scenario for all
+# five kinds; a passing status without an entry here is a gate failure.
+evidence:
+  buyerUseBreach: harness/unit_claims.py
+  noFaultCancellation: harness/unit_claims.py
+  noShow: harness/unit_claims.py
+  damage: harness/unit_claims.py

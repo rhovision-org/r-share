@@ -33,11 +33,32 @@ def parse(path: Path) -> list[dict]:
     return classes
 
 
+def parse_evidence(path: Path) -> dict[str, str]:
+    evidence: dict[str, str] = {}
+    in_block = False
+    for line in path.read_text().splitlines():
+        s = line.strip()
+        if s == "evidence:":
+            in_block = True
+            continue
+        if not in_block:
+            continue
+        if not s or s.startswith("#"):
+            continue
+        if ":" not in s:
+            in_block = False
+            continue
+        key, value = s.split(":", 1)
+        evidence[key.strip()] = value.strip()
+    return evidence
+
+
 def main() -> int:
     if not COVERAGE.is_file():
         print(f"check-coverage: missing {COVERAGE}", file=sys.stderr)
         return 1
     classes = parse(COVERAGE)
+    evidence = parse_evidence(COVERAGE)
     errors = []
     counts = {"passing": 0, "mapping": 0, "design": 0, "not_implemented": 0}
     if len(classes) != 5:
@@ -49,8 +70,12 @@ def main() -> int:
             errors.append(f"{entry['name']}: missing claims {sorted(missing)}")
         if extra:
             errors.append(f"{entry['name']}: unknown claims {sorted(extra)}")
-        for status in entry["claims"].values():
+        for claim, status in entry["claims"].items():
             counts[status] += 1
+            if status == "passing" and not (
+                evidence.get(f"{entry['name']}.{claim}") or evidence.get(claim)
+            ):
+                errors.append(f"{entry['name']}.{claim}: passing without evidence")
     for error in errors:
         print(f"check-coverage: {error}", file=sys.stderr)
     if errors:

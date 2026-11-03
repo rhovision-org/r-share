@@ -16,12 +16,12 @@ off-chain database in this repo.
 
 | Stage | What it proves | Status |
 |---|---|---|
-| Short-term holiday letting | full stay lifecycle, deposit, cancellation, dispute | Contracts implemented; suites planned (M3–M4); not yet exercised |
-| Events management | capacity across show times and sections | Contract arms implemented; mapping only; `unit_events` planned (M5) |
-| Ticketing | transferable, redeemable proof of admission | Contract arms implemented; mapping only; `unit_events` planned (M5) |
-| Municipal bike share | fleet, station-hour capacity, unlock credential | Shared path; mapping only; `unit_generality` planned (M7) |
-| Car rental | vehicle windows, inspection, damage deposit | Shared path; mapping only; `unit_generality` planned (M7) |
-| Robotics-as-a-service | machine windows, operators, SLAs, session evidence | North star; mapping only; `unit_generality` planned (M7) |
+| Short-term holiday letting | full stay lifecycle, deposit, cancellation, dispute | Lifecycle and claim suites pass; slot settlement not exercised |
+| Events management | capacity across show times and sections | Claim path passes; event-only ticket arms not exercised |
+| Ticketing | transferable, redeemable proof of admission | Claim path passes; event-only ticket arms not exercised |
+| Municipal bike share | fleet, station-hour capacity, unlock credential | Claim path passes for the kind; fleet/station behavior not exercised |
+| Car rental | vehicle windows, inspection, damage deposit | Claim path passes for the kind; inspection not exercised |
+| Robotics-as-a-service | machine windows, operators, SLAs, session evidence | Claim path passes for the kind; per-unit pricing/SLAs not implemented |
 
 ## What is here
 
@@ -43,10 +43,11 @@ on it.
 The 13 install terms build, measure, and parse with the target node's own parser;
 `make spec-check` passes. On 2026-11-03 a fresh devnet built from rholo `e2d073d` with
 r-cash `49b441d` recorded passing runs for `unit_root`, `unit_payments` and
-`unit_lifecycle`. The lifecycle suite verifies the dispute gate, the arbitration gate and
-permissionless `resolveDispute`. The remaining suites are placeholders that exit 2.
-Coverage is still 0/30 `passing`: the claim-class scenarios are not implemented, and
-`mapping` is not coverage. See
+`unit_lifecycle` and `unit_claims`. The lifecycle suite verifies the dispute gate, the
+arbitration gate and permissionless `resolveDispute`; the claims suite verifies
+`buyerUseBreach`, `noFaultCancellation`, `noShow` and `damage` for lodging, events, bike,
+car and robot. Coverage is 20/30 `passing`; `providerDeliveryBreach` and
+`partialPerformance` remain design. The remaining suites are placeholders that exit 2. See
 [Status, scope and honest limits](docs/orientation/status-and-scope.md).
 
 ## Quickstart

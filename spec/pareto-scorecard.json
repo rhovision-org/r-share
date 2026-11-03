@@ -3,8 +3,8 @@
   "status": "current measured; target rows estimated",
   "coverage": {
     "total": 30,
-    "passing": 0,
-    "mapping": 20,
+    "passing": 20,
+    "mapping": 0,
     "design": 10,
     "not_implemented": 0
   },
@@ -26,7 +26,7 @@
   "candidates": [
     {
       "name": "current",
-      "coverage_passing": 0,
+      "coverage_passing": 20,
       "coverage_total": 30,
       "trust": 3,
       "bytes_max": 24282,

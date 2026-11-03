@@ -9,7 +9,8 @@ NODE ?= http://localhost:40403
         check-money spec-check parse-check docs docs-serve docs-check devnet devnet-up \
         devnet-wait down status rcash-install rcash-bootstrap keys install setup unit-root unit-payments \
         unit-provider unit-listing unit-booking unit-concurrency unit-lifecycle \
-        unit-events unit-admin unit-generality unit-conservation unit-behavior unit-all \
+        unit-claims unit-events unit-admin unit-generality unit-conservation \
+        unit-behavior unit-all \
         check ci clean
 
 venv:
@@ -130,6 +131,8 @@ unit-concurrency:
 	$(PY) harness/unit_pending.py concurrency
 unit-lifecycle:
 	$(PY) harness/unit_lifecycle.py
+unit-claims:
+	$(PY) harness/unit_claims.py
 unit-events:
 	$(PY) harness/unit_pending.py events
 unit-admin:

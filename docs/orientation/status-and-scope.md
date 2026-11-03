@@ -3,10 +3,12 @@
 > **Status:** This chapter defines the labels used everywhere else in the book.
 
 r-share has static, parser and one recorded behavioural run. On 2026-11-03, a fresh devnet
-built from rholo `e2d073d` with r-cash `49b441d` passed `unit_root`, `unit_payments` and
-`unit_lifecycle`. The lifecycle run verifies the dispute gate, the arbitration gate and
-permissionless `resolveDispute`. Everything else is still mapping, design or not
-implemented; every claim in this book is labelled accordingly.
+built from rholo `e2d073d` with r-cash `49b441d` passed `unit_root`, `unit_payments`,
+`unit_lifecycle` and `unit_claims`. The lifecycle run verifies the dispute gate, the
+arbitration gate and permissionless `resolveDispute`; the claims run verifies
+`buyerUseBreach`, `noFaultCancellation`, `noShow` and `damage` across all five kinds
+(20/30 coverage cells). `providerDeliveryBreach`, `partialPerformance`, concurrency,
+conservation and pause remain design or not run; every claim is labelled accordingly.
 
 ## Status labels
 
@@ -34,6 +36,7 @@ words are reserved for a recorded command and artifact.
 | `unit_root` | passing on the recorded devnet |
 | `unit_payments` | passing on the recorded devnet |
 | `unit_lifecycle` | passing; dispute gate, arbitrate gate and `resolveDispute` |
+| `unit_claims` | passing; four claim classes across five kinds (20/30 cells) |
 | Devnet bootstrap | `make devnet-up`, `make rcash-bootstrap`, `make install` |
 
 ## What is a design proposal

@@ -1,6 +1,9 @@
 # Remedy table
 
-**Status:** Phase 2 design proposal. Not implemented.
+**Status:** Phase 1 implements and verifies `fee`, `cancel`, `noShow` and `depositSplit` for
+`buyerUseBreach`, `noFaultCancellation`, `noShow` and `damage` across all five kinds. The
+generalized class parameter, `providerDeliveryBreach` and `partialPerformance` remain Phase 2
+design.
 
 ## 1. Inputs and outputs
 

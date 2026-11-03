@@ -1,7 +1,9 @@
 # Claim classes
 
-> **Status:** Design proposal (Phase 2). Phase 1 has `claimDeposit`, `claimNoShow` and
-> `resolveDeposit`; the class parameter is the generalization.
+> **Status:** Phase 1 verifies `buyerUseBreach`, `noFaultCancellation`, `noShow` and
+> `damage` across all five kinds through `claimDeposit`, `claimNoShow`, `resolveDeposit` and
+> `cancel`. `providerDeliveryBreach` and `partialPerformance` remain design-only; the class
+> parameter is the Phase 2 generalization.
 
 | Class | Claimant / window | Default remedy | Bound |
 |---|---|---|---|
