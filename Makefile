@@ -1,10 +1,12 @@
 PY ?= .venv/bin/python
+MDBOOK ?= mdbook
 RCASH_DIR ?= ../Rholphin
 RHOLO_DIR ?= ../RNodeRust
 NODE ?= http://localhost:40403
 
 .PHONY: venv build build-check measure measure-check check-arch check-captures \
-        check-select check-placeholders check-money spec-check parse-check devnet down status \
+        check-select check-placeholders check-money spec-check parse-check \
+        docs docs-serve docs-check devnet down status \
         rcash-install keys install setup unit-root unit-payments unit-provider \
         unit-listing unit-booking unit-concurrency unit-lifecycle unit-events \
         unit-admin unit-generality unit-all ci clean
@@ -46,6 +48,16 @@ spec-check: build-check measure-check check-arch check-captures check-select \
 parse-check:
 	$(PY) harness/install.py --dry-run
 	tools/parse_check.sh contracts/build/*.rho .devnet/rendered/*.rho
+
+docs:
+	$(MDBOOK) build
+
+docs-serve:
+	$(MDBOOK) serve --open
+
+docs-check:
+	$(PY) tools/check_docs.py
+	$(MDBOOK) build
 
 devnet:
 	$(MAKE) -C $(RCASH_DIR) devnet RHOLO_DIR=$(abspath $(RHOLO_DIR))
@@ -94,4 +106,4 @@ unit-all: unit-root unit-payments
 ci: spec-check unit-all
 
 clean:
-	rm -rf .venv __pycache__ harness/__pycache__ tools/__pycache__ contracts/build/*
+	rm -rf .venv __pycache__ harness/__pycache__ tools/__pycache__ contracts/build/* docs/book

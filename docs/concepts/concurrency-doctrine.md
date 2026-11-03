@@ -1,6 +1,9 @@
 # Concurrency doctrine
 
-The goal is to make the tuple space do the arbitration, not a lock or a global cell.
+> **Status:** Implemented. **Applies to:** every contract and every review.
+
+The goal is to make the tuple space do the arbitration, not a lock or a global cell. This
+chapter is near-verbatim the repository's concurrency doctrine; the code is the authority.
 
 ## Rules
 
@@ -23,8 +26,8 @@ The goal is to make the tuple space do the arbitration, not a lock or a global c
 5. **Per-booking contracts.** Every BookingContract has its own state cell, escrow purse,
    ticket projection and op map. Lifecycle operations on different bookings never share a
    cell.
-6. **No global counters.** `bookingId = guestId ++ ":" ++ opId`; listing/unit/slot IDs are
-   client/provider-supplied and uniqueness-checked in the owning cell.
+6. **No global counters.** `bookingId = guestId ++ ":" ++ opId`; listing, unit and slot IDs
+   are client- or provider-supplied and uniqueness-checked in the owning cell.
 7. **Read-mostly directories.** ShareRoot, ProviderBook and GuestBook are indexes. Clients
    holding a listing/unit/booking URI go directly to it; the authoritative contract
    re-checks ownership. Registry URIs are resolved per arm and never cached in a bundle.
@@ -59,6 +62,19 @@ The goal is to make the tuple space do the arbitration, not a lock or a global c
 | Unit state cell | slot creation and provider reset | holds touch slot contracts |
 | GuestLedger op reservation | per guest, short | prevents duplicate bookings |
 | BookingContract state cell | per booking | exactly-once transitions |
-| r-cash account purse | per owner withdraw/payout | guest and provider have separate accounts |
+| r-cash account purse | per owner withdraw/payout | separate accounts per party |
 
 No hot path is shared between different guests booking different slots.
+
+## How to review a change against the doctrine
+
+- Does it add a shared mutable cell on a booking path? Reject or redesign.
+- Does it use `select` for exclusivity? Reject.
+- Does it peek, await, then write the peeked snapshot? Reject.
+- Does it add a global counter? Reject; use a client-supplied id.
+- Does it store a live capability in a data map? Reject; store a URI and resolve it.
+- Does it add a timer? Reject; use a height and lazy expiry.
+
+> **Where to go deeper.** [Time without clocks](time-without-clocks.md) covers lazy expiry.
+> [Platform constraints](../reference/platform-constraints.md) lists the node limits. [Test
+> your fork](../guides/test-your-fork.md) includes the race gate.

@@ -38,6 +38,29 @@ jobs:
           RCHAIN_RUST_DIR: ${{ github.workspace }}/rnode-rust
         run: make parse-check
 
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - name: Cache mdBook
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/mdbook
+            ~/.cargo/registry
+          key: mdbook-0.5.4-${{ runner.os }}
+      - name: Install mdBook 0.5.4
+        run: |
+          if ! command -v mdbook >/dev/null; then
+            cargo install mdbook --locked --version 0.5.4
+          fi
+          mdbook --version
+      - run: make docs-check PY=python3
+
   devnet:
     # The behavioural campaign needs Docker, r-cash and a local rholo devnet. It is not
     # run on every PR. Run it manually or on a nightly schedule.

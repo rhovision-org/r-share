@@ -1,0 +1,20 @@
+[book]
+title = "r-share"
+authors = ["r-share contributors"]
+description = "On-chain booking and rental primitives for rholo: capacity over an interval, from holiday letting to robotics-as-a-service."
+language = "en"
+src = "docs"
+
+[build]
+build-dir = "docs/book"
+create-missing = false
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/PatrickMockridge/r-share"
+edit-url-template = "https://github.com/PatrickMockridge/r-share/edit/main/docs/{path}"
+
+[output.html.fold]
+enable = true
+level = 1

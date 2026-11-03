@@ -34,10 +34,13 @@ Authority order: `contracts/src` and the static gates > `docs/` > this file.
 
 ```
 make spec-check      # build drift, budgets, arch, captures, no-select, money
+make parse-check     # render and parse with the target node's parser
+make docs            # build docs/book with mdBook
+make docs-check      # docs links, orphans, coverage, then mdBook build
 make devnet          # r-cash devnet via RCASH_DIR/RHOLO_DIR
 make rcash-install   # install r-cash components
 make keys install    # install r-share
-make unit-all        # all behavioural suites
+make unit-all        # implemented behavioural suites
 ```
 
 ## Rules for changes
@@ -47,3 +50,19 @@ make unit-all        # all behavioural suites
 - Never add a shared mutable counter or a mutable availability cache.
 - Every new arm needs a refusal test and an idempotency test.
 - Every value-moving path needs a balance-conservation assertion.
+
+## Documentation
+
+- `docs/` is the mdBook source; `docs/book/` is generated and gitignored. `book.toml` sets
+  `src = "docs"` and `build-dir = "docs/book"`.
+- Stock mdBook only: no mermaid, KaTeX, toc or other preprocessors. Use ASCII diagrams.
+- Every `docs/**/*.md` chapter except `SUMMARY.md` must be listed in `SUMMARY.md` exactly
+  once. `make docs-check` enforces links, orphans, includes, README links and reference
+  coverage.
+- `reference/` is canonical for arms, schemas, constraints and install order. Update
+  `reference/contract-map.md` and `reference/install-order-and-keys.md` whenever a
+  component, deploy file or component key changes; the checker enforces it.
+- Use a status label near the top of every concept and case-study chapter. "Implemented"
+  means source plus static/parser gates, never behavioural verification.
+- Link between chapters with relative `.md` links. Link to source code with GitHub URLs or
+  plain backticked paths. Never link to generated `docs/book/` paths.
