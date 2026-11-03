@@ -107,13 +107,20 @@ def main(argv: list[str] | None = None) -> int:
 
     cfg = load_json(ROOT / "configs" / "devnet.json")
     rcash = load_json(ROOT / "configs" / "rcash.json")
-    keys = node.load_keys()
+    if args.dry_run and not node.keys_path().is_file():
+        keys = {"deployer": {"address": "1111dryrun",
+                             "public": "02" + "11" * 32,
+                             "secret": "00" * 32}}
+    else:
+        keys = node.load_keys()
     if "deployer" not in keys:
         raise SystemExit("install: keys file has no deployer key")
 
     rcash_manifest = Path(cfg.get("rcash_manifest", rcash["root_manifest_path"]))
     if rcash_manifest.is_file():
         rcash_root = load_json(rcash_manifest)["root_uri"]
+    elif args.dry_run:
+        rcash_root = "rho:id:dryrun-rcash"
     else:
         raise SystemExit(f"install: missing r-cash manifest {rcash_manifest}; "
                          "run `make rcash-install` first")
