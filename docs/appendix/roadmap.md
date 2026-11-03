@@ -4,7 +4,7 @@
 
 The roadmap is an acceptance map, not a promise. Each milestone names the suite that must
 pass before the milestone is considered done. The machine-readable version is
-`spec/acceptance.yaml`; the suite placeholders are in `harness/unit_pending.py`.
+`spec/acceptance.yaml`; the implemented suites are under `harness/`.
 
 ## Milestones
 

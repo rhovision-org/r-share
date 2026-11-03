@@ -20,8 +20,8 @@
     "state_cell_types": 12,
     "bytes_max": 22365,
     "arm_declarations": 123,
-    "root_resolve_sites": 18,
-    "registry_lookup_sites": 64
+    "root_resolve_sites": 13,
+    "registry_lookup_sites": 54
   },
   "candidates": [
     {

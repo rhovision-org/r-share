@@ -86,8 +86,9 @@ arm entry; no registry capability is cached in a bundle.
 ## Where the code lives
 
 - `contracts/src/deploy/` — the 13 terms above.
-- `contracts/src/lib/` — `Auth` (inlined into owner-gated terms), `Guard` (only the
-  bootstrap Root), `Money` (inlined into Remedy).
+- `contracts/src/lib/` — `Auth` (inlined into owner-gated terms), `AdminGuard` (the
+  shared wrapper inlined into the five terms that verify admin signatures), `Guard` (only
+  the bootstrap Root), `Money` (inlined into Remedy).
 - `contracts/components.json` — the machine-readable catalogue.
 - `contracts/measure.json` — per-term size, depth and contract count.
 

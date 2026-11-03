@@ -14,11 +14,8 @@ from preflight import require_devnet
 import deploy as node
 
 
-def main() -> int:
+def run() -> dict:
     print("unit-lifecycle")
-    if not require_devnet("unit-lifecycle"):
-        return 2
-
     owner = node.load_keys()["deployer"]["address"]
     bond = dummy_bond()
     print(f"  bond {bond}")
@@ -86,6 +83,19 @@ def main() -> int:
     if state.get("disputeHash") != "hash" or state.get("disputeAtHeight") <= 0:
         raise AssertionError(f"evidence anchors: {state!r}")
     print("  ok evidence anchors")
+    return {
+        "dispute_from_requested": list(refused),
+        "arbitrate_outside_dispute": list(arbitrate),
+        "resolve_dispute": resolved[0],
+        "evidence_hash": state.get("disputeHash"),
+        "dispute_height_positive": state.get("disputeAtHeight") > 0,
+    }
+
+
+def main() -> int:
+    if not require_devnet("unit-lifecycle"):
+        return 2
+    run()
     return 0
 
 

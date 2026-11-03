@@ -123,9 +123,9 @@ unit-root:
 unit-payments:
 	$(PY) harness/unit_payments.py
 unit-provider:
-	$(PY) harness/unit_pending.py provider
+	$(PY) harness/unit_provider.py
 unit-listing:
-	$(PY) harness/unit_pending.py listing
+	$(PY) harness/unit_listing.py
 unit-booking:
 	$(PY) harness/unit_booking.py
 unit-concurrency:
@@ -147,7 +147,7 @@ unit-admin:
 unit-generality:
 	$(PY) harness/unit_generality.py
 unit-conservation:
-	$(PY) harness/conservation.py
+	$(PY) harness/unit_conservation.py
 unit-behavior:
 	$(PY) harness/unit_behavior.py
 

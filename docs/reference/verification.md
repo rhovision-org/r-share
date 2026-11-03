@@ -33,6 +33,9 @@ unit-concurrency pass one of two same-slot books wins; loser refuses "slot held"
 unit-admin     pass   below-threshold and replay refusals; 3 admins, threshold 2
 unit-events    pass   redeem, closeEvent and transferTicket
 unit-generality pass  five kinds validate; an unknown kind refuses
+unit-provider  pass   register stable, profile update, pause/resume, owner check
+unit-listing   pass   create, unit, activate, pause/resume, delist, projections
+unit-behavior   pass   normalized lifecycle transcript matches the golden file
 ```
 
 The runner writes `deployments/suite-results.json` (gitignored) and exits 0 only when every
@@ -93,7 +96,11 @@ Two same-slot book requests are submitted together: exactly one succeeds, the ot
 action refuses `"below threshold"` and a reused nonce refuses `"replay"`. `unit_events`
 proves `redeem` moves a booking to `"redeemed"`, `closeEvent` settles it, and
 `transferTicket` moves the ticket holder. `unit_generality` validates terms for all five
-kinds and refuses an unknown kind.
+kinds and refuses an unknown kind. `unit_provider` and `unit_listing` cover the provider
+and listing arms end to end, including profile update, unit creation and delist.
+`unit_behavior` records a normalized lifecycle transcript (refusals, booleans, evidence
+hash) and compares it to `harness/scenarios/golden/lifecycle.json`; heights and URIs are
+never part of the transcript.
 
 ## What the guestbook and evidence checks prove
 
@@ -116,7 +123,6 @@ clock, asset resolver and account factory; the AMM pool is not on its path.
 - the full per-asset conservation harness (one booking is covered);
 - `setAdmins` payload cases (pause, threshold and replay are covered);
 - multi-slot and multi-guest races beyond one same-slot pair;
-- a golden-transcript comparison against a committed baseline;
 - fleet fixtures beyond the claim path;
 - slot settlement outside the one booking scenario (the claim fixture uses a stub Bond).
 

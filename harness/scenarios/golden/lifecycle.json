@@ -1,0 +1,13 @@
+{
+  "dispute_from_requested": [
+    false,
+    "closed"
+  ],
+  "arbitrate_outside_dispute": [
+    false,
+    "closed"
+  ],
+  "resolve_dispute": true,
+  "evidence_hash": "hash",
+  "dispute_height_positive": true
+}

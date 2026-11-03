@@ -31,9 +31,13 @@ SUITES = {
     "admin": "unit_admin.py",
     "events": "unit_events.py",
     "generality": "unit_generality.py",
+    "provider": "unit_provider.py",
+    "listing": "unit_listing.py",
+    "behavior": "unit_behavior.py",
 }
 DEFAULT = ["root", "payments", "lifecycle", "claims", "pricing", "guestbook",
-           "booking", "pause", "concurrency", "admin", "events", "generality"]
+           "booking", "pause", "concurrency", "admin", "events", "generality",
+           "provider", "listing", "behavior"]
 
 
 def run(name: str) -> dict:

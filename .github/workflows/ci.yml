@@ -85,6 +85,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: make venv
+      - name: r-cash harness dependencies
+        env:
+          RCASH_DIR: ${{ github.workspace }}/rholo
+        run: make -C "$RCASH_DIR" venv
       - name: devnet and suites
         env:
           RCASH_DIR: ${{ github.workspace }}/rholo
@@ -92,7 +96,7 @@ jobs:
         run: |
           make devnet
           make devnet-wait
-          make rcash-install
+          make rcash-bootstrap
           make keys install
           make unit-all
       - uses: actions/upload-artifact@v4

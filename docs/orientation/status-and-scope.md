@@ -16,7 +16,7 @@ conservation and pause remain design or not run; every claim is labelled accordi
 |---|---|
 | **Implemented** | Source exists; `make spec-check` and `make parse-check` pass. No behavioural claim. |
 | **Implemented, not yet exercised** | Source exists and the gates pass; no healthy-devnet suite run is recorded. |
-| **Planned (M2)–(M8)** | A placeholder suite or feature is scheduled; `harness/unit_pending.py` exits 2. |
+| **Planned** | A design-only feature or a future suite; no placeholder runner remains. |
 | **Mapping only** | No dedicated suite; the use case rides the shared contract path and is unverified. |
 | **Design intent** | Roadmap or north-star direction; not implemented. |
 | **Out of scope** | Deliberately not in this repository. |
@@ -45,6 +45,10 @@ words are reserved for a recorded command and artifact.
 | `unit_admin` | passing; threshold and replay refusals |
 | `unit_events` | passing; redeem, closeEvent and transferTicket |
 | `unit_generality` | passing; five kinds validate |
+| `unit_provider` | passing; register, profile, pause/resume, owner |
+| `unit_listing` | passing; create, unit, activate, pause/resume, delist |
+| `unit_behavior` | passing; golden lifecycle transcript |
+| `unit_conservation` | passing; one-booking escrow/refund/Bond check |
 | Devnet bootstrap | `make devnet-up`, `make rcash-bootstrap`, `make install` |
 
 ## What is a design proposal

@@ -7,8 +7,8 @@
   "components": 23,
   "state_cell_types": 12,
   "arm_declarations": 123,
-  "root_resolve_sites": 18,
-  "registry_lookup_sites": 64,
+  "root_resolve_sites": 13,
+  "registry_lookup_sites": 54,
   "registry_insert_sites": 23,
   "terms_detail": {
     "00_root.rho": {

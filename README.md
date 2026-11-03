@@ -44,17 +44,20 @@ The 13 install terms build, measure, and parse with the target node's own parser
 `make spec-check` passes. On 2026-11-03 a fresh devnet built from rholo `e2d073d` with
 r-cash `49b441d` recorded passing runs for `unit_root`, `unit_payments` and
 `unit_lifecycle`, `unit_claims`, `unit_pricing`, `unit_guestbook`, `unit_booking`,
-`unit_pause`, `unit_concurrency`, `unit_admin`, `unit_events` and `unit_generality`. The
-lifecycle suite verifies the dispute gate, the arbitration gate, permissionless
-`resolveDispute` and the readable evidence anchors; the claims suite verifies
+`unit_pause`, `unit_concurrency`, `unit_admin`, `unit_events`, `unit_generality`,
+`unit_provider`, `unit_listing`, `unit_behavior` and `unit_conservation`. The lifecycle
+suite verifies the dispute gate, the arbitration gate, permissionless `resolveDispute` and
+the readable evidence anchors; the claims suite verifies
 `buyerUseBreach`, `noFaultCancellation`, `noShow` and `damage` for lodging, events, bike,
 car and robot. `unit_pricing` verifies that a unit stores and validates its own price, and
 `unit_booking` proves an end-to-end booking of a machine and operator at different prices:
 rent is the sum, the windows are the per-unit min/max, the Bond total is rent + deposit, and
 a cancel refunds the escrow. `unit_pause` verifies global, provider and unit pause; the
 concurrency suite proves one of two same-slot books wins; the admin, event and generality
-suites cover signed refusals, the event-only arms and the five-kind whitelist. Coverage is
-20/30 `passing`; `providerDeliveryBreach` and `partialPerformance` remain design. The remaining suites are placeholders that exit 2. See
+suites cover signed refusals, the event-only arms and the five-kind whitelist; provider and
+listing suites cover their full arms; a normalized lifecycle transcript is compared against
+a committed golden file. Coverage is 20/30 `passing`; `providerDeliveryBreach` and
+`partialPerformance` remain design. The remaining suites are placeholders that exit 2. See
 [Status, scope and honest limits](docs/orientation/status-and-scope.md).
 
 ## Quickstart

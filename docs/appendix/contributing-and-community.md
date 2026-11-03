@@ -29,7 +29,7 @@ primitives clearer, safer or more reusable.
    [install order and component keys](../reference/install-order-and-keys.md); the docs
    checker enforces it.
 5. If you added a suite, update the suite table in
-   [Test your fork](../guides/test-your-fork.md) and `harness/unit_pending.py`.
+   [Test your fork](../guides/test-your-fork.md) and the suites under `harness/`.
 6. Label the status honestly. A new class without a suite is "mapping only".
 
 ## The change rules
