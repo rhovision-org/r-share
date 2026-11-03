@@ -19,6 +19,19 @@ jobs:
       - run: make venv
       - run: make spec-check
 
+  formal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: spec/lean
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 tools/check_lean.py
+      - run: python3 tools/check_vectors.py
+
   parse:
     runs-on: ubuntu-latest
     steps:

@@ -10,3 +10,6 @@ deployments/*.json
 # mdBook build output
 /docs/book/
 /contracts/metrics-current.json
+
+# Lean build output
+/spec/lean/.lake/

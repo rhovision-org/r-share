@@ -1,0 +1,57 @@
+{
+  "generated_by": "spec/lean/RShare/Emit.lean",
+  "vectors": {
+    "allocator.acquire.bounded": {
+      "input": "100",
+      "output": "none"
+    },
+    "allocator.acquire.expired": {
+      "input": "1,0",
+      "output": "ok"
+    },
+    "allocator.acquire.free": {
+      "input": "1,0,15,7",
+      "output": "ok"
+    },
+    "allocator.acquire.held_refuse": {
+      "input": "1,0",
+      "output": "none"
+    },
+    "allocator.acquire.multi_all": {
+      "input": "3",
+      "output": "ok"
+    },
+    "allocator.acquire.multi_one_held": {
+      "input": "3",
+      "output": "none"
+    },
+    "allocator.acquire.paused_listing": {
+      "input": "1,0",
+      "output": "none"
+    },
+    "allocator.acquire.paused_unit": {
+      "input": "1,0",
+      "output": "none"
+    },
+    "allocator.confirm.ok": {
+      "input": "7",
+      "output": "ok"
+    },
+    "allocator.confirm.wrong_token": {
+      "input": "9",
+      "output": "none"
+    },
+    "allocator.probe.redact": {
+      "input": "7,9",
+      "output": "same"
+    },
+    "allocator.release.ok": {
+      "input": "7",
+      "output": "ok"
+    },
+    "allocator.release.wrong_token": {
+      "input": "9",
+      "output": "none"
+    }
+  }
+}

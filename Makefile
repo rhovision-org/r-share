@@ -16,7 +16,7 @@ export RHOLO_DIR := $(abspath $(RHOLO_DIR))
         unit-provider unit-listing unit-booking unit-concurrency unit-lifecycle \
         unit-claims unit-pricing unit-guestbook unit-events unit-admin unit-pause \
         unit-generality unit-conservation unit-behavior unit-all \
-        check ci clean
+        check ci clean lean-build lean-check vectors vectors-write formal-check
 
 venv:
 	python3 -m venv .venv
@@ -167,7 +167,21 @@ unit-behavior:
 unit-all:
 	$(PY) harness/run_suites.py
 
-check: spec-check parse-check docs-check
+lean-build:
+	cd spec/lean && lake build
+
+lean-check:
+	$(PY) tools/check_lean.py
+
+vectors-write:
+	$(PY) tools/gen_vectors.py --write
+
+vectors:
+	$(PY) tools/check_vectors.py
+
+formal-check: lean-check vectors
+
+check: spec-check parse-check docs-check formal-check
 
 ci: check unit-all
 
