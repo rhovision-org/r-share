@@ -6,7 +6,8 @@ new
   deployerId(`rho:rchain:deployerId`),
   dops(`rho:rchain:deployerId:ops`),
   deployId(`rho:rchain:deployId`),
-  pkCh, uriCh, ack
+  pkCh, uriCh, ack,
+  guardAnySig, guardArgsAppend, guardArgsToString, guardCount, resolveManySeq, verifyAdmin
 in {
   // @@INLINE:lib/Guard.rho@@
 

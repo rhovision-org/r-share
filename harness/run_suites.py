@@ -21,8 +21,9 @@ RESULTS = ROOT / "deployments" / "suite-results.json"
 SUITES = {
     "root": "unit_root.py",
     "payments": "unit_payments.py",
+    "lifecycle": "unit_lifecycle.py",
 }
-DEFAULT = ["root", "payments"]
+DEFAULT = ["root", "payments", "lifecycle"]
 
 
 def run(name: str) -> dict:

@@ -126,7 +126,7 @@ unit-booking:
 unit-concurrency:
 	$(PY) harness/unit_pending.py concurrency
 unit-lifecycle:
-	$(PY) harness/unit_pending.py lifecycle
+	$(PY) harness/unit_lifecycle.py
 unit-events:
 	$(PY) harness/unit_pending.py events
 unit-admin:

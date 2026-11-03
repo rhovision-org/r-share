@@ -7,7 +7,8 @@ new
   rs(`rho:registry:insertArbitrary`),
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
-  rootCh, c1, c2
+  rootCh, c1, c2,
+  guardAnySig, guardCount
 in {
   contract guardAnySig(@digest, @sigs, @j, @key, ret) = {
     if (j >= sigs.length()) {

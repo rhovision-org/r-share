@@ -13,7 +13,7 @@ def main() -> int:
     print("unit-root")
     if not require_devnet("unit-root"):
         return 2
-    keys = one(root_call("keys", "Nil"))
+    keys = one(root_call("keys"))
     expect_ok("root keys", keys)
     if not isinstance(keys[1], list) or "component:root" not in keys[1]:
         raise AssertionError(f"root keys missing component:root: {keys!r}")

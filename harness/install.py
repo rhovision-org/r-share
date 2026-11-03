@@ -16,8 +16,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "harness"))
 
+sys.path.insert(0, str(ROOT / "tools"))
 import deploy as node  # noqa: E402
 import preflight  # noqa: E402
+from minify_rho import minify  # noqa: E402
 
 ORDER = [
     "00_root.rho",
@@ -165,11 +167,17 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(f"install: missing {source}; run `make build`")
         values = dict(common)
         values["__ROOT_URI__"] = root_uri or "rho:id:pending"
-        term = render(source.read_text(), values)
-        (rendered_dir / name).write_text(term)
+        rendered = render(source.read_text(), values)
+        (rendered_dir / name).write_text(rendered)
+        term = minify(rendered)
+        if len(term.encode()) > 65536:
+            raise SystemExit(
+                f"install: {name} is {len(term.encode())} bytes after minification; "
+                "the node parses at most 65536"
+            )
 
         if args.dry_run:
-            print(f"install: rendered {name}")
+            print(f"install: rendered {name} ({len(term.encode())} bytes minified)")
             continue
 
         deploy_id, result = node.deploy_and_wait(term, secret)

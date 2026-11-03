@@ -7,7 +7,8 @@ new
   dops(`rho:rchain:deployerId:ops`),
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
-  rootCh, c, ack
+  rootCh, c, ack,
+  adminGuard, payResolveUri, payShareResolve
 in {
 
   contract adminGuard(@domain, @nonce, @action, @args, @sigs,
@@ -60,7 +61,7 @@ in {
             (true, uri, _) => {
               new cCh in {
                 rl!(uri, *cCh) |
-                for (C <- cCh) { ret!((true, C)) }
+                for (C <- cCh) { ret!((true, *C)) }
               }
             }
             _ => { ret!((false, "unavailable", key)) }

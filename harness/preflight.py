@@ -26,8 +26,10 @@ def devnet_ready() -> tuple[bool, str]:
         status = node.http_json("GET", f"{node.NODE}/api/v1/status", timeout=10.0)
     except Exception as error:
         return False, f"unreachable at {node.NODE}: {error}"
-    if not status.get("acceptsDeploys"):
+    if "acceptsDeploys" in status and not status.get("acceptsDeploys"):
         return False, "acceptsDeploys is false"
+    if "latestBlockNumber" not in status:
+        return False, "status has no latestBlockNumber"
     degraded = status.get("degraded")
     if degraded == "critical":
         return False, "degraded: critical"

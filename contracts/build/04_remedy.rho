@@ -6,7 +6,8 @@ new
   rs(`rho:registry:insertArbitrary`),
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
-  rootCh, c, a1, a2
+  rootCh, c, a1, a2,
+  moneyFee, moneyPart
 in {
 // Integer money helpers. Amounts are minor units; bps denominators are 10000.
 // Division is integer division and rounds toward zero (non-negative amounts only).

@@ -6,7 +6,8 @@ new
   rs(`rho:registry:insertArbitrary`),
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
-  rootCh, c, ack
+  rootCh, c, ack,
+  authIsOwner, authOwner, guestResolve
 in {
 // Deployer identity helpers. r-cash owns accounts; r-share only derives the owner id.
 
@@ -45,7 +46,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
             (true, uri, _) => {
               new cCh in {
                 rl!(uri, *cCh) |
-                for (C <- cCh) { ret!((true, C)) }
+                for (C <- cCh) { ret!((true, *C)) }
               }
             }
             _ => { ret!((false, "unavailable", key)) }

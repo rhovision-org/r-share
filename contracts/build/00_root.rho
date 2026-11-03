@@ -6,13 +6,24 @@ new
   deployerId(`rho:rchain:deployerId`),
   dops(`rho:rchain:deployerId:ops`),
   deployId(`rho:rchain:deployId`),
-  pkCh, uriCh, ack
+  pkCh, uriCh, ack,
+  guardAnySig, guardArgsAppend, guardArgsToString, guardCount, resolveManySeq, verifyAdmin
 in {
 // M-of-N secp256k1 verification over a canonical payload.
 //
 // Payload: "rshare:admin:v1|<domain>|<nonce>|<action>|<arg0>,<arg1>,..."
 // Digest:  blake2b256(utf8(payload)). Signatures are DER secp256k1 over the digest.
 // verifyAdmin replies (true, Bool); the caller decides the refusal string.
+
+contract guardArgsAppend(@args, @i, @acc, ret) = {
+  if (i >= args.length()) {
+    ret!(acc)
+  } else {
+    match args.nth(i) {
+      a => { guardArgsAppend!(args, i + 1, acc ++ "," ++ a.toString(), *ret) }
+    }
+  }
+} |
 
 contract guardArgsToString(@args, ret) = {
   if (args.length() == 0) {
@@ -25,16 +36,6 @@ contract guardArgsToString(@args, ret) = {
           for (@s <- restCh) { ret!(s) }
         }
       }
-    }
-  }
-} |
-
-contract guardArgsAppend(@args, @i, @acc, ret) = {
-  if (i >= args.length()) {
-    ret!(acc)
-  } else {
-    match args.nth(i) {
-      a => { guardArgsAppend!(args, i + 1, acc ++ "," ++ a.toString(), *ret) }
     }
   }
 } |

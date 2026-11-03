@@ -8,7 +8,9 @@ new
   rs(`rho:registry:insertArbitrary`),
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
-  rootCh, c, ack
+  rootCh, c, ack,
+  adminGuard, authIsOwner, authOwner, bookingResolve, bookingNow, bookingPayments,
+  bookingRemedy
 in {
   // @@INLINE:lib/Auth.rho@@
 
@@ -45,7 +47,7 @@ contract bookingResolve(@key, ret) = {
             (true, uri, _) => {
               new cCh in {
                 rl!(uri, *cCh) |
-                for (C <- cCh) { ret!((true, C)) }
+                for (C <- cCh) { ret!((true, *C)) }
               }
             }
             _ => { ret!((false, "unavailable", key)) }
@@ -73,7 +75,9 @@ contract bookingResolve(@key, ret) = {
         if (guestId != data.get("guestId")) {
           ret!((false, "not guest"))
         } else {
-          new BookingContract, bookingState, uCh in {
+          new BookingContract, bookingState, uCh,
+              bcPost, bcRefuse, bcReplay, bcRelease, bcConfirm, bcPlatform,
+              bcSettleWith, bcDisputeSettle in {
                     bookingState!({
                       "bookingId": data.get("bookingId"),
                       "guestId": guestId,
@@ -93,7 +97,7 @@ contract bookingResolve(@key, ret) = {
                       "cancellation": data.get("cancellation"),
                       "admins": data.get("admins"),
                       "threshold": data.get("threshold"),
-                      "status": match data.get("instantBook") { true => "confirmed" false => "requested" },
+                      "status": data.get("status"),
                       "checkInAtHeight": 0,
                       "checkOutAtHeight": 0,
                       "depositReleaseHeight": 0,

@@ -6,7 +6,8 @@ new
   rs(`rho:registry:insertArbitrary`),
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
-  rootCh, c, ack
+  rootCh, c, ack,
+  ListingFactory, adminGuard, authIsOwner, authOwner, listingNow, listingResolve
 in {
   // @@INLINE:lib/Auth.rho@@
 
@@ -43,7 +44,7 @@ in {
             (true, uri, _) => {
               new cCh in {
                 rl!(uri, *cCh) |
-                for (C <- cCh) { ret!((true, C)) }
+                for (C <- cCh) { ret!((true, *C)) }
               }
             }
             _ => { ret!((false, "unavailable", key)) }

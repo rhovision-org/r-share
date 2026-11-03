@@ -14,14 +14,14 @@ def main() -> int:
         return 2
     payments = component_uri("40_payments.rho")
 
-    health = one(call(payments, "health", "Nil"))
+    health = one(call(payments, "health"))
     expect_ok("payments health", health)
     versions = health[1]
     for key in ("accountFactory", "assetResolver", "clock"):
         if versions.get(key) != 1:
             raise AssertionError(f"{key} version: {versions!r}")
 
-    owner = one(call(payments, "platformOwner", "Nil"))
+    owner = one(call(payments, "platformOwner"))
     expect_ok("platform owner", owner)
     if not isinstance(owner[1], str) or not owner[1].startswith("1111"):
         raise AssertionError(f"platform owner is not a REV address: {owner!r}")

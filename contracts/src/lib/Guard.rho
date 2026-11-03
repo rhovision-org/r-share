@@ -4,6 +4,16 @@
 // Digest:  blake2b256(utf8(payload)). Signatures are DER secp256k1 over the digest.
 // verifyAdmin replies (true, Bool); the caller decides the refusal string.
 
+contract guardArgsAppend(@args, @i, @acc, ret) = {
+  if (i >= args.length()) {
+    ret!(acc)
+  } else {
+    match args.nth(i) {
+      a => { guardArgsAppend!(args, i + 1, acc ++ "," ++ a.toString(), *ret) }
+    }
+  }
+} |
+
 contract guardArgsToString(@args, ret) = {
   if (args.length() == 0) {
     ret!("")
@@ -15,16 +25,6 @@ contract guardArgsToString(@args, ret) = {
           for (@s <- restCh) { ret!(s) }
         }
       }
-    }
-  }
-} |
-
-contract guardArgsAppend(@args, @i, @acc, ret) = {
-  if (i >= args.length()) {
-    ret!(acc)
-  } else {
-    match args.nth(i) {
-      a => { guardArgsAppend!(args, i + 1, acc ++ "," ++ a.toString(), *ret) }
     }
   }
 } |

@@ -6,67 +6,67 @@
   },
   "terms": {
     "00_root.rho": {
-      "bytes": 7777,
+      "bytes": 7867,
       "depth": 18,
       "contracts": 7
     },
     "01_kernel.rho": {
-      "bytes": 2547,
+      "bytes": 2590,
       "depth": 9,
       "contracts": 6
     },
     "02_admin.rho": {
-      "bytes": 3741,
+      "bytes": 3766,
       "depth": 18,
       "contracts": 4
     },
     "03_terms.rho": {
-      "bytes": 6700,
+      "bytes": 6758,
       "depth": 20,
       "contracts": 5
     },
     "04_remedy.rho": {
-      "bytes": 3047,
+      "bytes": 3068,
       "depth": 18,
       "contracts": 3
     },
     "10_provider.rho": {
-      "bytes": 8016,
+      "bytes": 8087,
       "depth": 29,
       "contracts": 7
     },
     "13_unit.rho": {
-      "bytes": 13906,
+      "bytes": 14211,
       "depth": 27,
       "contracts": 24
     },
     "14_listing_contract.rho": {
-      "bytes": 9047,
+      "bytes": 9128,
       "depth": 35,
       "contracts": 8
     },
     "15_bond.rho": {
-      "bytes": 3050,
+      "bytes": 3088,
       "depth": 23,
       "contracts": 5
     },
     "20_booking.rho": {
-      "bytes": 2209,
+      "bytes": 2248,
       "depth": 19,
       "contracts": 4
     },
     "22_booking_contract.rho": {
-      "bytes": 24148,
+      "bytes": 24282,
       "depth": 40,
       "contracts": 17
     },
     "23_guest_ledger.rho": {
-      "bytes": 14813,
+      "bytes": 15398,
       "depth": 39,
       "contracts": 26
     },
     "40_payments.rho": {
-      "bytes": 5136,
+      "bytes": 5181,
       "depth": 24,
       "contracts": 4
     }

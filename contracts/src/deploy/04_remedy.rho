@@ -6,7 +6,8 @@ new
   rs(`rho:registry:insertArbitrary`),
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
-  rootCh, c, a1, a2
+  rootCh, c, a1, a2,
+  moneyFee, moneyPart
 in {
   // @@INLINE:lib/Money.rho@@
 

@@ -6,7 +6,8 @@ new
   rs(`rho:registry:insertArbitrary`),
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
-  rootCh, c1, c2, c3
+  rootCh, c1, c2, c3,
+  codecArgsAppend, codecArgsJoin, codecJoin
 in {
   contract Clock(@"now", ret) = {
     new bd(`rho:block:data`), ch in {

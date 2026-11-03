@@ -6,7 +6,8 @@ new
   rs(`rho:registry:insertArbitrary`),
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
-  rootCh, c, ack
+  rootCh, c, ack,
+  bondPaySequence, bondResolve, bondSum
 in {
   contract bondResolve(@key, ret) = {
     new rCh, Root, kCh in {
@@ -18,7 +19,7 @@ in {
             (true, uri, _) => {
               new cCh in {
                 rl!(uri, *cCh) |
-                for (C <- cCh) { ret!((true, C)) }
+                for (C <- cCh) { ret!((true, *C)) }
               }
             }
             _ => { ret!((false, "unavailable", key)) }
@@ -45,7 +46,7 @@ in {
     }
   } |
 
-  contract bondPaySequence(@buckets, @i, @assetId, escrowPurse, brand,
+  contract bondPaySequence(@buckets, @i, @assetId, @escrowPurse, @brand,
                            bondState, @st, ret) = {
     if (i >= buckets.length()) {
       bondState!(st.set("paid", true).set("remaining", 0)) |
@@ -56,7 +57,7 @@ in {
           match b.get("amount") {
             amount => {
               if (amount == 0) {
-                bondPaySequence!(buckets, i + 1, assetId, *escrowPurse, *brand,
+                bondPaySequence!(buckets, i + 1, assetId, escrowPurse, brand,
                                  *bondState, st, *ret)
               } else {
                 new pCh in {
@@ -76,11 +77,11 @@ in {
                                     match w {
                                       (true, payment) => {
                                         new dCh in {
-                                          @facet!("deposit", *payment, *dCh) |
+                                          @facet!("deposit", payment, *dCh) |
                                           for (@_ <- dCh) {
                                             bondPaySequence!(buckets, i + 1,
-                                                             assetId, *escrowPurse,
-                                                             *brand, *bondState,
+                                                             assetId, escrowPurse,
+                                                             brand, *bondState,
                                                              st, *ret)
                                           }
                                         }
@@ -107,7 +108,7 @@ in {
     }
   } |
 
-  contract BondFactory(@"create", escrowPurse, brand, @assetId,
+  contract BondFactory(@"create", @escrowPurse, @brand, @assetId,
                        @expected, settleToken, ret) = {
     new Bond, bondState, uCh in {
       bondState!({"paid": false, "expected": expected, "remaining": expected}) |
@@ -117,7 +118,7 @@ in {
           if (st.get("paid")) {
             bondState!(st) | ret2!((false, "closed"))
           } else {
-            if (settleToken2 != *settleToken) {
+            if (*settleToken2 != *settleToken) {
               bondState!(st) | ret2!((false, "not holder"))
             } else {
               if (expected2 != st.get("expected")) {
@@ -131,8 +132,8 @@ in {
                         if (total != expected2) {
                           bondState!(st) | ret2!((false, "amount"))
                         } else {
-                          bondPaySequence!(buckets, 0, assetId, *escrowPurse,
-                                           *brand, *bondState, st, *ret2)
+                          bondPaySequence!(buckets, 0, assetId, escrowPurse,
+                                           brand, *bondState, st, *ret2)
                         }
                       }
                       _ => { bondState!(st) | ret2!(sum) }

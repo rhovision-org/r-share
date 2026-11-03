@@ -7,7 +7,8 @@ new
   rs(`rho:registry:insertArbitrary`),
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
-  rootCh, c, ack
+  rootCh, c, ack,
+  GuestLedgerBook, GuestLedgerDrop, GuestLedgerFinish, GuestLedgerGate, GuestLedgerPay, GuestLedgerReserve, GuestLedgerSpawn, authIsOwner, authOwner, bookingBond, ledgerAdmin, ledgerBookingFactory, ledgerConfirmUnits, ledgerHoldUnits, ledgerMax, ledgerMin, ledgerNow, ledgerPayments, ledgerProviderActive, ledgerReleaseUnits, ledgerResolve, ledgerScanUnits, ledgerSlotScan, ledgerUnitCheck
 in {
 // Deployer identity helpers. r-cash owns accounts; r-share only derives the owner id.
 
@@ -48,7 +49,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
             (true, uri, _) => {
               new cCh in {
                 rl!(uri, *cCh) |
-                for (C <- cCh) { ret!((true, C)) }
+                for (C <- cCh) { ret!((true, *C)) }
               }
             }
             _ => { ret!((false, "unavailable", key)) }
@@ -100,13 +101,13 @@ contract authIsOwner(dId, @ownerId, ret) = {
       }
     }
   } |
-  contract bookingBond(escrowPurse, brand, @assetId, @expected, settleToken, ret) = {
+  contract bookingBond(@escrowPurse, @brand, @assetId, @expected, settleToken, ret) = {
     new fCh in {
       ledgerResolve!("component:bond-factory", *fCh) |
       for (@f <- fCh) {
         match f {
           (true, BondFactory) => {
-            @BondFactory!("create", *escrowPurse, *brand, assetId, expected,
+            @BondFactory!("create", escrowPurse, brand, assetId, expected,
                           *settleToken, *ret)
           }
           _ => { ret!((false, "bond factory unavailable")) }
@@ -389,7 +390,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                       listingUri, unitSlots, opId, bId,
                                       untilHeight, summary.get("count"),
                                       summary.get("minStart"), summary.get("maxEnd"),
-                                      *releaseToken, ret)
+                                      *releaseToken, *ret)
                                   }
                                   _ => {
                                     GuestLedgerDrop!(*ledgerState, opId) |
@@ -474,7 +475,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                                 (true, payment) => {
                                                   new mCh in {
                                                     @issuer!("getAmountOf",
-                                                             *payment, *mCh) |
+                                                             payment, *mCh) |
                                                     for (@m <- mCh) {
                                                       match m {
                                                         (true, measured) => {
@@ -483,13 +484,13 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                                           } else {
                                                             new depCh in {
                                                               @purse!("deposit",
-                                                                *payment, *depCh) |
+                                                                payment, *depCh) |
                                                               for (@dd <- depCh) {
                                                                 match dd {
                                                                   (true, balance) => {
                                                                     new settleToken, bondCh in {
                                                                       bookingBond!(
-                                                                        *purse, *brand,
+                                                                        purse, brand,
                                                                         listing.get("terms").get("assetId"),
                                                                         listing.get("terms").get("pricePerSlot") * slotCount
                                                                         + listing.get("terms").get("deposit"),
@@ -513,7 +514,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                                                               slotCount,
                                                                               bondUri,
                                                                               *settleToken,
-                                                                              ret)
+                                                                              *ret)
                                                                           }
                                                                           _ => { 1/0 }
                                                                         }
@@ -590,9 +591,17 @@ contract authIsOwner(dId, @ownerId, ret) = {
               for (@cf <- cfCh) {
                 match cf {
                   (true, Nil) => {
-                    new dCh in {
-                      dCh!({
-                        "bookingId": bookingId,
+                    new statusCh in {
+                      if (listing.get("terms").get("instantBook") == true) {
+                        statusCh!("confirmed")
+                      } else {
+                        statusCh!("requested")
+                      } |
+                      for (@initialStatus <- statusCh) {
+                        new dCh in {
+                          dCh!({
+                            "status": initialStatus,
+                            "bookingId": bookingId,
                         "guestId": guestId,
                         "providerId": listing.get("providerId"),
                         "listingId": listing.get("listingId"),
@@ -628,6 +637,8 @@ contract authIsOwner(dId, @ownerId, ret) = {
                             }
                           }
                         }
+                      }
+                    }
                       }
                     }
                   }
@@ -726,7 +737,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                                                             *dId2, guestId,
                                                                             listing, listingUri,
                                                                             unitSlots, opId,
-                                                                            ret2)
+                                                                            *ret2)
                                                                         }
                                                                       }
                                                                     }

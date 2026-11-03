@@ -87,23 +87,29 @@ def secret(name: str = "deployer") -> str:
 def one(term: str, key: str = "deployer", phlo_limit: int = 10_000_000):
     """Deploy a term that emits its result through rho:rchain:deployId."""
     deploy_id, result = node.deploy_and_wait(term, secret(key), phlo_limit=phlo_limit)
-    return decode(result)
+    decoded = decode(result)
+    if isinstance(decoded, list) and len(decoded) == 1:
+        return decoded[0]
+    return decoded
 
 
-def call(uri: str, binding: str, body: str) -> str:
+def call(uri: str, binding: str, body: str | None = None) -> str:
+    args = f'"{binding}"'
+    if body is not None:
+        args += f", {body}"
     return (
         "new rl(`rho:registry:lookup`), ch, ret, "
         "deployId(`rho:rchain:deployId`) in {\n"
         f"  rl!(`{uri}`, *ch) |\n"
         "  for (C <- ch) {\n"
-        f"    C!(\"{binding}\", {body}, *ret) |\n"
+        f"    C!({args}, *ret) |\n"
         "    for (@r <- ret) { deployId!(r) }\n"
         "  }\n"
         "}\n"
     )
 
 
-def root_call(binding: str, body: str) -> str:
+def root_call(binding: str, body: str | None = None) -> str:
     return call(root_uri(), binding, body)
 
 

@@ -8,7 +8,8 @@ new
   rs(`rho:registry:insertArbitrary`),
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
-  rootCh, c, ack
+  rootCh, c, ack,
+  adminGuard, authIsOwner, authOwner, unitAllConfirm, unitAllHold, unitAllRelease, unitClock, unitSchedule, unitTerms
 in {
 // Deployer identity helpers. r-cash owns accounts; r-share only derives the owner id.
 
@@ -80,7 +81,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
         Root!("resolve", "component:terms", 1, *uCh) |
         for (@(true, uri, _) <- uCh) {
           rl!(uri, *cCh) |
-          for (Terms <- cCh) { ret!((true, Terms)) }
+          for (Terms <- cCh) { ret!((true, *Terms)) }
         }
       }
     }
@@ -132,7 +133,11 @@ contract authIsOwner(dId, @ownerId, ret) = {
             new schCh in {
               unitSchedule!(slots, 0, {}, *schCh) |
               for (@schedule <- schCh) {
-                new UnitContract, unitState, resetToken, uCh in {
+                new UnitContract, unitState, resetToken, uCh,
+                    unitSlotUri, unitSlotHold, unitSlotRelease, unitSlotConfirm,
+                    unitSlotProbe, unitSlotReset, unitHoldSeq, unitReleaseSeq,
+                    unitConfirmSeq, unitProbeSeq, unitScheduleCollect,
+                    unitMakeSlots in {
                   unitState!({
                     "unitId": unitId,
                     "listingId": listingId,
@@ -592,7 +597,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                 } |
                                 contract SlotContract(@"reset", resetToken2, ret3) = {
                                   for (@sl <- slotState) {
-                                    if (resetToken2 == *resetToken) {
+                                    if (*resetToken2 == *resetToken) {
                                       match sl {
                                         ["free", gen] => {
                                           slotState!(sl) | ret3!((true, Nil))
