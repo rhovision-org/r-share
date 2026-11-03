@@ -1,6 +1,6 @@
 # Book and hold escrow
 
-> **Status:** Implemented, not yet exercised.
+> **Status:** Implemented and exercised by the recorded 16-suite run.
 
 Ben books three nights. Everything below happens inside **one signed deploy**: the slots are
 held, the money is withdrawn, the escrow purse is created, and the booking contract is

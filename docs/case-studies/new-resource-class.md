@@ -67,7 +67,8 @@ add a pure `boat` branch; do not touch the booking arms.
 
 - Add `harness/scenarios/boat_book.rho` and a fixture builder.
 - Add `harness/unit_generality.py` coverage for book → accept → check-out → settle.
-- Add the race tests: one slot two guests, disjoint slots, multi-slot overlap.
+- Add allocator conformance cases: all-or-none multi-slot acquire, one held slot refuses the
+  set, token-only confirm/release, and an expired hold reclaimed.
 - Add the conservation assertions: the escrow is empty and the buckets sum to
   `rent + deposit`.
 

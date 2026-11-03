@@ -1,35 +1,39 @@
-# Hot-operation budgets for the base-layer refactor.
+# Hot-operation budgets for the per-listing allocator.
 #
 # root_resolves: number of ShareRoot("resolve"/"resolveMany") calls per arm.
-# registry_lookups: number of rl! calls per arm (including per-slot lookups).
+# registry_lookups: number of rl! calls per arm.
 # consumed_cells: cells consumed by the arm. "short" means the cell is reposted before
 #   any external call; "held" means it is held across a callee, as with bookingState.
-# These are targets for R7; R0 records the measured baseline with tools/metrics.py.
+# The allocator cell is one commit: it is taken after the clock read, updated, and reposted
+# with no external await in between.
 
 operations:
-  unit_hold:
-    root_resolves_max: 1
-    registry_lookups_per_slot_max: 0   # 1 is the fallback if slotCaps is not viable
-    unit_state_peeks_max: 1            # status only
+  acquire:
+    root_resolves_max: 1               # UnitFactory for slotScan
+    registry_lookups_max: 1            # listing URI
     consumed_cells: [listingState]
-  unit_release:
-    root_resolves_max: 1
-    registry_lookups_per_slot_max: 0
+    peeks: [listingState]              # status/terms before the take
+  confirm:
+    root_resolves_max: 0
+    registry_lookups_max: 1            # listing URI
     consumed_cells: [listingState]
-  unit_confirm:
-    root_resolves_max: 1
-    registry_lookups_per_slot_max: 0
+  release:
+    root_resolves_max: 0
+    registry_lookups_max: 1            # listing URI
     consumed_cells: [listingState]
+  quote:
+    root_resolves_max: 1
+    consumed_cells: []
+    peeks: [listingState]
   book_request:
     root_resolves_max: 1               # resolveMany for payments, admin, provider, booking
     consumed_cells: [ledgerState short, listingState, bondState, bookingState]
-    peeks: [adminState, providerState, listingState, unitState]
+    peeks: [adminState, providerState, listingState]
   accept:
-    root_resolves_max: 1
+    root_resolves_max: 0
     consumed_cells: [bookingState, listingState]
   cancel:
     root_resolves_max: 1
-    registry_lookups_per_slot_max: 0
     consumed_cells: [bookingState held, listingState, bondState]
   settle:
     root_resolves_max: 1

@@ -18,7 +18,8 @@ includes it so the book and the repository cannot drift.
   op stays pending, and a negative control proves the sum detects untracked escrow. The
   known limit is that r-cash exposes no account enumeration, so the set is the accounts the
   scenario names, not a chain-wide total.
-- The M8 hardening milestone adds property tests and a soak test across disjoint slots.
+- The M8 hardening milestone adds property tests and a soak test across listings and
+  fleet-scale capacity.
 - A review that changes a money path must say which invariant it preserves and how.
 - A failure is a bug in the contract, not a flaky test; fix the contract or the test.
 

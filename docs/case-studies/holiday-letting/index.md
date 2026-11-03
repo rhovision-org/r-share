@@ -1,7 +1,7 @@
 # Holiday letting: a full walkthrough
 
-> **Status:** Implemented, not yet exercised. The contract path exists and passes the static
-> and parser gates; the provider, listing, booking and lifecycle suites are planned (M2–M4).
+> **Status:** Implemented and exercised. The contract path passes the static and parser
+> gates, and the provider, listing, booking and lifecycle suites pass in the 16-suite run.
 
 This is the reference case study. It follows one stay from the terms the host chooses to the
 final settlement, using the actual arms and data shapes. It is deliberately concrete: a
@@ -43,8 +43,9 @@ Figure: the walkthrough path. Each arrow is an arm call; the chapters follow the
 
 ## What this walkthrough does not claim
 
-- No behavioural suite has passed on a healthy devnet. The commands in the chapters are the
-  intended path; the suites that exercise them are placeholders until M2–M4.
+- The behavioural suites have passed on a fresh devnet (a 16-suite record is in
+  [Verification](../../reference/verification.md)). The commands in the chapters are the
+  executed path; the allocator's interleaving properties are also proved in the Lean model.
 - The off-chain booking UI, calendar, identity, support and consumer-law compliance are
   Ana's product, not this repository.
 - The booking is public. Do not put a real guest's address or personal data on-chain.

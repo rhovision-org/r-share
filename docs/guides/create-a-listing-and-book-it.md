@@ -1,6 +1,6 @@
 # Create a listing and book it
 
-> **Status:** Implemented, not yet exercised on a healthy devnet.
+> **Status:** Implemented and exercised by the recorded 16-suite run.
 
 This is the shortest path from a provider to a confirmed booking. It uses the same arms as
 the [holiday-letting walkthrough](../case-studies/holiday-letting/index.md), without the

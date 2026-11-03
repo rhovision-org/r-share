@@ -1,6 +1,6 @@
 # Settle, dispute and clean up
 
-> **Status:** Implemented, not yet exercised.
+> **Status:** Implemented and exercised by the recorded 16-suite run.
 
 The stay is over and the room has been checked out. Settlement is permissionless: Ana, Ben,
 or anyone else can finish the booking after the review window.
@@ -104,16 +104,16 @@ to Ben, and rent/fee normally. Status becomes `settled`.
 
 After every terminal path, the invariants in [Invariants](../../reference/invariants.md) must
 hold: the escrow is empty, the buckets sum to `rent + deposit`, and every slot is free,
-held, or booked consistently. The planned M4 suite checks this on a healthy devnet.
+held, or booked consistently. The lifecycle and conservation suites check this on a fresh devnet.
 
 ## Running the intended suites
 
 ```sh
-make devnet rcash-install keys install
+make devnet-up rcash-keys rcash-bootstrap keys install
 make unit-lifecycle
 ```
 
-`unit-lifecycle` is planned (M4) and currently exits 2. Treat a not-run suite as not run.
+`unit-lifecycle` passes in the recorded 16-suite run. A not-run suite is still not a pass.
 
 > **Where to go deeper.** [Escrow and settlement](../../concepts/escrow-and-settlement.md)
 > explains the buckets. [Governance and arbitration](../../concepts/governance-and-arbitration.md)

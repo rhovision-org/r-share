@@ -47,7 +47,7 @@ A candidate that violates a hard constraint is not on the frontier.
 
 | Candidate | Coverage | Trust | Bytes | Cells / booking | Dispute steps | Liveness |
 |---|---|---|---|---|---|---|
-| Current buyer-deposit core | 0 passing; 20 mapping; 10 design | 3 | 22,987 B max measured; 13 terms | 2 + N slots | 2 / 3 | permissionless settle/expire/resolve; pause now enforced |
+| Current buyer-deposit core | 20 passing; 0 mapping; 10 design | 3 | 23,284 B max measured; 13 terms; one per-listing allocator cell | 2 + listing cell | 2 / 3 | permissionless settle/expire/resolve; allocator proofs and behavioural run |
 | **Bilateral bond + generalized claim** | target 30/30; all cells design until suites pass | 3 | +4–6 KiB est. | 2 bond legs + booking + N slots | 2 / 3 | permissionless resolveClaim/expire/settle |
 | Oracle/SLA | + quality and metering | 4 (adds oracle) | +10–15 KiB est. | 2 + attestations | 3 / 5 | depends on oracle quorum/freshness |
 | Bilateral + evidence anchors | + evidence classes | 3 | +1–2 KiB over bilateral | 2 + evidence log | 2 / 3 | same as bilateral |

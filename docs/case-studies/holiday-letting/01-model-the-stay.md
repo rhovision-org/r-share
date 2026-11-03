@@ -1,6 +1,6 @@
 # Model the stay
 
-> **Status:** Implemented, not yet exercised.
+> **Status:** Implemented and exercised by the recorded 16-suite run.
 
 Before any contract is deployed, decide four things: the unit, the slots, the terms, and the
 policy arithmetic. Getting these right is most of the product design.

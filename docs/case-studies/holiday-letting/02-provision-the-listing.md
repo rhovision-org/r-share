@@ -1,6 +1,6 @@
 # Provision the listing
 
-> **Status:** Implemented, not yet exercised.
+> **Status:** Implemented and exercised by the recorded 16-suite run.
 
 Ana registers once, creates a listing, adds the two rooms and their nights, and activates
 the listing. Every owner arm takes Ana's `deployerId`; no address is passed as an argument.

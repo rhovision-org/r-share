@@ -1,6 +1,6 @@
 # Events management and ticketing
 
-> **Status:** Mapping only. The ticket arms are implemented; `unit_events` is planned (M5).
+ > **Status:** The ticket arms are implemented and `unit_events` passes. Broader event operations are mapping only.
 
 An event is capacity over a show time. The same listing → unit → slot → booking path applies;
 what is new is the ticket projection and the redemption flow.

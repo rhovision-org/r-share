@@ -40,10 +40,10 @@ Do not put real value on it.
 |---|---|
 | 13 install terms build, measure, and parse with the target node parser | Implemented |
 | Static gates (`make spec-check`) | Passing |
-| `unit_root`, `unit_payments` behavioural suites | Implemented |
-| Provider, listing, booking, concurrency, lifecycle, event, admin, generality suites | Planned (M2–M7); placeholders exit 2 |
-| Full holiday-letting path | Contract path implemented, not yet exercised on a healthy devnet |
-| Events/ticketing, bike, car, robotics | Mapping only; shared path, no dedicated suite |
+| 16 behavioural suites | Passing on a fresh devnet; see [Verification](reference/verification.md) |
+| Allocator cornerstone | `make formal-check`; Lean model, vectors and flow manifest (`proved-model`) |
+| Full holiday-letting path | Contract path exercised by booking, lifecycle and conservation |
+| Events/ticketing, bike, car, robotics | Kind-level suites pass; fleet/SLA behaviour is mapping only |
 
 "Implemented" in this book means the source exists and passes the static and parser gates.
 It does not mean the behaviour has been verified on a running chain. See
@@ -95,10 +95,8 @@ make docs-check
 The optional devnet path needs Docker and sibling checkouts of r-cash and the node:
 
 ```sh
-make devnet
-make rcash-install
-make keys install
-make unit-root unit-payments
+make devnet-up rcash-keys rcash-bootstrap keys install
+make unit-all
 ```
 
 See [Fork and run](guides/fork-and-run.md) for the full setup and the current limits.

@@ -1,7 +1,7 @@
 # Robotics-as-a-service
 
-> **Status:** Mapping only for the booking path; RaaS-specific pieces are design intent.
-> `unit_generality` is planned (M7).
+> **Status:** The booking path is implemented and exercised; `unit_generality` passes.
+> RaaS-specific evidence, SLA and operator pieces are design intent.
 
 RaaS is the north star. The machine is a unit, the operating window is a slot, and the
 session is a booking. What makes RaaS harder than car rental is not the booking; it is the

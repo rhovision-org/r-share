@@ -99,8 +99,8 @@ make docs-check       # book links, orphans, coverage and build
 The behavioural suites need the devnet path:
 
 ```sh
-make devnet rcash-install keys install
-make unit-root unit-payments
+make devnet-up rcash-keys rcash-bootstrap keys install
+make unit-all
 ```
 
 If a suite cannot run, it must be reported as not run, not as passing.

@@ -1,6 +1,6 @@
 # Roadmap and acceptance milestones
 
-> **Status:** Roadmap. Planned work is not implemented.
+> **Status:** M0–M7 and M9 are implemented; M8 is planned.
 
 The roadmap is an acceptance map, not a promise. Each milestone names the suite that must
 pass before the milestone is considered done. The machine-readable version is
@@ -19,13 +19,14 @@ pass before the milestone is considered done. The machine-readable version is
 | M6 | 2-of-3 pause, delist, arbitration, rotation | `unit_admin` |
 | M7 | bike, car and robot fixtures on the unchanged path | `unit_generality` |
 | M8 | property tests, soak, invariant checks, docs complete | `unit_all`, all invariants |
+| M9 | Lean cornerstone, vectors and flow manifest | `make formal-check` |
 
 ## Status
 
-- M0: static and parser gates pass; the book builds.
-- M1: contracts implemented; the two suites exist but have not run on a healthy devnet.
-- M2–M7: contracts implemented; the suites are placeholders that exit 2.
-- M8: not started.
+- M0–M7: contracts implemented, static/parser gates pass, and the 16 behavioural suites
+  pass on a fresh devnet.
+- M8: property tests, soak and broader fleet/station checks are not started.
+- M9: the Lean cornerstone, vectors and flow manifest pass `make formal-check`.
 
 "Implemented" means source plus static/parser gates. It does not mean a behavioural run.
 

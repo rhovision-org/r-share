@@ -63,7 +63,8 @@ ShareRoot
   +-- ProviderBook ---- ProviderContract
   +-- ListingFactory ---- ListingContractFactory ---- ListingContract
   |                                             \---- UnitFactory (stateless)
-  +-- ListingContract owns units and slots in one allocState cell
+  +-- ListingContract ---- UnitFactory (stateless) / Clock / AdminGuard
+  |                    \--- owns units and slots in one allocState cell
   +-- BondFactory ---- Bond ---- Payments
   +-- GuestBook ---- GuestLedgerFactory ---- GuestLedger
   +-- BookingContractFactory ---- BookingContract

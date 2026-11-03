@@ -21,8 +21,7 @@ delist, rotate and arbitrate. It is not a full governor, and it is not a single-
 | Root | `rotate`, `deprecate`, `freeze`, `setAdmins`, `setThreshold` |
 | ShareAdmin | `pauseAll`, `resumeAll`, `setAdmins`, `setThreshold` |
 | ProviderContract | `adminPause`, `setAdmins` |
-| ListingContract | `adminPause` (`pause`, `delist`), `setAdmins` |
-| ListingContract | `pauseUnit`, `resumeUnit`, `adminPause`, `setAdmins` |
+| ListingContract | `pause`, `delist`, `pauseUnit`, `resumeUnit`, `adminPause`, `setAdmins` |
 | BookingContract | `arbitrate`, `setAdmins` |
 | Payments | `setPlatformOwner`, `setAssets`, `setRcashRoot` |
 
@@ -37,7 +36,8 @@ or skip the bucket-conservation check.
 - A listing's `pause` or `delist` stops new bookings for that listing. Existing bookings are
   unaffected.
 - A provider `pause` stops new listings and units from that provider.
-- A unit `adminPause` is available for a compromised or unsafe unit.
+- The listing owner can `pauseUnit`/`resumeUnit`; the 2-of-3 set can pause or delist the
+  whole listing. There is no separate per-unit admin set.
 
 Pause is not revocation. A compromised admin key set can still be used until the set is
 rotated; rotation is per object and must be done deliberately.

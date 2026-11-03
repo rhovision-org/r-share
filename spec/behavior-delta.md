@@ -8,11 +8,11 @@ refusals must match the R0 baseline exactly.
 |---|---|---|
 | Global pause | `ShareAdmin.pauseAll` makes `GuestLedger.book` refuse `"paused"`; existing lifecycle arms still work | `unit_pause` (passing) |
 | Provider pause | A paused provider blocks new bookings on its existing listings with `"provider paused"`; resume restores | `unit_pause` (passing) |
-| Unit pause | `Unit.hold` refuses `"unit paused"`; `release` and `confirm` still work for existing holds | `unit_pause` (passing) |
-| Contiguity | `contiguous` is enforced from the terms flag for every kind, not hardcoded to lodging | not implemented (no dedicated case) |
+| Unit pause | `ListingContract.acquire` refuses `"unit paused"`; release and confirm still work for existing holds | `unit_pause` (passing) |
+| Contiguity | `contiguous` is enforced from the terms flag for every kind, not hardcoded to lodging | enforced in `Terms.scheduleOk`; no dedicated case |
 | Component keys | `component:policy` alias is removed; `component:remedy` remains; `component:listing-contract-factory` and `component:booking-factory` are removed or repointed | `unit_root` keys (passing) |
 | Bond refusals | Bond `"closed"`/`"not holder"` are mapped to the booking's documented refusal strings at the BookingContract boundary | not implemented (no dedicated suite) |
-| Slot lookup fallback | If the `slotCaps` closure is not viable, per-slot `rl!` remains; this is a performance delta, not an observable behavior delta | not implemented (no dedicated suite) |
+| Slot lookup fallback | The per-slot contracts and the `slotCaps` fallback are removed; slots are data in the per-listing allocator cell | `unit_allocator` (passing) |
 
 The 16-suite campaign in `docs/reference/verification.md` is the executed set. The other
 rows are design deltas with no passing test; do not read them as verified.

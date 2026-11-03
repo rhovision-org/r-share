@@ -1,6 +1,6 @@
 # Municipal bike share
 
-> **Status:** Mapping only. The shared path is implemented; `unit_generality` is planned (M7).
+ > **Status:** The shared path is implemented and `unit_generality` passes for the kind. Stations, locks and rebalancing are mapping only.
 
 A bike share is a fleet of units at stations with hour windows. The chain books the bike and
 holds the deposit; the lock, the fleet app and the rebalancing trucks stay off-chain.

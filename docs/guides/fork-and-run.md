@@ -53,19 +53,19 @@ reference coverage, then builds the book. No plugins are required.
 ## Optional devnet
 
 ```sh
-make devnet          # r-cash devnet on the rholo node
-make rcash-install   # install r-cash v4 components
-make keys install    # create keys and install r-share
-make unit-root unit-payments
+make devnet-up       # r-cash devnet on the rholo node, then wait for health
+make rcash-keys      # generate and faucet the r-cash keys
+make rcash-bootstrap # install the r-cash components r-share needs
+make keys install    # copy the keys and install r-share
+make unit-all        # all 16 behavioural suites
 ```
 
 `make devnet` delegates to r-cash's Makefile with `RHOLO_DIR` pointing at the node checkout.
 Override `RCASH_DIR` and `RHOLO_DIR` if your layout differs. The installer writes
 `deployments/devnet.json`; the devnet keys live in `.devnet/` and are gitignored.
 
-The behavioural suites for provider, listing, booking, allocator, lifecycle, events, admin
-and generality are placeholders until their milestones. They exit 2; they never report a
-pass.
+All 16 suites are implemented. `make unit-all` runs them and writes
+`deployments/suite-results.json`; an unhealthy devnet reports `not run`, never a pass.
 
 ## Fork checklist
 
@@ -88,8 +88,8 @@ pass.
 | `parse-check` cannot find `protoc` | install `protobuf-compiler` |
 | parse crate build is slow | it is a one-time build under `.devnet/parse-check` |
 | devnet refuses work | the node is degraded; restart the devnet or use a fresh one |
-| `install` cannot find the r-cash manifest | run `make rcash-install` first |
-| keys missing | `make keys` reuses the r-cash devnet keys |
+| `install` cannot find the r-cash manifest | run `make rcash-bootstrap` first |
+| keys missing | run `make rcash-keys`, then `make keys` |
 
 > **Where to go deeper.** [Test your fork](test-your-fork.md) is the gate. [Create a listing
 > and book it](create-a-listing-and-book-it.md) is the first product path. [Provenance and

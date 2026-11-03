@@ -25,8 +25,8 @@ chapter is near-verbatim the repository's concurrency doctrine; the code is the 
    projection and op map; every booking has its own Bond holding the escrow purse.
    Lifecycle operations on different bookings never share a cell.
 6. **No global counters.** `bookingId = guestId ++ ":" ++ opId`; listing, unit and slot IDs
-   are client- or provider-supplied and uniqueness-checked in the owning cell. Multi-unit
-   orchestration is stateless in `UnitFactory`; it owns no cell and adds no contention.
+   are client- or provider-supplied and uniqueness-checked in the listing cell. Multi-slot
+   acquisition is one allocator commit; `UnitFactory` only scans and validates.
 7. **Read-mostly directories.** ShareRoot, ProviderBook and GuestBook are indexes. Clients
    holding a listing/unit/booking URI go directly to it; the authoritative contract
    re-checks ownership. Registry URIs are resolved per arm and never cached in a bundle.

@@ -14,8 +14,10 @@ value on it.
 
 ## Has it been tested?
 
-The static and parser gates pass. Two behavioural suites (`unit_root`, `unit_payments`) are
-implemented but have not run on a healthy devnet here; the rest are placeholders. Read
+The static, parser and docs gates pass. A fresh-devnet run records 16 passing suites,
+including allocator, conservation and admin across all three `setAdmins` surfaces. The
+allocator cornerstone is also proved over a Lean model with `make formal-check`; that result
+is `proved-model`, not a Rholang refinement. Read
 [Status, scope and honest limits](../orientation/status-and-scope.md).
 
 ## Why not use a normal database and a payment processor?
@@ -39,8 +41,8 @@ exact buckets.
 ## Can I use it for bikes, cars or robots?
 
 The shared path is designed for it. The bike, car and robot chapters are mappings, not
-verified implementations; `unit_generality` is planned (M7). The RaaS-specific pieces are
-design intent.
+verified implementations; `unit_generality` passes for the kind. The RaaS-specific pieces
+are design intent.
 
 ## Why are slot IDs strings instead of dates?
 

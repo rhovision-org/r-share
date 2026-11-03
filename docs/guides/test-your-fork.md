@@ -51,42 +51,39 @@ book. No plugins.
 ## 4. Behavioural suites
 
 ```sh
-make devnet rcash-install keys install
+make devnet-up rcash-keys rcash-bootstrap keys install
 make unit-all
 ```
 
 | Suite | Status | Covers |
 |---|---|---|
-| `unit_root` | implemented | resolve, keys, unknown/stale |
-| `unit_payments` | implemented | r-cash health, platform owner, REV issuer |
-| `unit_provider` | planned (M2) | registration, ownership refusals |
-| `unit_listing` | planned (M2) | terms, units, slot schedule |
-| `unit_booking` | planned (M3) | instant/request, escrow, opId |
-| `unit_allocator` | planned (M3) | same-block races |
-| `unit_lifecycle` | planned (M4) | accept/reject/cancel/checkout/settle |
-| `unit_events` | planned (M5) | redeem, transfer, close |
-| `unit_admin` | planned (M6) | 2-of-3 pause/delist/arbitrate |
-| `unit_generality` | planned (M7) | bike/car/robot fixtures |
+| `unit_root` | passing | resolve, keys, unknown/stale |
+| `unit_payments` | passing | r-cash health, platform owner, REV issuer |
+| `unit_provider` | passing | registration, ownership refusals |
+| `unit_listing` | passing | terms, units, schedule, pause/delist |
+| `unit_booking` | passing | instant/request, escrow, opId, per-unit rent/windows |
+| `unit_allocator` | passing | atomic multi-slot acquire, token gates, pause, expiry, privacy |
+| `unit_lifecycle` | passing | accept/reject/cancel/checkout/settle/dispute |
+| `unit_claims` | passing | four claim classes across five kinds |
+| `unit_pricing` | passing | per-unit price stored and validated |
+| `unit_pause` | passing | global, provider and unit pause |
+| `unit_admin` | passing | 2-of-3 pause and `setAdmins` on three surfaces |
+| `unit_events` | passing | redeem, transfer, close |
+| `unit_generality` | passing | five-kind whitelist |
+| `unit_behavior` | passing | golden lifecycle transcript |
+| `unit_conservation` | passing | seven settlement scenarios, closed-set sums |
+| `unit_guestbook` | passing | stable guest ledger |
 
-Planned suites exit 2 with the milestone they belong to. They are not reported as passing.
-If a suite cannot run, report it as not run.
+`make unit-all` runs all 16. An unhealthy devnet reports `not run`, never a pass.
 
 ## 5. The race gate
 
-Use two deploys submitted before a single propose, so both land in the same block:
-
-1. **One slot, two guests** → exactly one `(true, ...)`, one `(false, "slot held", id)`,
-   one debit.
-2. **Disjoint slots** → both succeed, two debits.
-3. **Overlapping multi-slot** → A books [1,2], B books [2,3]; exactly one wins; the loser
-   holds none of its slots.
-4. **Accept vs cancel** → exactly one terminal transition; the other returns `"closed"`;
-   funds match the winner.
-5. **Expiry race** → A's hold expires, B books the slot, A.expire refunds A and A.release
-   returns `"not holder"`; B's slot is intact.
-
-`harness/deploy.py` has `deploy_same_block` for this. A race test that only runs one deploy
-at a time proves nothing.
+Races are not tested here; they are removed by the representation. The listing allocator
+writes every requested slot in one commit, and `spec/lean/RShare/Model/Allocator.lean`
+proves single ownership and all-or-none acquisition. `unit_allocator` checks the deployed
+transition table: one held slot refuses the whole set, a wrong token moves nothing, and an
+expired hold can be reclaimed. Two same-slot books still exercise the refusal path, but the
+safety claim rests on the proof, not on a same-block schedule.
 
 ## 6. Conservation
 
@@ -103,16 +100,18 @@ These are in [Invariants](../reference/invariants.md).
 
 - Add `harness/scenarios/<class>_book.rho` and a fixture builder.
 - Add `harness/unit_generality.py` coverage for book → accept → check-out → settle.
-- Add the race tests and the conservation assertions.
-- Add the suite to the Makefile and `unit-all`.
-- Update this table and [Status, scope and honest limits](../orientation/status-and-scope.md).
+- Add allocator conformance cases and the conservation assertions.
+- Add a rule to `spec/flows/core.yaml` or mark the new arm `owed`; a core arm must name a
+  Lean declaration.
+- Add the suite to `run_suites.py`, the Makefile and `check_suites`, then update this table
+  and [Status, scope and honest limits](../orientation/status-and-scope.md).
 
 ## 8. What not to claim
 
 - "Tested" without a recorded command and artifact.
 - "Audited" without an audit report.
 - "Production-ready" while the repo is devnet-only and unaudited.
-- "Passing" for a placeholder suite.
+- "Passing" without a recorded artifact; a `not run` suite is never a pass.
 
 > **Where to go deeper.** [Platform constraints](../reference/platform-constraints.md) is
 > the limit list. [Invariants](../reference/invariants.md) is the property list. [Fork and

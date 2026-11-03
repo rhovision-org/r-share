@@ -1,6 +1,6 @@
 # Car rental
 
-> **Status:** Mapping only. The shared path is implemented; `unit_generality` is planned (M7).
+ > **Status:** The shared path is implemented and `unit_generality` passes for the kind. Inspection and insurance are mapping only.
 
 Car rental is bike share with a bigger deposit, an inspection, and an insurance layer. The
 booking and escrow path is unchanged.

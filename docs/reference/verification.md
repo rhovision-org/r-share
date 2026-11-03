@@ -31,7 +31,7 @@ unit-pricing   pass   units store 10 and 20; a zero price refuses "price"
 unit-guestbook pass   getOrCreate is stable; ledger read-back matches
 unit-booking   pass   two priced units, per-unit windows, rent 30, bond 80;
                       escrow debit/refund and bond closure
-unit-pause     pass   global pause/resume, provider pause/resume, unit admin pause
+unit-pause     pass   global pause/resume, provider pause/resume, owner unit pause/resume
 unit-allocator pass atomic multi-slot acquire; one held slot refuses the set;
                       token-only confirm/release; pause, expiry and privacy checks
 unit-admin     pass   booking, listing and provider setAdmins; threshold and replay
@@ -91,9 +91,10 @@ conservation check, not the full per-asset invariant harness.
 ## What the pause suite proves
 
 `ShareAdmin.admin` accepts a 2-of-3 signed `pauseAll` and `resumeAll`; `isPaused` flips
-accordingly. A provider can pause and resume, and `isActive` follows. A unit with the admin
-set accepts a signed `adminPause` and reports status `"paused"`. A second provider register
-returns the same provider URI, exercising the existing-provider fast path.
+accordingly. A provider can pause and resume, and `isActive` follows. The listing owner can
+`pauseUnit` and `resumeUnit`, and `ListingContract("unit")` reports the status. A second
+provider register returns the same provider URI, exercising the existing-provider fast
+path.
 
 ## What the allocator and event suites prove
 

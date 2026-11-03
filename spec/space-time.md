@@ -57,8 +57,9 @@ There are no timers; expiry is lazy and permissionless.
 - **Slot** is the atomic reservable interval. Slots live in the per-listing allocation cell. A slot is exactly
   `free`, `held` or `booked`. A disjoint slot never contends with another.
 
-The current implementation keeps units and slots in one per-listing allocation cell owned by `ListingContract`
-per unit. `UnitFactory` owns the stateless multi-unit hold/release/confirm orchestration.
+The current implementation keeps units and slots in one per-listing allocation cell owned
+by `ListingContract`. `UnitFactory` is stateless and only validates schedules and scans a
+unit's slot map; `acquire`, `confirm` and `release` are listing arms.
 
 ## 6. Terms schema and encoding
 

@@ -1,6 +1,6 @@
 # Live the stay
 
-> **Status:** Implemented, not yet exercised.
+> **Status:** Implemented and exercised by the recorded 16-suite run.
 
 The stay is a sequence of explicit, height-windowed actions. There are no timers and no
 background jobs; someone calls each arm.

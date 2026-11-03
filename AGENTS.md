@@ -49,9 +49,11 @@ make parse-check     # render and parse with the target node's parser
 make docs            # build docs/book with mdBook
 make docs-check      # docs links, orphans, coverage, then mdBook build
 make devnet          # r-cash devnet via RCASH_DIR/RHOLO_DIR
-make rcash-install   # install r-cash components
-make keys install    # install r-share
-make unit-all        # implemented behavioural suites
+make rcash-keys      # generate and faucet the r-cash keys
+make rcash-bootstrap # install the r-cash components r-share needs
+make keys install    # copy the keys and install r-share
+make unit-all        # all 16 behavioural suites
+make formal-check    # Lean build, axiom audit, vectors and flow manifest
 ```
 
 ## Rules for changes
