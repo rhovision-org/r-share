@@ -18,8 +18,8 @@ per object. The arm signatures are in the [arm reference](arms.md); the install 
 | `04_remedy.rho` | Remedy |
 | `40_payments.rho` | Payments |
 | `10_provider.rho` | ProviderBook, ProviderContract |
-| `13_unit.rho` | UnitFactory, UnitContract, SlotContract |
-| `14_listing_contract.rho` | ListingFactory, ListingContract (plus the internal ListingContractFactory) |
+| `13_unit.rho` | UnitFactory (stateless schedule helpers) |
+| `14_listing_contract.rho` | ListingFactory, ListingContract (per-listing allocator; plus the internal ListingContractFactory) |
 | `15_bond.rho` | BondFactory, Bond |
 | `20_booking.rho` | GuestBook |
 | `22_booking_contract.rho` | BookingContractFactory, BookingContract |
@@ -41,10 +41,8 @@ per object. The arm signatures are in the [arm reference](arms.md); the install 
 | ProviderBook | `10_provider.rho` | `providerBookState` | singleton index |
 | ProviderContract | `10_provider.rho` | `providerState` | one per provider |
 | ListingFactory | `14_listing_contract.rho` | none | stateless |
-| ListingContract | `14_listing_contract.rho` | `listingState` | one per listing |
+| ListingContract | `14_listing_contract.rho` | `listingState` | one per listing; owns units and slots |
 | UnitFactory | `13_unit.rho` | none | stateless |
-| UnitContract | `13_unit.rho` | `unitState` | one per unit |
-| SlotContract | `13_unit.rho` | `slotState` | one per slot |
 | BondFactory | `15_bond.rho` | none | stateless |
 | Bond | `15_bond.rho` | `bondState` | one per booking |
 | GuestBook | `20_booking.rho` | `guestBookState` | singleton index |
@@ -64,11 +62,12 @@ ShareRoot
   +-- Payments ---- r-cash Root (account-factory, asset-resolver, clock)
   +-- ProviderBook ---- ProviderContract
   +-- ListingFactory ---- ListingContractFactory ---- ListingContract
-  |                                             \---- UnitFactory
-  +-- UnitFactory ---- UnitContract ---- SlotContract
+  |                                             \---- UnitFactory (stateless)
+  +-- ListingContract owns units and slots in one allocState cell
   +-- BondFactory ---- Bond ---- Payments
   +-- GuestBook ---- GuestLedgerFactory ---- GuestLedger
   +-- BookingContractFactory ---- BookingContract
+  +-- GuestLedger / BookingContract ---- ListingContract (acquire/confirm/release)
 ```
 
 Figure: component dependencies. Factories resolve their instance factory from the Root at

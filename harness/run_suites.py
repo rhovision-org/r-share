@@ -27,7 +27,7 @@ SUITES = {
     "guestbook": "unit_guestbook.py",
     "booking": "unit_booking.py",
     "pause": "unit_pause.py",
-    "concurrency": "unit_concurrency.py",
+    "allocator": "unit_allocator.py",
     "admin": "unit_admin.py",
     "events": "unit_events.py",
     "generality": "unit_generality.py",
@@ -37,7 +37,7 @@ SUITES = {
     "conservation": "unit_conservation.py",
 }
 DEFAULT = ["root", "payments", "lifecycle", "claims", "pricing", "guestbook",
-           "booking", "pause", "concurrency", "admin", "events", "generality",
+           "booking", "pause", "allocator", "admin", "events", "generality",
            "provider", "listing", "behavior", "conservation"]
 
 

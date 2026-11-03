@@ -192,7 +192,7 @@ def main() -> int:
         listing_uri, "ensureUnit",
         f'*dId, "unit-b:{now}", {{"name": "operator"}}, {json.dumps(slots_b)}, 20'))
     expect_ok("unit B create", unit_b)
-    unit_a_uri, unit_b_uri = unit_a[1], unit_b[1]
+    unit_a_id, unit_b_id = unit_a[1], unit_b[1]
 
     activated = one(call_uri(listing_uri, "activate", "*dId"))
     expect_ok("listing activate", activated)
@@ -215,9 +215,9 @@ def main() -> int:
     print(f"  balance {balance_before}")
 
     unit_slots = [
-        {"unitUri": unit_a_uri, "slots": ["s1"],
+        {"unitId": unit_a_id, "slots": ["s1"],
          "checkInHeight": now + 110, "checkOutHeight": now + 190},
-        {"unitUri": unit_b_uri, "slots": ["s1"],
+        {"unitId": unit_b_id, "slots": ["s1"],
          "checkInHeight": now + 160, "checkOutHeight": now + 240},
     ]
     booked = one(call_uri(

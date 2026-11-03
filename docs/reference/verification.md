@@ -1,10 +1,8 @@
 # Verification record
 
-> **Status:** One recorded 16-suite behavioural run on a fresh local devnet. It covers the
-> root directory, the r-cash adapter, lifecycle, claims across five kinds, booking,
-> concurrency, pause, admin, events, provider, listing, the golden transcript and
-> per-scenario conservation. It does not cover the two design-only claim classes, a
-> multi-slot race matrix, `setAdmins` payloads, or slot settlement beyond one booking.
+> **Status:** The recorded run below predates the per-listing allocator. The allocator
+> suites pass on the development devnet, but a fresh-devnet record is required before the
+> allocator is described as verified. The formal model and its gates are current.
 
 ## Recorded run
 
@@ -31,7 +29,8 @@ unit-guestbook pass   getOrCreate is stable; ledger read-back matches
 unit-booking   pass   two priced units, per-unit windows, rent 30, bond 80;
                       escrow debit/refund and bond closure
 unit-pause     pass   global pause/resume, provider pause/resume, unit admin pause
-unit-concurrency pass one of two same-slot books wins; loser refuses "slot held"
+unit-allocator pass atomic multi-slot acquire; one held slot refuses the set;
+                      token-only confirm/release; pause, expiry and privacy checks
 unit-admin     pass   below-threshold and replay refusals; 3 admins, threshold 2
 unit-events    pass   redeem, closeEvent and transferTicket
 unit-generality pass  five kinds validate; an unknown kind refuses
@@ -70,7 +69,7 @@ or ERTP conservation.
 
 ## What the pricing suite proves
 
-Two units created with prices 10 and 20 report those prices from `UnitContract("info")`,
+Two units created with prices 10 and 20 report those prices from `ListingContract("unit")`,
 and a price of zero refuses `"price"`. The booking suite proves the ledger sums them: a
 booking of both units has `rent == 30`.
 
@@ -93,10 +92,13 @@ accordingly. A provider can pause and resume, and `isActive` follows. A unit wit
 set accepts a signed `adminPause` and reports status `"paused"`. A second provider register
 returns the same provider URI, exercising the existing-provider fast path.
 
-## What the concurrency and event suites prove
+## What the allocator and event suites prove
 
-Two same-slot book requests are submitted together: exactly one succeeds, the other refuses
-`"slot held"`, and no second booking is created. `unit_admin` proves a one-signature admin
+`unit_allocator` proves that a multi-slot request is all-or-none, that one held slot refuses
+the whole set, that confirm and release require the booking token, that listing and unit
+pause refuse acquisition, that an expired hold is reclaimed, and that `info`, `unit` and
+`probe` never expose a slot capability. The interleaving invariants are proved in
+`spec/lean/RShare/Model/Allocator.lean`. `unit_admin` proves a one-signature admin
 action refuses `"below threshold"` and a reused nonce refuses `"replay"`. `unit_events`
 proves `redeem` moves a booking to `"redeemed"`, `closeEvent` settles it, and
 `transferTicket` moves the ticket holder. `unit_generality` validates terms for all five

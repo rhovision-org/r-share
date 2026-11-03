@@ -75,7 +75,7 @@ For state at a pinned block, use `data-at-name-by-block-hash` or
 
 - **Provider page:** `ProviderContract("info")`, `listings`.
 - **Listing page:** `ListingContract("info")`, `units`, `unit`, `isActive`.
-- **Calendar:** `UnitContract("schedule", slotIds)` and `probe(slotIds)`.
+- **Calendar:** `ListingContract("schedule", unitId)` and `ListingContract("probe", unitSlots)`.
 - **Booking page:** `BookingContract("info")`, `status`, `ticket`, `ops`.
 - **Ops:** `GuestLedger("ops")` for the guest's op results.
 

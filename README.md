@@ -44,7 +44,7 @@ The 13 install terms build, measure, and parse with the target node's own parser
 `make spec-check` passes. On 2026-11-03 a fresh devnet built from rholo `e2d073d` with
 r-cash `49b441d` recorded 16 passing suites: `unit_root`, `unit_payments`,
 `unit_lifecycle`, `unit_claims`, `unit_pricing`, `unit_guestbook`, `unit_booking`,
-`unit_pause`, `unit_concurrency`, `unit_admin`, `unit_events`, `unit_generality`,
+`unit_pause`, `unit_allocator`, `unit_admin`, `unit_events`, `unit_generality`,
 `unit_provider`, `unit_listing`, `unit_behavior` and `unit_conservation`. The lifecycle
 suite verifies the dispute gate, the arbitration gate, permissionless `resolveDispute` and
 the readable evidence anchors; the claims suite verifies

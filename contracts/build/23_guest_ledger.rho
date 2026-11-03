@@ -8,7 +8,7 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
-  GuestLedgerBook, GuestLedgerDrop, GuestLedgerFinish, GuestLedgerGate, GuestLedgerPay, GuestLedgerReserve, GuestLedgerSpawn, authIsOwner, authOwner, ledgerAdmin, ledgerBookingFactory, ledgerBookListing, ledgerConfirmUnits, ledgerHoldUnits, ledgerListingCheck, ledgerNow, ledgerOpenListing, ledgerPayments, ledgerProviderActive, ledgerReleaseUnits, ledgerResolve,
+  GuestLedgerBook, GuestLedgerDrop, GuestLedgerFinish, GuestLedgerGate, GuestLedgerPay, GuestLedgerReserve, GuestLedgerSpawn, authIsOwner, authOwner, ledgerAdmin, ledgerBookingFactory, ledgerBookListing, ledgerAcquire, ledgerConfirm, ledgerListingCheck, ledgerNow, ledgerOpenListing, ledgerPayments, ledgerProviderActive, ledgerRelease, ledgerResolve,
   resolveComponent
 in {
 contract resolveComponent(@key, ret) = {
@@ -111,46 +111,30 @@ contract authIsOwner(dId, @ownerId, ret) = {
       }
     }
   } |
-  contract ledgerHoldUnits(@unitSlots, @i, @bookingId, @until,
-                           releaseToken, ret) = {
-    new fCh in {
-      ledgerResolve!("component:unit-factory", *fCh) |
-      for (@f <- fCh) {
-        match f {
-          (true, UnitFactory) => {
-            @UnitFactory!("holdAll", unitSlots, bookingId, until,
-                          *releaseToken, *ret)
-          }
-          _ => { ret!(f) }
-        }
+  contract ledgerAcquire(@listingUri, @bookingId, @unitSlots, @until,
+                         releaseToken, ret) = {
+    new cCh in {
+      rl!(listingUri, *cCh) |
+      for (Listing <- cCh) {
+        Listing!("acquire", bookingId, unitSlots, until, *releaseToken, *ret)
       }
     }
   } |
 
-  contract ledgerReleaseUnits(@unitSlots, @i, releaseToken, ret) = {
-    new fCh in {
-      ledgerResolve!("component:unit-factory", *fCh) |
-      for (@f <- fCh) {
-        match f {
-          (true, UnitFactory) => {
-            @UnitFactory!("releaseAll", unitSlots, *releaseToken, *ret)
-          }
-          _ => { ret!(f) }
-        }
+  contract ledgerRelease(@listingUri, @unitSlots, releaseToken, ret) = {
+    new cCh in {
+      rl!(listingUri, *cCh) |
+      for (Listing <- cCh) {
+        Listing!("release", unitSlots, *releaseToken, *ret)
       }
     }
   } |
 
-  contract ledgerConfirmUnits(@unitSlots, @i, releaseToken, ret) = {
-    new fCh in {
-      ledgerResolve!("component:unit-factory", *fCh) |
-      for (@f <- fCh) {
-        match f {
-          (true, UnitFactory) => {
-            @UnitFactory!("confirmAll", unitSlots, *releaseToken, *ret)
-          }
-          _ => { ret!(f) }
-        }
+  contract ledgerConfirm(@listingUri, @unitSlots, releaseToken, ret) = {
+    new cCh in {
+      rl!(listingUri, *cCh) |
+      for (Listing <- cCh) {
+        Listing!("confirm", unitSlots, *releaseToken, *ret)
       }
     }
   } |
@@ -250,58 +234,32 @@ contract authIsOwner(dId, @ownerId, ret) = {
       for (@pv <- pvCh) {
         match pv {
           (true, true) => {
-    new tCh in {
-      ledgerNow!(*tCh) |
-      for (@n <- tCh) {
-        match n {
-          (true, now) => {
-            new ufCh, scanCh in {
-              ledgerResolve!("component:unit-factory", *ufCh) |
-              for (@uf <- ufCh) {
-                match uf {
-                  (true, UnitFactory) => {
-                    @UnitFactory!("scan", unitSlots, listing.get("listingId"), now,
-                                  listing.get("terms").get("maxLeadBlocks"),
-                                  listing.get("terms").get("maxSlotBlocks"), *scanCh)
-                  }
-                  _ => { scanCh!(uf) }
-                }
-              } |
-              for (@scan <- scanCh) {
-                match scan {
-                  (true, summary) => {
-                    if (summary.get("count") < listing.get("terms").get("minSlots")
-                        || summary.get("count") > listing.get("terms").get("maxSlots")) {
-                      GuestLedgerDrop!(*ledgerState, opId) |
-                      ret!((false, "slots"))
-                    } else {
-                      if (unitSlots.length() > listing.get("terms").get("maxUnits")) {
-                        GuestLedgerDrop!(*ledgerState, opId) |
-                        ret!((false, "units"))
-                      } else {
-                        new bIdCh, untilCh, releaseToken in {
-                          bIdCh!(guestId ++ ":" ++ opId) |
-                          untilCh!(now + listing.get("terms").get("holdBlocks")) |
-                          for (@bId <- bIdCh; @untilHeight <- untilCh) {
-                            new heldCh in {
-                              ledgerHoldUnits!(unitSlots, 0, bId, untilHeight,
-                                               *releaseToken, *heldCh) |
-                              for (@held <- heldCh) {
-                                match held {
-                                  (true, Nil) => {
-                                    GuestLedgerPay!(
-                                      *ledgerState, *dId, guestId, listing,
-                                      listingUri, unitSlots, opId, bId,
-                                      untilHeight, summary.get("count"),
-                                      summary.get("rent"),
-                                      summary.get("checkIn"), summary.get("checkOut"),
-                                      *releaseToken, *ret)
-                                  }
-                                  _ => {
-                                    GuestLedgerDrop!(*ledgerState, opId) |
-                                    ret!(held)
-                                  }
-                                }
+            new tCh in {
+              ledgerNow!(*tCh) |
+              for (@n <- tCh) {
+                match n {
+                  (true, now) => {
+                    new bIdCh, untilCh, releaseToken in {
+                      bIdCh!(guestId ++ ":" ++ opId) |
+                      untilCh!(now + listing.get("terms").get("holdBlocks")) |
+                      for (@bId <- bIdCh; @untilHeight <- untilCh) {
+                        new acqCh in {
+                          ledgerAcquire!(listingUri, bId, unitSlots,
+                                         untilHeight, *releaseToken, *acqCh) |
+                          for (@acq <- acqCh) {
+                            match acq {
+                              (true, summary) => {
+                                GuestLedgerPay!(
+                                  *ledgerState, *dId, guestId, listing,
+                                  listingUri, unitSlots, opId, bId,
+                                  untilHeight, summary.get("count"),
+                                  summary.get("rent"),
+                                  summary.get("checkIn"), summary.get("checkOut"),
+                                  *releaseToken, *ret)
+                              }
+                              _ => {
+                                GuestLedgerDrop!(*ledgerState, opId) |
+                                ret!(acq)
                               }
                             }
                           }
@@ -311,19 +269,11 @@ contract authIsOwner(dId, @ownerId, ret) = {
                   }
                   _ => {
                     GuestLedgerDrop!(*ledgerState, opId) |
-                    ret!(scan)
+                    ret!(n)
                   }
                 }
               }
             }
-          }
-          _ => {
-            GuestLedgerDrop!(*ledgerState, opId) |
-            ret!(n)
-          }
-        }
-      }
-    }
           }
           (true, false) => {
             GuestLedgerDrop!(*ledgerState, opId) |
@@ -363,7 +313,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
                   }
                   _ => {
                     new relCh in {
-                      ledgerReleaseUnits!(unitSlots, 0, *releaseToken, *relCh) |
+                      ledgerRelease!(listingUri, unitSlots, *releaseToken, *relCh) |
                       for (@_ <- relCh) {
                         GuestLedgerDrop!(*ledgerState, opId) |
                         ret!(br)
@@ -392,7 +342,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
           (true, BookingFactory) => {
             new cfCh in {
               if (listing.get("terms").get("instantBook") == true) {
-                ledgerConfirmUnits!(unitSlots, 0, *releaseToken, *cfCh)
+                ledgerConfirm!(listingUri, unitSlots, *releaseToken, *cfCh)
               } else {
                 cfCh!((true, Nil))
               } |

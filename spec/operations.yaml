@@ -11,26 +11,26 @@ operations:
     root_resolves_max: 1
     registry_lookups_per_slot_max: 0   # 1 is the fallback if slotCaps is not viable
     unit_state_peeks_max: 1            # status only
-    consumed_cells: [slotState x N]
+    consumed_cells: [listingState]
   unit_release:
     root_resolves_max: 1
     registry_lookups_per_slot_max: 0
-    consumed_cells: [slotState x N]
+    consumed_cells: [listingState]
   unit_confirm:
     root_resolves_max: 1
     registry_lookups_per_slot_max: 0
-    consumed_cells: [slotState x N]
+    consumed_cells: [listingState]
   book_request:
     root_resolves_max: 1               # resolveMany for payments, admin, provider, booking
-    consumed_cells: [ledgerState short, slotState x N, bondState, bookingState]
+    consumed_cells: [ledgerState short, listingState, bondState, bookingState]
     peeks: [adminState, providerState, listingState, unitState]
   accept:
     root_resolves_max: 1
-    consumed_cells: [bookingState, slotState x N]
+    consumed_cells: [bookingState, listingState]
   cancel:
     root_resolves_max: 1
     registry_lookups_per_slot_max: 0
-    consumed_cells: [bookingState held, slotState x N, bondState]
+    consumed_cells: [bookingState held, listingState, bondState]
   settle:
     root_resolves_max: 1
     consumed_cells: [bookingState held, bondState]

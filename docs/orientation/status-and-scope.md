@@ -43,7 +43,7 @@ words are reserved for a recorded command and artifact.
 | `unit_guestbook` | passing; stable guest ledger |
 | `unit_booking` | passing; end-to-end rent, windows, Bond total and one-booking conservation |
 | `unit_pause` | passing; global, provider and unit pause |
-| `unit_concurrency` | passing; one of two same-slot books wins |
+| `unit_allocator` | passing; one of two same-slot books wins |
 | `unit_admin` | passing; threshold and replay refusals |
 | `unit_events` | passing; redeem, closeEvent and transferTicket |
 | `unit_generality` | passing; five kinds validate |

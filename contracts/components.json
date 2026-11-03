@@ -87,7 +87,8 @@
       ],
       "depends_on": [
         "UnitFactory",
-        "AdminGuard"
+        "AdminGuard",
+        "Clock"
       ]
     },
     "UnitFactory": {
@@ -97,23 +98,6 @@
         "Terms",
         "Clock"
       ]
-    },
-    "UnitContract": {
-      "file": "13_unit.rho",
-      "state_cells": [
-        "unitState"
-      ],
-      "depends_on": [
-        "Clock",
-        "ShareAdmin"
-      ]
-    },
-    "SlotContract": {
-      "file": "13_unit.rho",
-      "state_cells": [
-        "slotState"
-      ],
-      "depends_on": []
     },
     "GuestBook": {
       "file": "20_booking.rho",
@@ -132,11 +116,9 @@
       "depends_on": [
         "Payments",
         "ListingContract",
-        "UnitContract",
         "Clock",
         "BookingContractFactory",
-        "BondFactory",
-        "UnitFactory"
+        "BondFactory"
       ]
     },
     "BookingContract": {
@@ -145,12 +127,11 @@
         "bookingState"
       ],
       "depends_on": [
-        "UnitContract",
+        "ListingContract",
         "Remedy",
         "Clock",
         "AdminGuard",
-        "Bond",
-        "UnitFactory"
+        "Bond"
       ]
     },
     "GuestLedgerFactory": {

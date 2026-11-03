@@ -12,7 +12,7 @@ narrative.
 |---|---|---|---|
 | 1 | `ProviderBook("register", dId, profile)` | provider | `(true, providerUri, providerId)` |
 | 2 | `ListingFactory("create", dId, providerUri, listingId, kind, terms)` | provider | `(true, listingUri)` |
-| 3 | `ListingContract("ensureUnit", dId, unitId, attrs, slots, pricePerSlot)` | provider | `(true, unitUri)` |
+| 3 | `ListingContract("ensureUnit", dId, unitId, attrs, slots, pricePerSlot)` | provider | `(true, unitId)` |
 | 4 | `ListingContract("activate", dId)` | provider | `(true, Nil)` |
 | 5 | `GuestBook("getOrCreate", dId)` | guest | `(true, ledgerUri, guestId)` |
 | 6 | `GuestLedger("book", dId, listingUri, unitSlots, opId, termsHash)` | guest | `(true, bookingId, bookingUri)` |
@@ -65,7 +65,7 @@ events, set `contiguous: false` and use one slot per show.
 ## The guest's selection
 
 ```text
-unitSlots = [{"unitUri": "<unit URI>", "slots": ["unit-1:2026-11-05"]}]
+unitSlots = [{"unitId": "unit-1", "slots": ["2026-11-05"]}]
 ```
 
 The guest can select multiple units (up to `maxUnits`) and multiple slots (up to `maxSlots`).

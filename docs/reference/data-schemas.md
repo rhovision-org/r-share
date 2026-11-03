@@ -32,25 +32,27 @@ as `Nil` is optional or absent.
 ## Listing state
 
 ```
-{"listingId", "providerId", "kind", "terms", "termsHash",
+{"listingId", "providerUri", "providerId", "kind", "terms", "termsHash",
  "status": "draft" | "active" | "paused" | "delisted",
- "units": {unitId -> unitUri}, "nonce", "admins", "threshold"}
+ "units": {unitId -> UnitRecord},
+ "slots": {unitId -> {slotId -> SlotRecord}},
+ "nonce", "admins", "threshold"}
 ```
 
-## Unit state
+## Unit record (inside ListingContract state)
 
 ```
-{"unitId", "listingId", "providerId", "kind", "attrs",
- "slots": {slotId -> slotUri},
- "schedule": {slotId -> {"startHeight", "endHeight",
-                         "startHintMs", "endHintMs"}},
- "pricePerSlot", "maxHoldBlocks", "status": "active" | "paused",
- "admins", "threshold", "nonce"}
+{"unitId", "kind", "attrs",
+ "schedule": {slotId -> {"startHeight", "endHeight"}},
+ "pricePerSlot", "maxHoldBlocks", "status": "active" | "paused"}
 ```
+
+The record carries no slot capability. `UnitContract("info")` is gone; use
+`ListingContract("unit", unitId)` for this projection.
 
 `attrs` is free-form data. Do not put personal data or secrets in it.
 
-## Slot record
+## Slot record (inside `slots[unitId][slotId]`)
 
 ```
 ["free", generation]
@@ -58,14 +60,17 @@ as `Nil` is optional or absent.
 ["booked", bookingId, releaseToken]
 ```
 
-`probe` returns the state with the release token redacted:
+The per-listing allocator owns every slot in one cell. `acquire` writes all requested
+slots in one commit; `confirm` and `release` are token-gated. `ListingContract("probe")`
+returns the state with the release token redacted:
 `["free", gen]`, `["held", bookingId, untilHeight]`, or `["booked", bookingId]`.
 
 ## Booking state
 
 ```
 {"bookingId", "guestId", "providerId", "listingId", "listingUri", "kind",
- "unitSlots": [{"unitUri", "slots": [slotId]}],
+ "unitSlots": [{"unitId", "slots": [slotId],
+                 "checkInHeight", "checkOutHeight"}],
  "assetId", "rent", "deposit", "feeBps", "bondUri",
  "holdUntilHeight", "checkInHeight", "checkOutHeight",
  "cancellation": Terms,

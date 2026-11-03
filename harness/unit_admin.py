@@ -145,27 +145,46 @@ def main() -> int:
            [bytes.fromhex(keys[name]["public"]) for name in restore])
 
     # Listing and provider setAdmins use the same payload encoder; exercise both so the
-    # shared AdminText fix cannot regress behind the booking test.
+    # shared AdminText fix cannot regress behind the booking test. Rotation is idempotent:
+    # read the current set, rotate to the other set, then restore the original.
     listing_id = state["listingId"]
     provider_owner = keys[market.provider]["address"]
+    by_public = {keys[name]["public"]: name for name in keys}
+    sets = [["admin1", "admin2", "admin3"], ["admin2", "admin3", "key12"]]
     for label, uri, surface_domain, surface_nonce in (
         ("listing", market.listing_uri, "listing:" + listing_id, next_nonce + 10),
         ("provider", market.provider_uri, "provider:" + provider_owner,
          next_nonce + 20),
     ):
-        surface_text = ",".join(keys[name]["public"] for name in current)
-        surface_args = f'["{surface_text}", 2]'
+        info = one(call_uri(uri, "info"))
+        current_names = [by_public[admin.hex()] for admin in info[1]["admins"]]
+        new_names = sets[0] if current_names != sets[0] else sets[1]
+        new_lit = admin_literal(keys, new_names)
+        new_text = ",".join(keys[name]["public"] for name in new_names)
+        surface_args = f'["{new_text}", 2]'
         surface_payload = payload(codec, surface_domain, surface_nonce,
                                   "setAdmins", surface_args)
         reply = one(call_uri(
             uri, "setAdmins",
-            f'{surface_nonce}, {current_lit}, 2, '
-            + sign(keys, ["admin1", "admin2"], surface_payload)))
+            f'{surface_nonce}, {new_lit}, 2, '
+            + sign(keys, current_names[:2], surface_payload)))
         expect_ok(label + " rotation", reply)
         info = one(call_uri(uri, "info"))
         expect(label + " admins", info[1]["admins"],
-               [bytes.fromhex(keys[name]["public"]) for name in current])
+               [bytes.fromhex(keys[name]["public"]) for name in new_names])
         expect(label + " threshold", info[1]["threshold"], 2)
+
+        restore_lit = admin_literal(keys, current_names)
+        restore_text = ",".join(keys[name]["public"] for name in current_names)
+        restore_args = f'["{restore_text}", 2]'
+        restore_nonce = surface_nonce + 1
+        restore_payload = payload(codec, surface_domain, restore_nonce,
+                                  "setAdmins", restore_args)
+        restored_surface = one(call_uri(
+            uri, "setAdmins",
+            f'{restore_nonce}, {restore_lit}, 2, '
+            + sign(keys, new_names[:2], restore_payload)))
+        expect_ok(label + " restore", restored_surface)
     return 0
 
 

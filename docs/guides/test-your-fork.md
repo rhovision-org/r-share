@@ -62,7 +62,7 @@ make unit-all
 | `unit_provider` | planned (M2) | registration, ownership refusals |
 | `unit_listing` | planned (M2) | terms, units, slot schedule |
 | `unit_booking` | planned (M3) | instant/request, escrow, opId |
-| `unit_concurrency` | planned (M3) | same-block races |
+| `unit_allocator` | planned (M3) | same-block races |
 | `unit_lifecycle` | planned (M4) | accept/reject/cancel/checkout/settle |
 | `unit_events` | planned (M5) | redeem, transfer, close |
 | `unit_admin` | planned (M6) | 2-of-3 pause/delist/arbitrate |

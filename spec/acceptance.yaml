@@ -10,7 +10,7 @@ M2:
   also: [unit_listing]
 M3:
   suite: unit_booking
-  also: [unit_concurrency]
+  also: [unit_allocator]
 M4:
   suite: unit_lifecycle
 M5:

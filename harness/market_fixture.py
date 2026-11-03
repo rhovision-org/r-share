@@ -76,7 +76,8 @@ class Market:
     def __init__(self, name: str, *, kind: str = "robot",
                  provider: str = "business", guest: str = "sender",
                  platform: str = "deployer", price: int = 100,
-                 deposit: int = 50, slot_lead: int = 15, **term_overrides):
+                 deposit: int = 50, slot_lead: int = 15,
+                 slot_ids: list[str] | None = None, **term_overrides):
         self.name = name
         self.token = f"{int(time.time() * 1000)}-{os.getpid()}"
         self.kind = kind
@@ -86,11 +87,12 @@ class Market:
         self.price = price
         self.deposit = deposit
         self.slot_lead = slot_lead
+        self.slot_ids = slot_ids or ["s1"]
         self.term_overrides = term_overrides
         self.terms = terms(pricePerSlot=price, deposit=deposit, **term_overrides)
         self.provider_uri = ""
         self.listing_uri = ""
-        self.unit_uri = ""
+        self.unit_id = ""
         self.ledger_uri = ""
         self.start = 0
         self.end = 0
@@ -137,34 +139,35 @@ class Market:
         fresh = actors.block_height()
         self.start = fresh + self.slot_lead
         self.end = self.start + 100
-        slots = [{"slotId": "s1", "startHeight": self.start,
-                  "endHeight": self.end}]
+        slots = [{"slotId": slot, "startHeight": self.start,
+                  "endHeight": self.end} for slot in self.slot_ids]
         unit = _ok("unit create", actors.invoke(
             self.listing_uri, "ensureUnit",
             f'*dId, "unit:{listing_id}", {{"name": "{self.kind}"}}, '
             f"{json.dumps(slots)}, {self.price}",
             key=self.provider))
-        self.unit_uri = unit[1]
+        self.unit_id = unit[1]
 
         _ok("listing activate", actors.invoke(
             self.listing_uri, "activate", "*dId", key=self.provider))
         return self
 
-    def unit_slots(self) -> list[dict]:
-        return [{"unitUri": self.unit_uri, "slots": ["s1"],
+    def unit_slots(self, slot_ids: list[str] | None = None) -> list[dict]:
+        return [{"unitId": self.unit_id, "slots": slot_ids or self.slot_ids,
                  "checkInHeight": self.start,
                  "checkOutHeight": self.end - 1}]
 
-    def book_term(self, op_id: str, ledger_uri: str | None = None) -> str:
+    def book_term(self, op_id: str, ledger_uri: str | None = None,
+                  slot_ids: list[str] | None = None) -> str:
         return actors.call_term(
             ledger_uri or self.ledger_uri, "book",
-            f'*dId, "{self.listing_uri}", {json.dumps(self.unit_slots())}, '
+            f'*dId, "{self.listing_uri}", {json.dumps(self.unit_slots(slot_ids))}, '
             f'"{op_id}", Nil')
 
-    def book(self, op_id: str):
+    def book(self, op_id: str, slot_ids: list[str] | None = None):
         return _ok("book", actors.invoke(
             self.ledger_uri, "book",
-            f'*dId, "{self.listing_uri}", {json.dumps(self.unit_slots())}, '
+            f'*dId, "{self.listing_uri}", {json.dumps(self.unit_slots(slot_ids))}, '
             f'"{op_id}", Nil',
             key=self.guest))
 
@@ -224,11 +227,15 @@ class Market:
         return _ok("dispute", actors.invoke(
             uri, "dispute", f'*dId, "{op_id}", "{reason_hash}"', key=key))
 
-    def slot_state(self) -> list:
-        reply = actors.invoke(self.unit_uri, "probe", '["s1"]')
+    def slot_states(self, slot_ids: list[str] | None = None) -> dict:
+        request = [{"unitId": self.unit_id, "slots": slot_ids or self.slot_ids}]
+        reply = actors.invoke(self.listing_uri, "probe", json.dumps(request))
         if not (isinstance(reply, tuple) and reply[0] is True):
             raise AssertionError(f"probe: {reply!r}")
-        return reply[1]["s1"]
+        return reply[1][self.unit_id]
+
+    def slot_state(self) -> list:
+        return self.slot_states(["s1"])["s1"]
 
     def ops(self) -> dict:
         reply = actors.invoke(self.ledger_uri, "ops", "*dId", key=self.guest)

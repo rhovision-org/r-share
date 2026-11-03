@@ -22,7 +22,7 @@ delist, rotate and arbitrate. It is not a full governor, and it is not a single-
 | ShareAdmin | `pauseAll`, `resumeAll`, `setAdmins`, `setThreshold` |
 | ProviderContract | `adminPause`, `setAdmins` |
 | ListingContract | `adminPause` (`pause`, `delist`), `setAdmins` |
-| UnitContract | `adminPause`, `setAdmins` |
+| ListingContract | `pauseUnit`, `resumeUnit`, `adminPause`, `setAdmins` |
 | BookingContract | `arbitrate`, `setAdmins` |
 | Payments | `setPlatformOwner`, `setAssets`, `setRcashRoot` |
 

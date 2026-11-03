@@ -11,9 +11,9 @@ export RHOLO_DIR := $(abspath $(RHOLO_DIR))
 
 .PHONY: venv build build-check measure measure-check metrics metrics-compare \
         metrics-baseline check-arch check-captures check-select check-placeholders \
-        check-money check-suites spec-check parse-check docs docs-serve docs-check devnet devnet-up \
+        check-money check-suites check-allocator spec-check parse-check docs docs-serve docs-check devnet devnet-up \
         devnet-wait down status rcash-install rcash-keys rcash-bootstrap keys install setup unit-root unit-payments \
-        unit-provider unit-listing unit-booking unit-concurrency unit-lifecycle \
+        unit-provider unit-listing unit-booking unit-allocator unit-lifecycle \
         unit-claims unit-pricing unit-guestbook unit-events unit-admin unit-pause \
         unit-generality unit-conservation unit-behavior unit-all \
         check ci clean lean-build lean-check vectors vectors-write formal-check
@@ -65,6 +65,9 @@ check-coverage:
 check-suites:
 	$(PY) tools/check_suites.py
 
+check-allocator:
+	$(PY) tools/check_allocator.py
+
 check-remedy:
 	$(PY) tools/check_remedy_table.py
 
@@ -79,7 +82,7 @@ pareto-check:
 
 spec-check: build-check measure-check metrics-compare check-arch check-captures \
             check-select check-placeholders check-money check-coverage check-remedy \
-            check-no-oracle check-suites pareto-check
+            check-no-oracle check-suites check-allocator pareto-check
 
 parse-check:
 	$(PY) harness/install.py --dry-run
@@ -140,8 +143,8 @@ unit-listing:
 	$(PY) harness/unit_listing.py
 unit-booking:
 	$(PY) harness/unit_booking.py
-unit-concurrency:
-	$(PY) harness/unit_concurrency.py
+unit-allocator:
+	$(PY) harness/unit_allocator.py
 unit-lifecycle:
 	$(PY) harness/unit_lifecycle.py
 unit-claims:

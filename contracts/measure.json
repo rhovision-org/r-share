@@ -36,14 +36,14 @@
       "contracts": 9
     },
     "13_unit.rho": {
-      "bytes": 18939,
-      "depth": 28,
-      "contracts": 30
+      "bytes": 4047,
+      "depth": 23,
+      "contracts": 8
     },
     "14_listing_contract.rho": {
-      "bytes": 9653,
-      "depth": 35,
-      "contracts": 10
+      "bytes": 23289,
+      "depth": 33,
+      "contracts": 28
     },
     "15_bond.rho": {
       "bytes": 4357,
@@ -56,12 +56,12 @@
       "contracts": 5
     },
     "22_booking_contract.rho": {
-      "bytes": 22861,
+      "bytes": 23284,
       "depth": 27,
       "contracts": 21
     },
     "23_guest_ledger.rho": {
-      "bytes": 11832,
+      "bytes": 10817,
       "depth": 33,
       "contracts": 24
     },

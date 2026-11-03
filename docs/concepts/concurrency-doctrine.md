@@ -7,18 +7,16 @@ chapter is near-verbatim the repository's concurrency doctrine; the code is the 
 
 ## Rules
 
-1. **One private single-datum cell per slot.** A SlotContract owns `slotState` and never
-   publishes it. A unit stores slot **URIs**, not live capabilities. Every hold, confirm,
-   release and reset consumes and reposts the cell.
-2. **Per-slot sharding.** Two bookings on different nights of the same room, or different
-   seats of the same event, touch different SlotContracts and different cells. They never
-   serialize.
-3. **Dynamic multi-slot acquisition is a same-deploy transaction.** Rholang joins have
-   static arity, so a dynamic list cannot be consumed in one `for`. `Unit.hold` acquires the
-   requested slots one by one; on any failure it releases every requested slot before
-   replying. This is all-or-nothing to every other deploy because rholo executes deploys
-   sequentially and a deploy is atomic with rollback. It is **not** one comm event; do not
-   claim that in docs or tests.
+1. **One allocation cell per listing.** `ListingContract` owns units and slots in one
+   `listingState` cell. A slot is data in that cell, not a separate contract. No slot URI
+   or live capability is published; `acquire`, `confirm` and `release` are the only writers.
+2. **Per-listing serialization.** Bookings on the same listing serialize on the allocator
+   cell. This is the accepted price of atomic multi-slot acquisition. Bookings on different
+   listings never share a cell. The old per-slot sharding doctrine is retired.
+3. **Acquisition is one commit.** `acquire` validates the whole request and writes every
+   requested slot in one take/commit. There is no reachable state in which some requested
+   slots are held and others are not. This is structural, not a consequence of sequential
+   deploy execution.
 4. **Peek is a hint, never a lock.** `GuestLedger` probes slots before spending phlo on a
    withdrawal, then `Unit.hold` revalidates under consume. A stale peek causes a clean
    refusal, never a double booking. Never carry a peeked record across an external await
@@ -48,10 +46,13 @@ chapter is near-verbatim the repository's concurrency doctrine; the code is the 
 ["booked", bookingId, releaseToken]
 ```
 
-- `hold` accepts free and expired-held records and bounds `until <= now + maxHoldBlocks`.
-- `confirm` turns held into booked only for the same token.
-- `release` turns held/booked into free only for the same token.
-- `reset` is the provider's emergency path and requires the unit's reset token.
+- `acquire` accepts free and expired-held records, bounds `until <= now + maxHoldBlocks`,
+  checks listing and unit status, and writes all requested slots as one reservation.
+- `confirm` turns every requested held slot into booked only for the same token; a wrong
+  or expired key refuses the whole set.
+- `release` frees every requested slot held or booked by the token and ignores reclaimed
+  or foreign keys, so a reclaimed slot cannot strand the rest of the booking.
+- `reset` is the provider's emergency path and requires the listing owner.
 
 ## Where serialization is accepted
 
@@ -62,19 +63,21 @@ chapter is near-verbatim the repository's concurrency doctrine; the code is the 
 | ProviderContract / ListingContract | provisioning, pause, delist | off the booking path |
 | Unit state cell | slot creation and provider reset | holds touch slot contracts |
 | GuestLedger op reservation | per guest, short | prevents duplicate bookings |
+| Listing allocation cell | every booking on one listing | atomic multi-slot acquisition; accepted hotspot |
 | BookingContract state cell | per booking | exactly-once transitions |
 | Bond state cell | per booking | one terminal payout; no cross-booking contention |
 | r-cash account purse | per owner withdraw/payout | separate accounts per party |
 
-No hot path is shared between different guests booking different slots.
+Different listings never share a cell. Different slots of one listing do serialize; that is
+the price of making partial multi-slot acquisition unrepresentable.
 
 ## How to review a change against the doctrine
 
-- Does it add a shared mutable cell on a booking path? Reject or redesign.
+- Does it add a second mutable cell on a listing allocation path? Reject or redesign.
 - Does it use `select` for exclusivity? Reject.
 - Does it peek, await, then write the peeked snapshot? Reject.
 - Does it add a global counter? Reject; use a client-supplied id.
-- Does it store a live capability in a data map? Reject; store a URI and resolve it.
+- Does it publish a slot capability or a release token? Reject; the allocator keeps both private.
 - Does it add a timer? Reject; use a height and lazy expiry.
 
 > **Where to go deeper.** [Time without clocks](time-without-clocks.md) covers lazy expiry.

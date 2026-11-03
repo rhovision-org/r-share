@@ -1,45 +1,36 @@
 #!/usr/bin/env python3
-"""Per-unit pricing suite: the unit stores its own price and refuses a bad one."""
+"""Per-unit pricing suite: the allocator stores each unit's price and refuses zero."""
 
 from __future__ import annotations
 
-from assertions import expect_ok, expect_refusal, one, root_uri
+import json
+
+import actors
+from assertions import expect, expect_ok, expect_refusal
+from market_fixture import Market, started, terms
 from preflight import require_devnet
 
-import deploy as node
+
+def listing_for(name: str, price: int) -> tuple[str, str]:
+    now = actors.block_height()
+    provider_book = actors.resolve("component:provider-book")
+    registered = actors.invoke(
+        provider_book, "register", '*dId, {"name": "pricing"}', key="business")
+    expect_ok("provider", registered)
+    factory = actors.resolve("component:listing-factory")
+    created = actors.invoke(
+        factory, "create",
+        f'*dId, "{registered[1]}", "listing:{name}:{now}", "robot", '
+        f"{json.dumps(terms(pricePerSlot=max(price, 1)))}",
+        key="business")
+    expect_ok("listing", created)
+    return created[1], registered[1]
 
 
-def create_unit(owner: str, price: int) -> str:
-    return f"""
-new rl(`rho:registry:lookup`), rootCh, rCh, ufCh, unitCh, infoCh, createCh,
-    dId(`rho:rchain:deployerId`), deployId(`rho:rchain:deployId`) in {{
-  rl!(`{root_uri()}`, *rootCh) |
-  for (Root <- rootCh) {{
-    Root!("resolve", "component:unit-factory", 1, *rCh) |
-    for (@(true, uri, _) <- rCh) {{
-      rl!(uri, *ufCh) |
-      for (UnitFactory <- ufCh) {{
-        UnitFactory!("create", *dId, "unit:{price}", "{owner}", "listing:test",
-                     "robot", {{}},
-                     [{{"slotId": "s1", "startHeight": 1, "endHeight": 2}}],
-                     100, [], 1, {price}, *createCh) |
-        for (@created <- createCh) {{
-          match created {{
-            (true, unitUri) => {{
-              rl!(unitUri, *unitCh) |
-              for (Unit <- unitCh) {{
-                Unit!("info", *infoCh) |
-                for (@i <- infoCh) {{ deployId!(i) }}
-              }}
-            }}
-            _ => {{ deployId!(created) }}
-          }}
-        }}
-      }}
-    }}
-  }}
-}}
-"""
+def unit_info(listing_uri: str, unit_id: str) -> dict:
+    reply = actors.invoke(listing_uri, "unit", f'"{unit_id}"')
+    expect_ok("unit info", reply)
+    return reply[1]
 
 
 def main() -> int:
@@ -47,18 +38,20 @@ def main() -> int:
     if not require_devnet("unit-pricing"):
         return 2
 
-    owner = node.load_keys()["deployer"]["address"]
-    ten = one(create_unit(owner, 10))
-    expect_ok("unit A", ten)
-    if ten[1].get("pricePerSlot") != 10:
-        raise AssertionError(f"unit A price: {ten!r}")
+    ten = started("pricing-ten", price=10)
+    expect("unit A price", unit_info(ten.listing_uri, ten.unit_id)["pricePerSlot"], 10)
 
-    twenty = one(create_unit(owner, 20))
-    expect_ok("unit B", twenty)
-    if twenty[1].get("pricePerSlot") != 20:
-        raise AssertionError(f"unit B price: {twenty!r}")
+    twenty = started("pricing-twenty", price=20)
+    expect("unit B price",
+           unit_info(twenty.listing_uri, twenty.unit_id)["pricePerSlot"], 20)
 
-    bad = one(create_unit(owner, 0))
+    listing_uri, _ = listing_for("pricing-zero", 0)
+    slots = [{"slotId": "s1", "startHeight": actors.block_height() + 50,
+              "endHeight": actors.block_height() + 150}]
+    bad = actors.invoke(
+        listing_uri, "ensureUnit",
+        f'*dId, "unit-zero", {{"name": "bad"}}, {json.dumps(slots)}, 0',
+        key="business")
     expect_refusal("unit price zero", bad, "price")
     return 0
 

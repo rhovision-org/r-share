@@ -133,51 +133,21 @@ ProviderContract("setAdmins", @nonce, @newAdmins, @newThreshold, @sigs, ret)
   -> (true, Nil) | (false, "replay" | "below threshold" | "threshold")
 ```
 
-## Unit — `13_unit.rho`
+## Unit helpers — `13_unit.rho`
+
+The unit and slot components are gone. `UnitFactory` is stateless and validates schedules
+or scans a unit's slot map for the listing allocator.
 
 ```
 UnitFactory("validate", @kind, @slots, @maxLeadBlocks, @maxSlotBlocks, @contiguous, ret)
   -> (true, Nil) | (false, schedule reason)
-UnitFactory("create", dId, @unitId, @providerId, @listingId, @kind, @attrs, @slots,
-            @maxHoldBlocks, @admins, @threshold, @pricePerSlot, ret)
-  -> (true, unitUri) | (false, "not owner" | "price")
-UnitFactory("scan", @unitSlots, @listingId, @now, @maxLead, @maxSlot, ret)
-  -> (true, {count, minStart, maxEnd, checkIn, checkOut, rent}) | (false, reason)
-UnitFactory("holdAll", @unitSlots, @bookingId, @until, releaseToken, ret)
-  -> (true, Nil) | (false, slot reason)
-UnitFactory("releaseAll", @unitSlots, releaseToken, ret) -> (true, Nil)
-UnitFactory("confirmAll", @unitSlots, releaseToken, ret) -> (true, Nil) | (false, "slot lost")
+UnitFactory("schedule", @specs, ret) -> (true, {slotId -> SlotSpec})
+UnitFactory("slotScan", @ids, @specMap, @stateMap, @now, @maxLead, @maxSlot, ret)
+  -> (true, {count, minStart, maxEnd}) | (false, "unknown slot" | "schedule" |
+                                           "lead" | "duration" | "slot held")
 ```
 
-`UnitContract` (spawned per unit):
-
-```
-UnitContract("info", ret) -> (true, state)
-UnitContract("slots", ret) -> (true, [slotId])
-UnitContract("schedule", @slotIds, ret) -> (true, {slotId -> SlotSpec}) | (false, "unknown slot")
-UnitContract("probe", @slotIds, ret) -> (true, {slotId -> state}) | (false, "unknown slot")
-UnitContract("hold", @bookingId, @slotIds, @untilHeight, releaseToken, ret)
-  -> (true, Nil) | (false, "unit paused" | "until" | "unknown slot" | "slot held")
-UnitContract("release", @slotIds, releaseToken, ret) -> (true, Nil)
-UnitContract("confirm", @slotIds, releaseToken, ret) -> (true, Nil) | (false, "slot lost")
-UnitContract("reset", dId, @slotId, ret) -> (true, Nil) | (false, "not owner" | "unknown slot")
-UnitContract("adminPause", @nonce, @sigs, ret) -> (true, Nil) | (false, "replay" | "below threshold")
-UnitContract("setAdmins", @nonce, @newAdmins, @newThreshold, @sigs, ret)
-  -> (true, Nil) | (false, "replay" | "below threshold" | "threshold")
-```
-
-`SlotContract` (spawned per slot):
-
-```
-SlotContract("probe", ret) -> (true, ["free", gen] | ["held", bookingId, until] | ["booked", bookingId])
-SlotContract("hold", @bookingId, @untilHeight, @now, releaseToken, ret)
-  -> (true, Nil) | (false, "slot held", until)
-SlotContract("release", releaseToken, ret) -> (true, Nil) | (false, "not holder")
-SlotContract("confirm", releaseToken, ret) -> (true, Nil) | (false, "not held")
-SlotContract("reset", resetToken, ret) -> (true, Nil) | (false, "not provider")
-```
-
-## Listing — `14_listing_contract.rho`
+## Listing allocator — `14_listing_contract.rho`
 
 ```
 ListingFactory("create", dId, @providerUri, @listingId, @kind, @terms, ret)
@@ -189,26 +159,50 @@ ListingContractFactory("create", dId, @providerId, @listingId, @kind, @terms,
   -> (true, listingUri) | (false, "not owner")
 ```
 
-`ListingContract` (spawned per listing):
+`ListingContract` owns units and slots in one `listingState` cell:
 
 ```
-ListingContract("info", ret) -> (true, state)
+ListingContract("info", ret) -> (true, state without slots)
 ListingContract("terms", ret) -> (true, terms)
 ListingContract("isActive", ret) -> (true, Bool)
-ListingContract("units", ret) -> (true, {unitId -> unitUri})
-ListingContract("unit", @unitId, ret) -> (true, uri) | (false, "unknown unit")
+ListingContract("units", ret) -> (true, {unitId -> unit record})
+ListingContract("unit", @unitId, ret) -> (true, unit record) | (false, "unknown unit")
+ListingContract("schedule", @unitId, ret) -> (true, {slotId -> SlotSpec})
+                                            | (false, "unknown unit")
+ListingContract("quote", @unitSlots, ret) -> (true, summary) | all acquire reasons
+ListingContract("acquire", @bookingId, @unitSlots, @untilHeight, releaseToken, ret)
+  -> (true, {count, rent, minStart, maxEnd, checkIn, checkOut})
+   | (false, "not active" | "units" | "slots" | "duplicate unit" |
+             "unknown unit" | "unit paused" | "until" | "unknown slot" |
+             "slot held" | "schedule" | "lead" | "duration" | "window" |
+             "unit factory unavailable" | "clock")
+ListingContract("confirm", @unitSlots, releaseToken, ret)
+  -> (true, Nil) | (false, "slot lost" | "not holder" | "unknown unit" |
+                           "unknown slot" | "clock")
+ListingContract("release", @unitSlots, releaseToken, ret)
+  -> (true, Nil) | (false, "not holder" | "unknown unit" | "unknown slot")
+ListingContract("probe", @unitSlots, ret)
+  -> (true, {unitId -> {slotId -> ["free", gen] | ["held", bookingId, until] |
+                                     ["booked", bookingId]}})
+ListingContract("reset", dId, @unitId, @slotId, ret)
+  -> (true, Nil) | (false, "not owner" | "unknown unit" | "unknown slot")
 ListingContract("activate", dId, ret) -> (true, Nil) | (false, "not owner" | "already" | "no units")
 ListingContract("pause", dId, ret) -> (true, Nil) | (false, "not owner")
 ListingContract("resume", dId, ret) -> (true, Nil) | (false, "not owner")
 ListingContract("delist", dId, ret) -> (true, Nil) | (false, "not owner")
+ListingContract("pauseUnit", dId, @unitId, ret) -> (true, Nil) | (false, "not owner" | "unknown unit")
+ListingContract("resumeUnit", dId, @unitId, ret) -> (true, Nil) | (false, "not owner" | "unknown unit")
 ListingContract("ensureUnit", dId, @unitId, @attrs, @slots, @pricePerSlot, ret)
-  -> (true, unitUri) | (false, "not active" | "not owner" | "unit exists" |
+  -> (true, unitId) | (false, "not active" | "not owner" | "unit exists" |
                          "unit factory unavailable" | "price" | schedule reason)
 ListingContract("adminPause", @nonce, @action, @args, @sigs, ret)
   -> (true, Nil) | (false, "replay" | "below threshold" | "unknown action")
 ListingContract("setAdmins", @nonce, @newAdmins, @newThreshold, @sigs, ret)
   -> (true, Nil) | (false, "replay" | "below threshold" | "threshold")
 ```
+
+`acquire` is one take/commit: every requested slot becomes held, or the state is reposted
+unchanged. `confirm` and `release` are token-gated. The release token is never returned.
 
 ## Guest — `20_booking.rho` and `23_guest_ledger.rho`
 

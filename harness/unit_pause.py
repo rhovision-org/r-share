@@ -8,8 +8,10 @@ Admin actions are signed by admin1 and admin2 over the canonical
 from __future__ import annotations
 
 import hashlib
+import json
 
 from assertions import expect, expect_ok, one, root_uri
+from market_fixture import terms
 from preflight import require_devnet
 
 import deploy as node
@@ -77,7 +79,7 @@ def main() -> int:
     keys = node.load_keys()
     admin = resolve_component("component:admin")
     provider_book = resolve_component("component:provider-book")
-    unit_factory = resolve_component("component:unit-factory")
+    listing_factory = resolve_component("component:listing-factory")
 
     pause_nonce = block_height()
     paused = one(call_uri(
@@ -109,22 +111,30 @@ def main() -> int:
     expect_ok("provider resume", one(call_uri(provider_uri, "resume", "*dId")))
     expect("provider active", one(call_uri(provider_uri, "isActive")), (True, True))
 
-    unit_id = "unit:pause"
+    now = block_height()
+    created_listing = one(call_uri(
+        listing_factory, "create",
+        f'*dId, "{provider_uri}", "listing:pause:{now}", "robot", '
+        f'{json.dumps(terms(pricePerSlot=10))}'))
+    expect_ok("listing create", created_listing)
+    listing_uri = created_listing[1]
+    slots = [{"slotId": "s1", "startHeight": now + 50, "endHeight": now + 150}]
     created = one(call_uri(
-        unit_factory, "create",
-        f'*dId, "{unit_id}", "{owner}", "listing:pause", "robot", {{}}, '
-        f'[{{"slotId": "s1", "startHeight": 1, "endHeight": 2}}], '
-        f'100, {admin_literal(keys)}, 2, 10'))
+        listing_uri, "ensureUnit",
+        f'*dId, "unit:pause", {{}}, {json.dumps(slots)}, 10'))
     expect_ok("unit create", created)
-    unit_uri = created[1]
+    unit_id = created[1]
+    expect_ok("listing activate", one(call_uri(listing_uri, "activate", "*dId")))
 
-    unit_paused = one(call_uri(
-        unit_uri, "adminPause",
-        f'1, {admin_sigs(keys, "unit:" + unit_id, 1, "pause")}'))
-    expect_ok("unit admin pause", unit_paused)
-    info = one(call_uri(unit_uri, "info"))
+    expect_ok("unit pause", one(call_uri(
+        listing_uri, "pauseUnit", f'*dId, "{unit_id}"')))
+    info = one(call_uri(listing_uri, "unit", f'"{unit_id}"'))
     expect_ok("unit info", info)
     expect("unit status", info[1].get("status"), "paused")
+    expect_ok("unit resume", one(call_uri(
+        listing_uri, "resumeUnit", f'*dId, "{unit_id}"')))
+    info = one(call_uri(listing_uri, "unit", f'"{unit_id}"'))
+    expect("unit resumed", info[1].get("status"), "active")
     return 0
 
 
