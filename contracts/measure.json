@@ -2,7 +2,12 @@
   "limits": {
     "bytes": 57344,
     "depth": 96,
-    "contracts": 32
+    "contracts": 32,
+    "per_file": {
+      "22_booking_contract.rho": 24576,
+      "14_listing_contract.rho": 28672,
+      "23_guest_ledger.rho": 12288
+    }
   },
   "terms": {
     "00_root.rho": {

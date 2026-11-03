@@ -52,8 +52,10 @@ contracts and the build.
 
 ## The 64 KiB budget in practice
 
-The largest term is `22_booking_contract.rho` at roughly 23 KiB, well under the cap. The
-budget leaves room for a fork's additions. If a fork pushes a term over 56 KiB, split the
+The largest term is `22_booking_contract.rho` at 23,284 B. The per-file targets are 24 KiB
+for `22`, 28 KiB for `14_listing_contract.rho` (the allocator) and 12 KiB for
+`23_guest_ledger.rho`; `make measure-check` enforces them alongside the 56 KiB project
+budget. The budget leaves room for a fork's additions. If a fork pushes a term over 56 KiB, split the
 factory from the instance. r-share keeps the listing factory and the allocator in one term;
 the ledger and booking factories are separate deploy files. It splits by deploy file when
 depth or size requires it (terms, remedy, bond, booking).

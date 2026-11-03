@@ -74,6 +74,7 @@ def main(argv: list[str] | None = None) -> int:
     max_bytes = limits.get("bytes", 57344)
     max_depth = limits.get("depth", 96)
     max_contracts = limits.get("contracts", 16)
+    per_file = limits.get("per_file", {})
 
     actual = {p.name: measure(p) for p in sorted(BUILD.glob("*.rho"))}
     failures = []
@@ -84,6 +85,8 @@ def main(argv: list[str] | None = None) -> int:
             failures.append(f"{name}: depth {m['depth']} > {max_depth}")
         if m["contracts"] > max_contracts:
             failures.append(f"{name}: {m['contracts']} contracts > {max_contracts}")
+        if name in per_file and m["bytes"] > per_file[name]:
+            failures.append(f"{name}: {m['bytes']} bytes > per-file {per_file[name]}")
 
     if args.check:
         if not MANIFEST.is_file():
