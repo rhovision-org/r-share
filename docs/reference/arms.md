@@ -68,7 +68,6 @@ Payments("depositFacet", @ownerId, @assetId, ret) -> (true, facet)
                                                    | (false, "no account" | "rcash unavailable")
 Payments("issuer", @assetId, ret) -> (true, brand, issuer)
                                    | (false, "unknown asset" | "rcash unavailable")
-Payments("now", ret) -> (true, blockHeight)
 Payments("platformOwner", ret) -> (true, ownerId)
 Payments("admin", @nonce, @action, @args, @sigs, ret)
   -> (true, Nil) | (false, "replay" | "below threshold" | "rcash unavailable" | "unknown action")
@@ -103,7 +102,7 @@ Remedy("depositSplit", @deposit, @providerBps, ret)
 ```
 
 `Remedy` is the only place with cancellation/fee/no-show/deposit arithmetic. It is
-registered as `component:remedy`; `component:policy` remains as a one-release alias.
+registered as `component:remedy`.
 
 ## Provider — `10_provider.rho`
 
@@ -111,7 +110,6 @@ registered as `component:remedy`; `component:policy` remains as a one-release al
 ProviderBook("register", dId, @profile, ret) -> (true, providerUri, ownerId)
                                               | (false, "not owner" | "account" | "profile")
 ProviderBook("providerOf", @ownerId, ret) -> (true, uri) | (false, "no provider")
-ProviderBook("providers", ret) -> (true, providers)
 ```
 
 `ProviderContract` (spawned per provider):

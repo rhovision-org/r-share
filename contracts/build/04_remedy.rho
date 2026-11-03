@@ -6,7 +6,7 @@ new
   rs(`rho:registry:insertArbitrary`),
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
-  rootCh, c, a1, a2,
+  rootCh, c, a1,
   moneyFee, moneyPart
 in {
 // Integer money helpers. Amounts are minor units; bps denominators are 10000.
@@ -137,8 +137,7 @@ contract moneyPart(@amount, @bps, ret) = {
     rs!(bundle+{*Remedy}, *c) |
     for (@uri <- c) {
       Root!("register", "component:remedy", uri, 1, "policy", *deployerId, *a1) |
-      Root!("register", "component:policy", uri, 1, "policy", *deployerId, *a2) |
-      for (@r1 <- a1; @r2 <- a2) { deployId!([uri]) }
+      for (@r1 <- a1) { deployId!([uri]) }
     }
   }
 }

@@ -16,7 +16,7 @@ account after `40_payments.rho`.
 | 3 | `02_admin.rho` | `component:admin-guard`, `component:admin` |
 | 4 | `40_payments.rho` | `component:payments` |
 | 5 | `03_terms.rho` | `component:terms` |
-| 6 | `04_remedy.rho` | `component:remedy`, `component:policy` (alias) |
+| 6 | `04_remedy.rho` | `component:remedy` |
 | 7 | `10_provider.rho` | `component:provider-book` |
 | 8 | `13_unit.rho` | `component:unit-factory` |
 | 9 | `14_listing_contract.rho` | `component:listing-factory` |
@@ -54,7 +54,6 @@ component:admin
 component:payments
 component:terms
 component:remedy
-component:policy        (one-release alias for remedy)
 component:provider-book
 component:unit-factory
 component:listing-factory

@@ -82,8 +82,7 @@ settlement asserts the buckets.
 - `ListingContract.ensureUnit` calls `UnitFactory.validate`.
 
 A change to `Remedy` is visible to every listing and booking that resolves
-`component:remedy` (or the `component:policy` alias). Version the Root entry if you deploy a
-breaking change.
+`component:remedy`. Version the Root entry if you deploy a breaking change.
 
 > **Where to go deeper.** [Governance and arbitration](../concepts/governance-and-arbitration.md)
 > is the dispute path. [Arm reference](../reference/arms.md) is the signature list. [Test your

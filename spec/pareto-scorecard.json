@@ -19,9 +19,9 @@
     "components": 23,
     "state_cell_types": 12,
     "bytes_max": 24282,
-    "arm_declarations": 123,
+    "arm_declarations": 121,
     "root_resolve_sites": 18,
-    "registry_lookup_sites": 65
+    "registry_lookup_sites": 64
   },
   "candidates": [
     {

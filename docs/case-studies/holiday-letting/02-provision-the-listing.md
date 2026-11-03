@@ -27,7 +27,7 @@ ListingFactory!("create", *deployerId, providerUri,
 The factory:
 
 1. checks Ana owns the provider contract;
-2. resolves `component:policy`, `component:codec` and `component:admin`;
+2. resolves `component:remedy`, `component:codec` and `component:admin`;
 3. resolves `component:terms` and calls `Terms!("validate", kind, terms)` and
    `Terms!("hash", kind, terms)`;
 4. calls `ListingContractFactory!("create", ...)` to spawn the listing in `draft`;

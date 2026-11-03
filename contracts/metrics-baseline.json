@@ -1,14 +1,14 @@
 {
   "deploy_terms": 13,
-  "bytes_total": 105672,
+  "bytes_total": 105239,
   "bytes_max": 24282,
   "depth_max": 40,
   "contracts_max": 26,
   "components": 23,
   "state_cell_types": 12,
-  "arm_declarations": 123,
+  "arm_declarations": 121,
   "root_resolve_sites": 18,
-  "registry_lookup_sites": 65,
+  "registry_lookup_sites": 64,
   "registry_insert_sites": 23,
   "terms_detail": {
     "00_root.rho": {
@@ -32,12 +32,12 @@
       "contracts": 5
     },
     "04_remedy.rho": {
-      "bytes": 3068,
+      "bytes": 2977,
       "depth": 18,
       "contracts": 3
     },
     "10_provider.rho": {
-      "bytes": 8087,
+      "bytes": 7987,
       "depth": 29,
       "contracts": 7
     },
@@ -72,7 +72,7 @@
       "contracts": 26
     },
     "40_payments.rho": {
-      "bytes": 5181,
+      "bytes": 4939,
       "depth": 24,
       "contracts": 4
     }

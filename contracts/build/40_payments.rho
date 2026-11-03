@@ -167,23 +167,6 @@ in {
     }
   } |
 
-  contract Payments(@"now", ret) = {
-    new uCh in {
-      payResolveUri!("component:clock", *uCh) |
-      for (@u <- uCh) {
-        match u {
-          (true, uri, _) => {
-            new cCh in {
-              rl!(uri, *cCh) |
-              for (Clock <- cCh) { Clock!("now", *ret) }
-            }
-          }
-          _ => { ret!(u) }
-        }
-      }
-    }
-  } |
-
   contract Payments(@"platformOwner", ret) = {
     for (@s <<- paymentsState) { ret!((true, s.get("platformOwnerId"))) }
   } |

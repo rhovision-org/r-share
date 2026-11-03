@@ -14,7 +14,7 @@ TRUST = ROOT / "spec" / "trust.md"
 ALLOWED = {
     "component:root", "component:clock", "component:verifier", "component:codec",
     "component:admin-guard", "component:admin", "component:payments",
-    "component:terms", "component:remedy", "component:policy",
+    "component:terms", "component:remedy",
     "component:provider-book", "component:unit-factory", "component:listing-factory",
     "component:bond-factory", "component:booking-factory",
     "component:guest-ledger-factory", "component:guest-book",

@@ -390,10 +390,6 @@ contract authIsOwner(dId, @ownerId, ret) = {
     }
   } |
 
-  contract ProviderBook(@"providers", ret) = {
-    for (@s <<- providerBookState) { ret!((true, s)) }
-  } |
-
   providerBookState!({}) |
 
   rl!(`__ROOT_URI__`, *rootCh) |
