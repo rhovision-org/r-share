@@ -262,6 +262,16 @@ contract bookingResolve(@key, ret) = {
                     contract BookingContract(@"ops", ret2) = {
                       for (@st <<- bookingState) { ret2!((true, st.get("ops"))) }
                     } |
+                    contract BookingContract(@"evidence", ret2) = {
+                      for (@st <<- bookingState) {
+                        ret2!((true, {
+                          "claimHash": st.get("claim").get("evidenceHash"),
+                          "claimAtHeight": st.get("claim").get("atHeight"),
+                          "disputeHash": st.get("disputeHash"),
+                          "disputeAtHeight": st.get("disputeAtHeight")
+                        }))
+                      }
+                    } |
 
                     contract BookingContract(@"accept", dId2, @opId, ret2) = {
                       for (@st <- bookingState) {

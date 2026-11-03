@@ -25,6 +25,7 @@ unit-lifecycle pass   dispute from requested refuses;
                       checked-out booking resolves through resolveDispute
 unit-claims    pass   four claim classes x five kinds (20/30 coverage cells)
 unit-pricing   pass   units store 10 and 20; a zero price refuses "price"
+unit-guestbook pass   getOrCreate is stable; ledger read-back matches
 ```
 
 The runner writes `deployments/suite-results.json` (gitignored) and exits 0 only when every
@@ -58,6 +59,13 @@ or ERTP conservation.
 Two units created with prices 10 and 20 report those prices from `UnitContract("info")`,
 and a price of zero refuses `"price"`. It does not yet prove that the guest ledger sums
 per-unit prices into a booking's rent; that needs a full listing/unit/booking scenario.
+
+## What the guestbook and evidence checks prove
+
+`GuestBook("getOrCreate")` returns the same ledger on a second call and `GuestBook("ledger")`
+reads it back; the existing-guest path no longer consumes and rewrites the index.
+`BookingContract("evidence")` returns the dispute hash and height after a dispute, so the
+anchor is readable rather than write-only.
 
 ## r-cash caveat
 

@@ -37,33 +37,40 @@ in {
       for (@o <- oCh) {
         match o {
           (true, guestId) => {
-            for (@s <- guestBookState) {
+            for (@s <<- guestBookState) {
               match s.get(guestId) {
                 Nil => {
-                  new fCh in {
-                    guestResolve!("component:guest-ledger-factory", *fCh) |
-                    for (@f <- fCh) {
-                      match f {
-                        (true, Factory) => {
-                          new lCh in {
-                            @Factory!("create", *dId, guestId, *lCh) |
-                            for (@lr <- lCh) {
-                              match lr {
-                                (true, ledgerUri) => {
-                                  guestBookState!(s.set(guestId, ledgerUri)) |
-                                  ret!((true, ledgerUri, guestId))
+                  for (@s2 <- guestBookState) {
+                    match s2.get(guestId) {
+                      Nil => {
+                        new fCh in {
+                          guestResolve!("component:guest-ledger-factory", *fCh) |
+                          for (@f <- fCh) {
+                            match f {
+                              (true, Factory) => {
+                                new lCh in {
+                                  @Factory!("create", *dId, guestId, *lCh) |
+                                  for (@lr <- lCh) {
+                                    match lr {
+                                      (true, ledgerUri) => {
+                                        guestBookState!(s2.set(guestId, ledgerUri)) |
+                                        ret!((true, ledgerUri, guestId))
+                                      }
+                                      _ => { ret!(lr) }
+                                    }
+                                  }
                                 }
-                                _ => { ret!(lr) }
                               }
+                              _ => { ret!((false, "ledger factory unavailable")) }
                             }
                           }
                         }
-                        _ => { ret!((false, "ledger factory unavailable")) }
                       }
+                      uri => { guestBookState!(s2) | ret!((true, uri, guestId)) }
                     }
                   }
                 }
-                uri => { guestBookState!(s) | ret!((true, uri, guestId)) }
+                uri => { ret!((true, uri, guestId)) }
               }
             }
           }

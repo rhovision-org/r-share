@@ -38,6 +38,7 @@ words are reserved for a recorded command and artifact.
 | `unit_lifecycle` | passing; dispute gate, arbitrate gate and `resolveDispute` |
 | `unit_claims` | passing; four claim classes across five kinds (20/30 cells) |
 | `unit_pricing` | passing; per-unit price stored and validated |
+| `unit_guestbook` | passing; stable guest ledger |
 | Devnet bootstrap | `make devnet-up`, `make rcash-bootstrap`, `make install` |
 
 ## What is a design proposal

@@ -43,8 +43,9 @@ on it.
 The 13 install terms build, measure, and parse with the target node's own parser;
 `make spec-check` passes. On 2026-11-03 a fresh devnet built from rholo `e2d073d` with
 r-cash `49b441d` recorded passing runs for `unit_root`, `unit_payments` and
-`unit_lifecycle` and `unit_claims`. The lifecycle suite verifies the dispute gate, the
-arbitration gate and permissionless `resolveDispute`; the claims suite verifies
+`unit_lifecycle`, `unit_claims`, `unit_pricing` and `unit_guestbook`. The lifecycle suite
+verifies the dispute gate, the arbitration gate, permissionless `resolveDispute` and the
+readable evidence anchors; the claims suite verifies
 `buyerUseBreach`, `noFaultCancellation`, `noShow` and `damage` for lodging, events, bike,
 car and robot. `unit_pricing` verifies that a unit stores and validates its own price.
 Coverage is 20/30 `passing`; `providerDeliveryBreach` and `partialPerformance` remain

@@ -59,6 +59,32 @@ def main() -> int:
         '} }',
     ))
     expect_ok("dispute -> resolveDispute", resolved)
+
+    evidence = one(booking_term(
+        bond, owner, True,
+        'B!("checkIn", *dId, "op1", *c1) | '
+        'for (@r1 <- c1) { match r1 { '
+        '  (true, Nil) => { '
+        '    B!("checkOut", *dId, "op2", *c2) | '
+        '    for (@r2 <- c2) { match r2 { '
+        '      (true, Nil) => { '
+        '        B!("dispute", *dId, "op3", "hash", *c3) | '
+        '        for (@r3 <- c3) { match r3 { '
+        '          (true, Nil) => { B!("evidence", *out) | '
+        '                           for (@r <- out) { deployId!(r) } } '
+        '          _ => { deployId!(("dispute", r3)) } '
+        '        } } '
+        '      } '
+        '      _ => { deployId!(("checkOut", r2)) } '
+        '    } } '
+        '  } '
+        '  _ => { deployId!(("checkIn", r1)) } '
+        '} }',
+    ))
+    expect_ok("evidence read", evidence)
+    if evidence[1].get("disputeHash") != "hash" or evidence[1].get("disputeAtHeight") <= 0:
+        raise AssertionError(f"evidence anchors: {evidence!r}")
+    print("  ok evidence anchors")
     return 0
 
 

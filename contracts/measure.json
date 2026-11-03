@@ -51,12 +51,12 @@
       "contracts": 5
     },
     "20_booking.rho": {
-      "bytes": 2248,
-      "depth": 19,
+      "bytes": 2358,
+      "depth": 22,
       "contracts": 4
     },
     "22_booking_contract.rho": {
-      "bytes": 24282,
+      "bytes": 24567,
       "depth": 40,
       "contracts": 17
     },

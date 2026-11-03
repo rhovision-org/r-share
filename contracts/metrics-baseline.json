@@ -1,12 +1,12 @@
 {
   "deploy_terms": 13,
-  "bytes_total": 105603,
-  "bytes_max": 24282,
+  "bytes_total": 105998,
+  "bytes_max": 24567,
   "depth_max": 40,
   "contracts_max": 26,
   "components": 23,
   "state_cell_types": 12,
-  "arm_declarations": 121,
+  "arm_declarations": 122,
   "root_resolve_sites": 18,
   "registry_lookup_sites": 64,
   "registry_insert_sites": 23,
@@ -57,12 +57,12 @@
       "contracts": 5
     },
     "20_booking.rho": {
-      "bytes": 2248,
-      "depth": 19,
+      "bytes": 2358,
+      "depth": 22,
       "contracts": 4
     },
     "22_booking_contract.rho": {
-      "bytes": 24282,
+      "bytes": 24567,
       "depth": 40,
       "contracts": 17
     },
