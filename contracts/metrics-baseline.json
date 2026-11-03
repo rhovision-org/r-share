@@ -1,7 +1,7 @@
 {
   "deploy_terms": 13,
-  "bytes_total": 106542,
-  "bytes_max": 22457,
+  "bytes_total": 107851,
+  "bytes_max": 22861,
   "depth_max": 35,
   "contracts_max": 30,
   "components": 23,
@@ -37,19 +37,19 @@
       "contracts": 3
     },
     "10_provider.rho": {
-      "bytes": 8319,
+      "bytes": 8723,
       "depth": 32,
-      "contracts": 8
+      "contracts": 9
     },
     "13_unit.rho": {
-      "bytes": 18842,
+      "bytes": 18939,
       "depth": 28,
       "contracts": 30
     },
     "14_listing_contract.rho": {
-      "bytes": 9249,
+      "bytes": 9653,
       "depth": 35,
-      "contracts": 9
+      "contracts": 10
     },
     "15_bond.rho": {
       "bytes": 4357,
@@ -62,9 +62,9 @@
       "contracts": 5
     },
     "22_booking_contract.rho": {
-      "bytes": 22457,
+      "bytes": 22861,
       "depth": 27,
-      "contracts": 20
+      "contracts": 21
     },
     "23_guest_ledger.rho": {
       "bytes": 11832,

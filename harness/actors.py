@@ -59,12 +59,12 @@ def resolve(component: str, key: str = "deployer"):
     return reply[1]
 
 
-def ensure_vault(name: str) -> None:
-    """Prove the key can pay phlo; drip the faucet once if it cannot."""
+def ensure_vault(name: str, min_phlo: int = 6_000_000) -> None:
+    """Prove the key can precharge a race-sized deploy; drip the faucet if it cannot."""
     if name == "deployer":
         return
     try:
-        one(PING, key=name, phlo_limit=1_000_000)
+        one(PING, key=name, phlo_limit=min_phlo)
         return
     except node.DevnetError as error:
         if "insufficient funds" not in str(error):
@@ -78,7 +78,7 @@ def ensure_vault(name: str) -> None:
             last = error
         time.sleep(2)
         try:
-            one(PING, key=name, phlo_limit=1_000_000)
+            one(PING, key=name, phlo_limit=min_phlo)
             return
         except node.DevnetError as error:
             if "insufficient funds" not in str(error):

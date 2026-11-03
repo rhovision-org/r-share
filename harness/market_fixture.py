@@ -76,7 +76,7 @@ class Market:
     def __init__(self, name: str, *, kind: str = "robot",
                  provider: str = "business", guest: str = "sender",
                  platform: str = "deployer", price: int = 100,
-                 deposit: int = 50, **term_overrides):
+                 deposit: int = 50, slot_lead: int = 15, **term_overrides):
         self.name = name
         self.token = f"{int(time.time() * 1000)}-{os.getpid()}"
         self.kind = kind
@@ -85,6 +85,7 @@ class Market:
         self.platform = platform
         self.price = price
         self.deposit = deposit
+        self.slot_lead = slot_lead
         self.term_overrides = term_overrides
         self.terms = terms(pricePerSlot=price, deposit=deposit, **term_overrides)
         self.provider_uri = ""
@@ -107,6 +108,11 @@ class Market:
         registered = _ok("provider register", actors.invoke(
             provider_book, "register", '*dId, {"name": "fixture"}', key=self.provider))
         self.provider_uri = registered[1]
+        provider_state = _ok("provider info", actors.invoke(
+            self.provider_uri, "info"))[1]
+        if provider_state.get("status") != "active":
+            _ok("provider resume", actors.invoke(
+                self.provider_uri, "resume", "*dId", key=self.provider))
 
         listing_factory = actors.resolve("component:listing-factory")
         listing_id = f"listing:{self.name}:{int(time.time() * 1000)}"
@@ -129,7 +135,7 @@ class Market:
         # Only now fix the slot window, so setup time cannot push the window into the past
         # before the booking is made.
         fresh = actors.block_height()
-        self.start = fresh + 15
+        self.start = fresh + self.slot_lead
         self.end = self.start + 100
         slots = [{"slotId": "s1", "startHeight": self.start,
                   "endHeight": self.end}]
@@ -149,13 +155,18 @@ class Market:
                  "checkInHeight": self.start,
                  "checkOutHeight": self.end - 1}]
 
+    def book_term(self, op_id: str, ledger_uri: str | None = None) -> str:
+        return actors.call_term(
+            ledger_uri or self.ledger_uri, "book",
+            f'*dId, "{self.listing_uri}", {json.dumps(self.unit_slots())}, '
+            f'"{op_id}", Nil')
+
     def book(self, op_id: str):
-        reply = actors.invoke(
+        return _ok("book", actors.invoke(
             self.ledger_uri, "book",
             f'*dId, "{self.listing_uri}", {json.dumps(self.unit_slots())}, '
             f'"{op_id}", Nil',
-            key=self.guest)
-        return _ok("book", reply)
+            key=self.guest))
 
     def booking_info(self, uri: str) -> dict:
         return _ok("booking info", actors.invoke(uri, "info"))[1]
@@ -224,6 +235,17 @@ class Market:
         if not (isinstance(reply, tuple) and reply[0] is True):
             raise AssertionError(f"ledger ops: {reply!r}")
         return reply[1]
+
+
+def ledger_for(guest: str) -> str:
+    """Return a funded guest ledger for an actor that is not the market's guest."""
+    actors.ensure_vault(guest)
+    guest_book = actors.resolve("component:guest-book")
+    reply = _ok("guest ledger", actors.invoke(
+        guest_book, "getOrCreate", "*dId", key=guest))
+    if actors.balance(guest) < 500:
+        actors.fund(guest, 2_000)
+    return reply[1]
 
 
 def started(name: str, **kwargs) -> Market:

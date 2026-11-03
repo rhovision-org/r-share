@@ -7,7 +7,7 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
-  adminGuard, authIsOwner, authOwner, providerAdmins, providerPayments,
+  adminGuard, adminsText, authIsOwner, authOwner, providerAdmins, providerPayments,
   resolveComponent
 in {
 contract resolveComponent(@key, ret) = {
@@ -77,6 +77,26 @@ contract adminGuard(@domain, @nonce, @action, @args, @sigs,
     }
   }
 } |
+// Canonical text for an admin set. The pinned node has no `toString` on a list,
+// so AdminGuard cannot encode `[newAdmins, newThreshold]` directly. Join the
+// compressed public keys as comma-separated hex and sign that string instead.
+contract adminsText(@admins, @i, @acc, ret2) = {
+  if (i >= admins.length()) {
+    ret2!(acc)
+  } else {
+    match admins.nth(i) {
+      a => {
+        new nextCh in {
+          if (i == 0) { nextCh!(a.bytesToHex()) }
+          else { nextCh!(acc ++ "," ++ a.bytesToHex()) } |
+          for (@next <- nextCh) {
+            adminsText!(admins, i + 1, next, *ret2)
+          }
+        }
+      }
+    }
+  }
+} |
 
 
   contract providerPayments(ret) = {
@@ -138,6 +158,7 @@ contract adminGuard(@domain, @nonce, @action, @args, @sigs,
                                   "admins": admins,
                                   "threshold": threshold
                                 }) |
+
                                 contract ProviderContract(@"info", ret2) = {
                                   for (@st <<- providerState) { ret2!((true, st)) }
                                 } |
@@ -343,12 +364,15 @@ contract adminGuard(@domain, @nonce, @action, @args, @sigs,
                                     if (nonce <= st.get("nonce")) {
                                       providerState!(st) | ret2!((false, "replay"))
                                     } else {
-                                      new vCh in {
-                                        adminGuard!("provider:" ++ ownerId, nonce,
-                                                     "setAdmins",
-                                                     [newAdmins, newThreshold], sigs,
-                                                     st.get("admins"),
-                                                     st.get("threshold"), *vCh) |
+                                      new vCh, tCh in {
+                                        adminsText!(newAdmins, 0, "", *tCh) |
+                                        for (@adminsTextValue <- tCh) {
+                                          adminGuard!("provider:" ++ ownerId, nonce,
+                                                       "setAdmins",
+                                                       [adminsTextValue, newThreshold], sigs,
+                                                       st.get("admins"),
+                                                       st.get("threshold"), *vCh)
+                                        } |
                                         for (@v <- vCh) {
                                           match v {
                                             (true, ok) => {

@@ -7,13 +7,14 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
-  adminGuard, authIsOwner, authOwner, providerAdmins, providerPayments,
+  adminGuard, adminsText, authIsOwner, authOwner, providerAdmins, providerPayments,
   resolveComponent
 in {
   // @@INLINE:lib/Resolve.rho@@
   // @@INLINE:lib/Auth.rho@@
 
   // @@INLINE:lib/AdminGuard.rho@@
+  // @@INLINE:lib/AdminsText.rho@@
 
 
   contract providerPayments(ret) = {
@@ -75,6 +76,7 @@ in {
                                   "admins": admins,
                                   "threshold": threshold
                                 }) |
+
                                 contract ProviderContract(@"info", ret2) = {
                                   for (@st <<- providerState) { ret2!((true, st)) }
                                 } |
@@ -280,12 +282,15 @@ in {
                                     if (nonce <= st.get("nonce")) {
                                       providerState!(st) | ret2!((false, "replay"))
                                     } else {
-                                      new vCh in {
-                                        adminGuard!("provider:" ++ ownerId, nonce,
-                                                     "setAdmins",
-                                                     [newAdmins, newThreshold], sigs,
-                                                     st.get("admins"),
-                                                     st.get("threshold"), *vCh) |
+                                      new vCh, tCh in {
+                                        adminsText!(newAdmins, 0, "", *tCh) |
+                                        for (@adminsTextValue <- tCh) {
+                                          adminGuard!("provider:" ++ ownerId, nonce,
+                                                       "setAdmins",
+                                                       [adminsTextValue, newThreshold], sigs,
+                                                       st.get("admins"),
+                                                       st.get("threshold"), *vCh)
+                                        } |
                                         for (@v <- vCh) {
                                           match v {
                                             (true, ok) => {

@@ -9,7 +9,7 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
-  adminGuard, authIsOwner, authOwner, bookingResolve, bookingNow, bookingPayments,
+  adminGuard, adminsText, authIsOwner, authOwner, bookingResolve, bookingNow, bookingPayments,
   bookingRemedy,
   resolveComponent
 in {
@@ -17,6 +17,7 @@ in {
   // @@INLINE:lib/Auth.rho@@
 
   // @@INLINE:lib/AdminGuard.rho@@
+  // @@INLINE:lib/AdminsText.rho@@
 
 
 contract bookingResolve(@key, ret) = {
@@ -1124,11 +1125,14 @@ contract bookingResolve(@key, ret) = {
                         if (nonce <= st.get("nonce")) {
                           bcRefuse!(st, "replay", *ret2)
                         } else {
-                          new vCh in {
-                            adminGuard!("booking:" ++ st.get("bookingId"), nonce,
-                                         "setAdmins", [newAdmins, newThreshold],
-                                         sigs, st.get("admins"),
-                                         st.get("threshold"), *vCh) |
+                          new vCh, tCh in {
+                            adminsText!(newAdmins, 0, "", *tCh) |
+                            for (@adminsTextValue <- tCh) {
+                              adminGuard!("booking:" ++ st.get("bookingId"), nonce,
+                                           "setAdmins", [adminsTextValue, newThreshold],
+                                           sigs, st.get("admins"),
+                                           st.get("threshold"), *vCh)
+                            } |
                             for (@v <- vCh) {
                               match v {
                                 (true, ok) => {

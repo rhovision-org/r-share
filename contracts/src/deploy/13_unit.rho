@@ -241,8 +241,13 @@ in {
                     } else {
                       new rCh in {
                         unitSlotRelease!(ids.nth(i), *releaseToken, *rCh) |
-                        for (@_ <- rCh) {
-                          unitReleaseSeq!(ids, i + 1, *releaseToken, *ret2)
+                        for (@r <- rCh) {
+                          match r {
+                            (true, Nil) => {
+                              unitReleaseSeq!(ids, i + 1, *releaseToken, *ret2)
+                            }
+                            _ => { ret2!(r) }
+                          }
                         }
                       }
                     }
@@ -851,8 +856,13 @@ in {
             for (Unit <- cCh) {
               new rCh in {
                 Unit!("release", us.get("slots"), *releaseToken, *rCh) |
-                for (@_ <- rCh) {
-                  unitAllRelease!(unitSlots, i + 1, *releaseToken, *ret)
+                for (@r <- rCh) {
+                  match r {
+                    (true, Nil) => {
+                      unitAllRelease!(unitSlots, i + 1, *releaseToken, *ret)
+                    }
+                    _ => { ret!(r) }
+                  }
                 }
               }
             }

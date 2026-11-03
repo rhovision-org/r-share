@@ -1,0 +1,20 @@
+// Canonical text for an admin set. The pinned node has no `toString` on a list,
+// so AdminGuard cannot encode `[newAdmins, newThreshold]` directly. Join the
+// compressed public keys as comma-separated hex and sign that string instead.
+contract adminsText(@admins, @i, @acc, ret2) = {
+  if (i >= admins.length()) {
+    ret2!(acc)
+  } else {
+    match admins.nth(i) {
+      a => {
+        new nextCh in {
+          if (i == 0) { nextCh!(a.bytesToHex()) }
+          else { nextCh!(acc ++ "," ++ a.bytesToHex()) } |
+          for (@next <- nextCh) {
+            adminsText!(admins, i + 1, next, *ret2)
+          }
+        }
+      }
+    }
+  }
+} |
