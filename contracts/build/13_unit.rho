@@ -382,8 +382,30 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                     || untilHeight > now + st.get("maxHoldBlocks")) {
                                   ret2!((false, "until"))
                                 } else {
-                                  unitHoldSeq!(slotIds, 0, bookingId, untilHeight,
-                                               now, *releaseToken, *ret2)
+                                  new hCh in {
+                                    unitHoldSeq!(slotIds, 0, bookingId, untilHeight,
+                                                 now, *releaseToken, *hCh) |
+                                    for (@h <- hCh) {
+                                      match h {
+                                        (true, Nil) => {
+                                          for (@st2 <<- unitState) {
+                                            if (st2.get("status") != "active") {
+                                              new relCh in {
+                                                unitReleaseSeq!(slotIds, 0,
+                                                                *releaseToken, *relCh) |
+                                                for (@_ <- relCh) {
+                                                  ret2!((false, "unit paused"))
+                                                }
+                                              }
+                                            } else {
+                                              ret2!((true, Nil))
+                                            }
+                                          }
+                                        }
+                                        _ => { ret2!(h) }
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }

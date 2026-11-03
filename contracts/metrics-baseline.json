@@ -1,12 +1,12 @@
 {
   "deploy_terms": 13,
-  "bytes_total": 102673,
-  "bytes_max": 22987,
+  "bytes_total": 104137,
+  "bytes_max": 24148,
   "depth_max": 40,
   "contracts_max": 26,
   "components": 23,
   "state_cell_types": 12,
-  "arm_declarations": 122,
+  "arm_declarations": 123,
   "root_resolve_sites": 18,
   "registry_lookup_sites": 65,
   "registry_insert_sites": 23,
@@ -42,8 +42,8 @@
       "contracts": 7
     },
     "13_unit.rho": {
-      "bytes": 13603,
-      "depth": 23,
+      "bytes": 13906,
+      "depth": 27,
       "contracts": 24
     },
     "14_listing_contract.rho": {
@@ -62,9 +62,9 @@
       "contracts": 4
     },
     "22_booking_contract.rho": {
-      "bytes": 22987,
+      "bytes": 24148,
       "depth": 40,
-      "contracts": 16
+      "contracts": 17
     },
     "23_guest_ledger.rho": {
       "bytes": 14813,

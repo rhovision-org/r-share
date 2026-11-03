@@ -36,8 +36,8 @@
       "contracts": 7
     },
     "13_unit.rho": {
-      "bytes": 13603,
-      "depth": 23,
+      "bytes": 13906,
+      "depth": 27,
       "contracts": 24
     },
     "14_listing_contract.rho": {
@@ -56,9 +56,9 @@
       "contracts": 4
     },
     "22_booking_contract.rho": {
-      "bytes": 22987,
+      "bytes": 24148,
       "depth": 40,
-      "contracts": 16
+      "contracts": 17
     },
     "23_guest_ledger.rho": {
       "bytes": 14813,
