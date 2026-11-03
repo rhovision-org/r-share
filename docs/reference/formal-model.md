@@ -42,6 +42,12 @@ ledger gate before `acquire`, not an allocator field; a direct caller can acquir
 provider is paused, bounded by `maxHoldBlocks`. A caller can hold free slots without a
 booking; that grief is bounded by the same limit. These are stated as boundary theorems.
 
+Two further boundaries: the allocator model abstracts the schedule/lead/duration/window
+checks that `UnitFactory.slotScan` performs on the deployed term; those are covered by the
+allocator and booking suites, not by the Lean `acquire`. The booking model is the status
+graph; owner, claim, arbitration and deadline guards are listed as `owed` in the flow
+manifest rather than proved.
+
 ## Status vocabulary
 
 | Label | Meaning |
