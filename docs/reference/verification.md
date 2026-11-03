@@ -26,6 +26,7 @@ unit-lifecycle pass   dispute from requested refuses;
 unit-claims    pass   four claim classes x five kinds (20/30 coverage cells)
 unit-pricing   pass   units store 10 and 20; a zero price refuses "price"
 unit-guestbook pass   getOrCreate is stable; ledger read-back matches
+unit-booking   pass   two priced units, per-unit windows, rent 30, bond 80
 ```
 
 The runner writes `deployments/suite-results.json` (gitignored) and exits 0 only when every
@@ -57,15 +58,23 @@ or ERTP conservation.
 ## What the pricing suite proves
 
 Two units created with prices 10 and 20 report those prices from `UnitContract("info")`,
-and a price of zero refuses `"price"`. It does not yet prove that the guest ledger sums
-per-unit prices into a booking's rent; that needs a full listing/unit/booking scenario.
+and a price of zero refuses `"price"`. The booking suite proves the ledger sums them: a
+booking of both units has `rent == 30`.
+
+## What the booking suite proves
+
+The end-to-end path registers a provider, creates and activates a robot listing, creates a
+machine at 10 and an operator at 20 with different slot windows, funds the deployer's r-cash
+account through the deposit facet, and books both units. The booking has `rent == 30`,
+`checkInHeight == min(unit windows)`, `checkOutHeight == max(unit windows)`, status
+`"confirmed"`, and its Bond reports `expected == 80` (rent + deposit).
 
 ## What the guestbook and evidence checks prove
 
 `GuestBook("getOrCreate")` returns the same ledger on a second call and `GuestBook("ledger")`
 reads it back; the existing-guest path no longer consumes and rewrites the index.
-`BookingContract("evidence")` returns the dispute hash and height after a dispute, so the
-anchor is readable rather than write-only.
+`BookingContract("info")` returns the dispute hash and height after a dispute, so the anchor
+is readable rather than write-only.
 
 ## r-cash caveat
 
@@ -81,6 +90,6 @@ clock, asset resolver and account factory; the AMM pool is not on its path.
 - concurrency races, conservation, pause and admin;
 - event-only ticket arms (`redeem`, `closeEvent`, `transferTicket`);
 - slot settlement and ERTP conservation (the claim fixture uses a stub Bond);
-- an end-to-end booking whose rent is the sum of different per-unit prices.
+- the event-only ticket arms and any bike/car/robot fleet fixture beyond the claim path.
 
 Do not describe those as passing. The coverage manifest records the real status.

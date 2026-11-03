@@ -25,8 +25,10 @@ SUITES = {
     "claims": "unit_claims.py",
     "pricing": "unit_pricing.py",
     "guestbook": "unit_guestbook.py",
+    "booking": "unit_booking.py",
 }
-DEFAULT = ["root", "payments", "lifecycle", "claims", "pricing", "guestbook"]
+DEFAULT = ["root", "payments", "lifecycle", "claims", "pricing", "guestbook",
+           "booking"]
 
 
 def run(name: str) -> dict:

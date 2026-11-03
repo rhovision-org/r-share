@@ -8,7 +8,7 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
-  GuestLedgerBook, GuestLedgerDrop, GuestLedgerFinish, GuestLedgerGate, GuestLedgerPay, GuestLedgerReserve, GuestLedgerSpawn, authIsOwner, authOwner, bookingBond, ledgerAdmin, ledgerBookingFactory, ledgerConfirmUnits, ledgerHoldUnits, ledgerMax, ledgerMin, ledgerNow, ledgerPayments, ledgerProviderActive, ledgerReleaseUnits, ledgerResolve, ledgerScanUnits, ledgerSlotScan, ledgerUnitCheck
+  GuestLedgerBook, GuestLedgerDrop, GuestLedgerFinish, GuestLedgerGate, GuestLedgerPay, GuestLedgerReserve, GuestLedgerSpawn, authIsOwner, authOwner, ledgerAdmin, ledgerBookingFactory, ledgerBookListing, ledgerConfirmUnits, ledgerHoldUnits, ledgerListingCheck, ledgerNow, ledgerOpenListing, ledgerPayments, ledgerProviderActive, ledgerReleaseUnits, ledgerResolve
 in {
   // @@INLINE:lib/Auth.rho@@
 
@@ -76,192 +76,6 @@ in {
       }
     }
   } |
-  contract bookingBond(@escrowPurse, @brand, @assetId, @expected, settleToken, ret) = {
-    new fCh in {
-      ledgerResolve!("component:bond-factory", *fCh) |
-      for (@f <- fCh) {
-        match f {
-          (true, BondFactory) => {
-            @BondFactory!("create", escrowPurse, brand, assetId, expected,
-                          *settleToken, *ret)
-          }
-          _ => { ret!((false, "bond factory unavailable")) }
-        }
-      }
-    }
-  } |
-
-  contract ledgerMin(@a, @b, ret) = { if (a < b) { ret!(a) } else { ret!(b) } } |
-  contract ledgerMax(@a, @b, ret) = { if (a > b) { ret!(a) } else { ret!(b) } } |
-
-  contract ledgerSlotScan(@ids, @j, @specMap, @stateMap, @now,
-                          @maxLead, @maxSlot, @count, @minStart, @maxEnd, ret) = {
-    if (j >= ids.length()) {
-      ret!((true, {"count": count, "minStart": minStart, "maxEnd": maxEnd}))
-    } else {
-      match ids.nth(j) {
-        slotId => {
-          match specMap.get(slotId) {
-            Nil => { ret!((false, "unknown slot")) }
-            spec => {
-              match stateMap.get(slotId) {
-                Nil => { ret!((false, "unknown slot")) }
-                state => {
-                  match spec.get("startHeight") {
-                    Nil => { ret!((false, "schedule")) }
-                    startHeight => {
-                      match spec.get("endHeight") {
-                        Nil => { ret!((false, "schedule")) }
-                        endHeight => {
-                          if (startHeight >= endHeight) {
-                            ret!((false, "schedule"))
-                          } else {
-                            if (startHeight <= now) {
-                              ret!((false, "schedule"))
-                            } else {
-                              if (startHeight > now + maxLead) {
-                                ret!((false, "lead"))
-                              } else {
-                                if (endHeight - startHeight > maxSlot) {
-                                  ret!((false, "duration"))
-                                } else {
-                                  match state {
-                                    ["free", gen] => {
-                                      new mnCh, mxCh in {
-                                        ledgerMin!(minStart, startHeight, *mnCh) |
-                                        ledgerMax!(maxEnd, endHeight, *mxCh) |
-                                        for (@mn <- mnCh; @mx <- mxCh) {
-                                          ledgerSlotScan!(ids, j + 1, specMap, stateMap,
-                                                          now, maxLead, maxSlot,
-                                                          count + 1, mn, mx, *ret)
-                                        }
-                                      }
-                                    }
-                                    ["held", bId, until] => {
-                                      if (now >= until) {
-                                        new mnCh, mxCh in {
-                                          ledgerMin!(minStart, startHeight, *mnCh) |
-                                          ledgerMax!(maxEnd, endHeight, *mxCh) |
-                                          for (@mn <- mnCh; @mx <- mxCh) {
-                                            ledgerSlotScan!(ids, j + 1, specMap, stateMap,
-                                                            now, maxLead, maxSlot,
-                                                            count + 1, mn, mx, *ret)
-                                          }
-                                        }
-                                      } else {
-                                        ret!((false, "slot held", slotId, until))
-                                      }
-                                    }
-                                    _ => { ret!((false, "slot held", slotId)) }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  } |
-
-  contract ledgerUnitCheck(@unitUri, @listingId, @slotIds, @now,
-                           @maxLead, @maxSlot, ret) = {
-    new cCh in {
-      rl!(unitUri, *cCh) |
-      for (Unit <- cCh) {
-        new iCh in {
-          Unit!("info", *iCh) |
-          for (@i <- iCh) {
-            match i {
-              (true, unit) => {
-                if (unit.get("listingId") != listingId) {
-                  ret!((false, "unit listing"))
-                } else {
-                  new sCh, pCh in {
-                    Unit!("schedule", slotIds, *sCh) |
-                    Unit!("probe", slotIds, *pCh) |
-                    for (@ss <- sCh; @ps <- pCh) {
-                      match ss {
-                        (true, specMap) => {
-                          match ps {
-                            (true, stateMap) => {
-                              new scanCh in {
-                                ledgerSlotScan!(slotIds, 0, specMap, stateMap,
-                                                now, maxLead, maxSlot,
-                                                0, now + maxLead + 1, 0, *scanCh) |
-                                for (@part <- scanCh) {
-                                  match part {
-                                    (true, summary) => {
-                                      match unit.get("pricePerSlot") {
-                                        Nil => { ret!((false, "price")) }
-                                        price => {
-                                          ret!((true, summary.set(
-                                            "rent", price * summary.get("count"))))
-                                        }
-                                      }
-                                    }
-                                    _ => { ret!(part) }
-                                  }
-                                }
-                              }
-                            }
-                            _ => { ret!(ps) }
-                          }
-                        }
-                        _ => { ret!(ss) }
-                      }
-                    }
-                  }
-                }
-              }
-              _ => { ret!(i) }
-            }
-          }
-        }
-      }
-    }
-  } |
-
-  contract ledgerScanUnits(@unitSlots, @i, @listingId, @now, @maxLead,
-                           @maxSlot, @count, @minStart, @maxEnd, @rent, ret) = {
-    if (i >= unitSlots.length()) {
-      ret!((true, {"count": count, "minStart": minStart, "maxEnd": maxEnd,
-                   "rent": rent}))
-    } else {
-      match unitSlots.nth(i) {
-        us => {
-          new cCh in {
-            ledgerUnitCheck!(us.get("unitUri"), listingId, us.get("slots"),
-                             now, maxLead, maxSlot, *cCh) |
-            for (@r <- cCh) {
-              match r {
-                (true, part) => {
-                  new mnCh, mxCh in {
-                    ledgerMin!(minStart, part.get("minStart"), *mnCh) |
-                    ledgerMax!(maxEnd, part.get("maxEnd"), *mxCh) |
-                    for (@mn <- mnCh; @mx <- mxCh) {
-                      ledgerScanUnits!(unitSlots, i + 1, listingId, now, maxLead,
-                                       maxSlot, count + part.get("count"),
-                                       mn, mx, rent + part.get("rent"), *ret)
-                    }
-                  }
-                }
-                _ => { ret!(r) }
-              }
-            }
-          }
-        }
-      }
-    }
-  } |
-
   contract ledgerHoldUnits(@unitSlots, @i, @bookingId, @until,
                            releaseToken, ret) = {
     new fCh in {
@@ -337,6 +151,63 @@ in {
     }
   } |
 
+  contract ledgerListingCheck(@listing, @expectedTermsHash, ledgerState,
+                              @opId, ret2) = {
+    if (listing.get("status") != "active") {
+      GuestLedgerDrop!(*ledgerState, opId) |
+      ret2!((false, "listing inactive"))
+    } else {
+      if (expectedTermsHash != Nil
+          && expectedTermsHash != listing.get("termsHash")) {
+        GuestLedgerDrop!(*ledgerState, opId) |
+        ret2!((false, "terms"))
+      } else {
+        ret2!((true, Nil))
+      }
+    }
+  } |
+
+  contract ledgerOpenListing(ledgerState, dId, @guestId, @listingUri, @unitSlots,
+                             @opId, @expectedTermsHash, ret2) = {
+    new lcCh in {
+      rl!(listingUri, *lcCh) |
+      for (Listing <- lcCh) {
+        new liCh in {
+          Listing!("info", *liCh) |
+          for (@li <- liCh) {
+            match li {
+              (true, listing) => {
+                ledgerBookListing!(*ledgerState, *dId, guestId, listing,
+                                   listingUri, unitSlots, opId,
+                                   expectedTermsHash, *ret2)
+              }
+              _ => {
+                GuestLedgerDrop!(*ledgerState, opId) |
+                ret2!(li)
+              }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract ledgerBookListing(ledgerState, dId, @guestId, @listing, @listingUri,
+                             @unitSlots, @opId, @expectedTermsHash, ret2) = {
+    new chkCh in {
+      ledgerListingCheck!(listing, expectedTermsHash, *ledgerState, opId, *chkCh) |
+      for (@chk <- chkCh) {
+        match chk {
+          (true, Nil) => {
+            GuestLedgerBook!(*ledgerState, *dId, guestId, listing, listingUri,
+                             unitSlots, opId, *ret2)
+          }
+          _ => { ret2!(chk) }
+        }
+      }
+    }
+  } |
+
   contract GuestLedgerBook(ledgerState, dId, @guestId, @listing,
                            @listingUri, @unitSlots, @opId, ret) = {
     new pvCh in {
@@ -349,12 +220,18 @@ in {
       for (@n <- tCh) {
         match n {
           (true, now) => {
-            new scanCh in {
-              ledgerScanUnits!(unitSlots, 0, listing.get("listingId"), now,
-                               listing.get("terms").get("maxLeadBlocks"),
-                               listing.get("terms").get("maxSlotBlocks"),
-                               0, now + listing.get("terms").get("maxLeadBlocks") + 1,
-                               0, 0, *scanCh) |
+            new ufCh, scanCh in {
+              ledgerResolve!("component:unit-factory", *ufCh) |
+              for (@uf <- ufCh) {
+                match uf {
+                  (true, UnitFactory) => {
+                    @UnitFactory!("scan", unitSlots, listing.get("listingId"), now,
+                                  listing.get("terms").get("maxLeadBlocks"),
+                                  listing.get("terms").get("maxSlotBlocks"), *scanCh)
+                  }
+                  _ => { scanCh!(uf) }
+                }
+              } |
               for (@scan <- scanCh) {
                 match scan {
                   (true, summary) => {
@@ -382,7 +259,7 @@ in {
                                       listingUri, unitSlots, opId, bId,
                                       untilHeight, summary.get("count"),
                                       summary.get("rent"),
-                                      summary.get("minStart"), summary.get("maxEnd"),
+                                      summary.get("checkIn"), summary.get("checkOut"),
                                       *releaseToken, *ret)
                                   }
                                   _ => {
@@ -430,134 +307,39 @@ in {
                           @unitSlots, @opId, @bookingId, @untilHeight,
                           @slotCount, @rent, @checkInHeight, @checkOutHeight,
                           releaseToken, ret) = {
-    new pCh in {
-      ledgerPayments!(*pCh) |
-      for (@p <- pCh) {
-        match p {
-          (true, Payments) => {
-            new iCh in {
-              @Payments!("issuer", listing.get("terms").get("assetId"), *iCh) |
-              for (@i <- iCh) {
-                match i {
-                  (true, brand, issuer) => {
-                    new aCh in {
-                      @Payments!("ensureAccount", *dId, *aCh) |
-                      for (@a <- aCh) {
-                        match a {
-                          (true, account, ownerId) => {
-                            if (ownerId != guestId) {
-                              1/0
-                            } else {
-                              new purseCh in {
-                                @issuer!("makeEmptyPurse", *purseCh) |
-                                for (@pu <- purseCh) {
-                                  match pu {
-                                    (true, purse) => {
-                                      new totalCh in {
-                                        totalCh!(
-                                          rent + listing.get("terms").get("deposit")) |
-                                        for (@total <- totalCh) {
-                                          new wCh in {
-                                            @account!("withdraw", *dId,
-                                              listing.get("terms").get("assetId"),
-                                              total, *wCh) |
-                                            for (@w <- wCh) {
-                                              match w {
-                                                (true, payment) => {
-                                                  new mCh in {
-                                                    @issuer!("getAmountOf",
-                                                             payment, *mCh) |
-                                                    for (@m <- mCh) {
-                                                      match m {
-                                                        (true, measured) => {
-                                                          if (measured != total) {
-                                                            1/0
-                                                          } else {
-                                                            new depCh in {
-                                                              @purse!("deposit",
-                                                                payment, *depCh) |
-                                                              for (@dd <- depCh) {
-                                                                match dd {
-                                                                  (true, balance) => {
-                                                                    new settleToken, bondCh in {
-                                                                      bookingBond!(
-                                                                        purse, brand,
-                                                                        listing.get("terms").get("assetId"),
-                                                                        rent + listing.get("terms").get("deposit"),
-                                                                        *settleToken, *bondCh) |
-                                                                      for (@br <- bondCh) {
-                                                                        match br {
-                                                                          (true, bondUri) => {
-                                                                            GuestLedgerSpawn!(
-                                                                              *ledgerState,
-                                                                              *releaseToken,
-                                                                              *dId,
-                                                                              guestId,
-                                                                              listing,
-                                                                              listingUri,
-                                                                              unitSlots,
-                                                                              opId,
-                                                                              bookingId,
-                                                                              untilHeight,
-                                                                              checkInHeight,
-                                                                              checkOutHeight,
-                                                                              slotCount,
-                                                                              rent,
-                                                                              bondUri,
-                                                                              *settleToken,
-                                                                              *ret)
-                                                                          }
-                                                                          _ => { 1/0 }
-                                                                        }
-                                                                      }
-                                                                    }
-                                                                  }
-                                                                  _ => { 1/0 }
-                                                                }
-                                                              }
-                                                            }
-                                                          }
-                                                        }
-                                                        _ => { 1/0 }
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                                _ => {
-                                                  new relCh in {
-                                                    ledgerReleaseUnits!(
-                                                      unitSlots, 0,
-                                                      *releaseToken, *relCh) |
-                                                    for (@_ <- relCh) {
-                                                      GuestLedgerDrop!(
-                                                        *ledgerState, opId) |
-                                                      ret!(w)
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                    _ => { 1/0 }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                          _ => { 1/0 }
-                        }
+    new bfCh in {
+      ledgerResolve!("component:bond-factory", *bfCh) |
+      for (@bf <- bfCh) {
+        match bf {
+          (true, BondFactory) => {
+            new settleToken, bondCh in {
+              @BondFactory!("createFromAccount", *dId,
+                            listing.get("terms").get("assetId"),
+                            rent + listing.get("terms").get("deposit"),
+                            *settleToken, *bondCh) |
+              for (@br <- bondCh) {
+                match br {
+                  (true, bondUri) => {
+                    GuestLedgerSpawn!(
+                      *ledgerState, *releaseToken, *dId, guestId, listing,
+                      listingUri, unitSlots, opId, bookingId, untilHeight,
+                      checkInHeight, checkOutHeight, slotCount, rent,
+                      bondUri, *settleToken, *ret)
+                  }
+                  _ => {
+                    new relCh in {
+                      ledgerReleaseUnits!(unitSlots, 0, *releaseToken, *relCh) |
+                      for (@_ <- relCh) {
+                        GuestLedgerDrop!(*ledgerState, opId) |
+                        ret!(br)
                       }
                     }
                   }
-                  _ => { 1/0 }
                 }
               }
             }
           }
-          _ => { 1/0 }
+          _ => { ret!((false, "bond factory unavailable")) }
         }
       }
     }
@@ -704,44 +486,10 @@ in {
                                                           ret2!((false, reason))
                                                         }
                                                         (true, Nil) => {
-                                                          new lcCh in {
-                                                            rl!(listingUri, *lcCh) |
-                                                            for (Listing <- lcCh) {
-                                                              new liCh in {
-                                                                Listing!("info", *liCh) |
-                                                                for (@li <- liCh) {
-                                                                  match li {
-                                                                    (true, listing) => {
-                                                                      if (listing.get("status") != "active") {
-                                                                        GuestLedgerDrop!(
-                                                                          *ledgerState, opId) |
-                                                                        ret2!((false, "listing inactive"))
-                                                                      } else {
-                                                                        if (expectedTermsHash != Nil
-                                                                            && expectedTermsHash != listing.get("termsHash")) {
-                                                                          GuestLedgerDrop!(
-                                                                            *ledgerState, opId) |
-                                                                          ret2!((false, "terms"))
-                                                                        } else {
-                                                                          GuestLedgerBook!(
-                                                                            *ledgerState,
-                                                                            *dId2, guestId,
-                                                                            listing, listingUri,
-                                                                            unitSlots, opId,
-                                                                            *ret2)
-                                                                        }
-                                                                      }
-                                                                    }
-                                                                    _ => {
-                                                                      GuestLedgerDrop!(
-                                                                        *ledgerState, opId) |
-                                                                      ret2!(li)
-                                                                    }
-                                                                  }
-                                                                }
-                                                              }
-                                                            }
-                                                          }
+                                                          ledgerOpenListing!(
+                                                            *ledgerState, *dId2, guestId,
+                                                            listingUri, unitSlots, opId,
+                                                            expectedTermsHash, *ret2)
                                                         }
                                                         (true, entry) => {
                                                           if (entry.get("ok") == true) {

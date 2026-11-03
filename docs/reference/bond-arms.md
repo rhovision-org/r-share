@@ -8,10 +8,17 @@
 ```
 BondFactory("create", escrowPurse, brand, @assetId, @expected, settleToken, ret)
   -> (true, bondUri)
+BondFactory("createFromAccount", dId, @assetId, @expected, settleToken, ret)
+  -> (true, bondUri) | (false, withdraw reason)
 ```
 
 The factory receives the funded ERTP purse, its brand, the asset id, the expected total and a
 fresh settle token. It spawns one Bond and returns its URI.
+
+`createFromAccount` is the path the guest ledger uses: the factory resolves Payments,
+withdraws `expected`, checks the amount, funds the purse and creates the Bond. A failure
+before the withdraw is returned as `(false, reason)`; a failure after it calls `1/0` so the
+deploy rolls back.
 
 ## Bond — one per booking
 

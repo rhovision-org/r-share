@@ -9,7 +9,7 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
-  adminGuard, authIsOwner, authOwner, unitAllConfirm, unitAllHold, unitAllRelease, unitClock, unitSchedule, unitTerms
+  adminGuard, authIsOwner, authOwner, unitAllConfirm, unitAllHold, unitAllRelease, unitClock, unitSchedule, unitTerms, unitMin, unitMax, unitSlotScan, unitUnitCheck, unitScanUnits
 in {
 // Deployer identity helpers. r-cash owns accounts; r-share only derives the owner id.
 
@@ -649,6 +649,213 @@ contract authIsOwner(dId, @ownerId, ret) = {
         }
       }
     }
+  } |
+
+  contract unitMin(@a, @b, ret) = { if (a < b) { ret!(a) } else { ret!(b) } } |
+  contract unitMax(@a, @b, ret) = { if (a > b) { ret!(a) } else { ret!(b) } } |
+
+  contract unitSlotScan(@ids, @j, @specMap, @stateMap, @now,
+                          @maxLead, @maxSlot, @count, @minStart, @maxEnd, ret) = {
+    if (j >= ids.length()) {
+      ret!((true, {"count": count, "minStart": minStart, "maxEnd": maxEnd}))
+    } else {
+      match ids.nth(j) {
+        slotId => {
+          match specMap.get(slotId) {
+            Nil => { ret!((false, "unknown slot")) }
+            spec => {
+              match stateMap.get(slotId) {
+                Nil => { ret!((false, "unknown slot")) }
+                state => {
+                  match spec.get("startHeight") {
+                    Nil => { ret!((false, "schedule")) }
+                    startHeight => {
+                      match spec.get("endHeight") {
+                        Nil => { ret!((false, "schedule")) }
+                        endHeight => {
+                          if (startHeight >= endHeight) {
+                            ret!((false, "schedule"))
+                          } else {
+                            if (startHeight <= now) {
+                              ret!((false, "schedule"))
+                            } else {
+                              if (startHeight > now + maxLead) {
+                                ret!((false, "lead"))
+                              } else {
+                                if (endHeight - startHeight > maxSlot) {
+                                  ret!((false, "duration"))
+                                } else {
+                                  match state {
+                                    ["free", gen] => {
+                                      new mnCh, mxCh in {
+                                        unitMin!(minStart, startHeight, *mnCh) |
+                                        unitMax!(maxEnd, endHeight, *mxCh) |
+                                        for (@mn <- mnCh; @mx <- mxCh) {
+                                          unitSlotScan!(ids, j + 1, specMap, stateMap,
+                                                          now, maxLead, maxSlot,
+                                                          count + 1, mn, mx, *ret)
+                                        }
+                                      }
+                                    }
+                                    ["held", bId, until] => {
+                                      if (now >= until) {
+                                        new mnCh, mxCh in {
+                                          unitMin!(minStart, startHeight, *mnCh) |
+                                          unitMax!(maxEnd, endHeight, *mxCh) |
+                                          for (@mn <- mnCh; @mx <- mxCh) {
+                                            unitSlotScan!(ids, j + 1, specMap, stateMap,
+                                                            now, maxLead, maxSlot,
+                                                            count + 1, mn, mx, *ret)
+                                          }
+                                        }
+                                      } else {
+                                        ret!((false, "slot held", slotId, until))
+                                      }
+                                    }
+                                    _ => { ret!((false, "slot held", slotId)) }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract unitUnitCheck(@unitUri, @listingId, @slotIds, @wantedIn, @wantedOut,
+                           @now, @maxLead, @maxSlot, ret) = {
+    new cCh in {
+      rl!(unitUri, *cCh) |
+      for (Unit <- cCh) {
+        new iCh in {
+          Unit!("info", *iCh) |
+          for (@i <- iCh) {
+            match i {
+              (true, unit) => {
+                if (unit.get("listingId") != listingId) {
+                  ret!((false, "unit listing"))
+                } else {
+                  new sCh, pCh in {
+                    Unit!("schedule", slotIds, *sCh) |
+                    Unit!("probe", slotIds, *pCh) |
+                    for (@ss <- sCh; @ps <- pCh) {
+                      match ss {
+                        (true, specMap) => {
+                          match ps {
+                            (true, stateMap) => {
+                              new scanCh in {
+                                unitSlotScan!(slotIds, 0, specMap, stateMap,
+                                                now, maxLead, maxSlot,
+                                                0, now + maxLead + 1, 0, *scanCh) |
+                                for (@part <- scanCh) {
+                                  match part {
+                                    (true, summary) => {
+                                      match unit.get("pricePerSlot") {
+                                        Nil => { ret!((false, "price")) }
+                                        price => {
+                                          new inCh, outCh in {
+                                            if (wantedIn == Nil) {
+                                              inCh!(summary.get("minStart"))
+                                            } else {
+                                              inCh!(wantedIn)
+                                            } |
+                                            if (wantedOut == Nil) {
+                                              outCh!(summary.get("maxEnd"))
+                                            } else {
+                                              outCh!(wantedOut)
+                                            } |
+                                            for (@ci <- inCh; @co <- outCh) {
+                                              if (ci < summary.get("minStart")
+                                                  || ci >= summary.get("maxEnd")
+                                                  || co > summary.get("maxEnd")
+                                                  || co <= ci) {
+                                                ret!((false, "window"))
+                                              } else {
+                                                ret!((true,
+                                                  summary.set(
+                                                    "rent", price * summary.get("count"))
+                                                           .set("checkIn", ci)
+                                                           .set("checkOut", co)))
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                    _ => { ret!(part) }
+                                  }
+                                }
+                              }
+                            }
+                            _ => { ret!(ps) }
+                          }
+                        }
+                        _ => { ret!(ss) }
+                      }
+                    }
+                  }
+                }
+              }
+              _ => { ret!(i) }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract unitScanUnits(@unitSlots, @i, @listingId, @now, @maxLead,
+                           @maxSlot, @count, @minStart, @maxEnd,
+                           @minCheckIn, @maxCheckOut, @rent, ret) = {
+    if (i >= unitSlots.length()) {
+      ret!((true, {"count": count, "minStart": minStart, "maxEnd": maxEnd,
+                   "checkIn": minCheckIn, "checkOut": maxCheckOut,
+                   "rent": rent}))
+    } else {
+      match unitSlots.nth(i) {
+        us => {
+          new cCh in {
+            unitUnitCheck!(us.get("unitUri"), listingId, us.get("slots"),
+                             us.get("checkInHeight"), us.get("checkOutHeight"),
+                             now, maxLead, maxSlot, *cCh) |
+            for (@r <- cCh) {
+              match r {
+                (true, part) => {
+                  new mnCh, mxCh, ciCh, coCh in {
+                    unitMin!(minStart, part.get("minStart"), *mnCh) |
+                    unitMax!(maxEnd, part.get("maxEnd"), *mxCh) |
+                    unitMin!(minCheckIn, part.get("checkIn"), *ciCh) |
+                    unitMax!(maxCheckOut, part.get("checkOut"), *coCh) |
+                    for (@mn <- mnCh; @mx <- mxCh; @ci <- ciCh; @co <- coCh) {
+                      unitScanUnits!(unitSlots, i + 1, listingId, now, maxLead,
+                                       maxSlot, count + part.get("count"),
+                                       mn, mx, ci, co,
+                                       rent + part.get("rent"), *ret)
+                    }
+                  }
+                }
+                _ => { ret!(r) }
+              }
+            }
+          }
+        }
+      }
+    }
+  } |
+
+  contract UnitFactory(@"scan", @unitSlots, @listingId, @now, @maxLead,
+                       @maxSlot, ret) = {
+    unitScanUnits!(unitSlots, 0, listingId, now, maxLead, maxSlot,
+                   0, now + maxLead + 1, 0, now + maxLead + 1, 0, 0, *ret)
   } |
 
   contract unitAllHold(@unitSlots, @i, @bookingId, @until, releaseToken, ret) = {

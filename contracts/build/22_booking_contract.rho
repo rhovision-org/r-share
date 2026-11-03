@@ -102,7 +102,7 @@ contract bookingResolve(@key, ret) = {
         } else {
           new BookingContract, bookingState, uCh,
               bcPost, bcRefuse, bcReplay, bcRelease, bcConfirm, bcPlatform,
-              bcSettleWith, bcDisputeSettle in {
+              bcSettleWith, bcSettleRent, bcCancelSettle, bcDisputeSettle in {
                     bookingState!({
                       "bookingId": data.get("bookingId"),
                       "guestId": guestId,
@@ -212,6 +212,98 @@ contract bookingResolve(@key, ret) = {
                       }
                     } |
 
+                    contract bcCancelSettle(@st, @opId, @now, ret2) = {
+                      new polCh in {
+                        bookingRemedy!(*polCh) |
+                        for (@p <- polCh) {
+                          match p {
+                            (true, Remedy) => {
+                              new sc in {
+                                @Remedy!("cancel", st.get("kind"),
+                                         st.get("cancellation"), now,
+                                         st.get("checkInHeight"), st.get("rent"),
+                                         st.get("deposit"), "guest", *sc) |
+                                for (@s <- sc) {
+                                  match s {
+                                    (true, split) => {
+                                      new relCh in {
+                                        bcRelease!(st.get("unitSlots"), *relCh) |
+                                        for (@_ <- relCh) {
+                                          new ppCh in {
+                                            bcPlatform!(*ppCh) |
+                                            for (@pp <- ppCh) {
+                                              match pp {
+                                                (true, platform) => {
+                                                  bcSettleWith!(st, opId, [
+                                                    {"owner": st.get("providerId"),
+                                                     "amount": split.get("providerRent")},
+                                                    {"owner": platform,
+                                                     "amount": split.get("platformFee")},
+                                                    {"owner": st.get("guestId"),
+                                                     "amount": split.get("guestRefund")}
+                                                  ], "cancelled", st.get("assetId"), *ret2)
+                                                }
+                                                _ => { 1/0 }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                    _ => { bcRefuse!(st, s, *ret2) }
+                                  }
+                                }
+                              }
+                            }
+                            _ => { bcRefuse!(st, p, *ret2) }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract bcSettleRent(@st, @opId, @status, @providerExtra,
+                                          @guestExtra, ret2) = {
+                      new polCh in {
+                        bookingRemedy!(*polCh) |
+                        for (@p <- polCh) {
+                          match p {
+                            (true, Remedy) => {
+                              new fCh in {
+                                @Remedy!("fee", st.get("rent"),
+                                         st.get("feeBps"), *fCh) |
+                                for (@ff <- fCh) {
+                                  match ff {
+                                    (true, fee, net) => {
+                                      new ppCh in {
+                                        bcPlatform!(*ppCh) |
+                                        for (@pp <- ppCh) {
+                                          match pp {
+                                            (true, platform) => {
+                                              bcSettleWith!(st, opId, [
+                                                {"owner": st.get("providerId"),
+                                                 "amount": net + providerExtra},
+                                                {"owner": platform,
+                                                 "amount": fee},
+                                                {"owner": st.get("guestId"),
+                                                 "amount": st.get("deposit") + guestExtra}
+                                              ], status, st.get("assetId"), *ret2)
+                                            }
+                                            _ => { 1/0 }
+                                          }
+                                        }
+                                      }
+                                    }
+                                    _ => { bcRefuse!(st, "bps", *ret2) }
+                                  }
+                                }
+                              }
+                            }
+                            _ => { bcRefuse!(st, p, *ret2) }
+                          }
+                        }
+                      }
+                    } |
+
                     contract bcDisputeSettle(@st, @opId, @splitBps, ret2) = {
                       new relCh in {
                         bcRelease!(st.get("unitSlots"), *relCh) |
@@ -229,35 +321,11 @@ contract bookingResolve(@key, ret) = {
                                         for (@ds <- dsCh) {
                                           match ds {
                                             (true, split) => {
-                                              new fCh in {
-                                                @Remedy!("fee", st.get("rent"),
-                                                         st.get("feeBps"), *fCh) |
-                                                for (@ff <- fCh) {
-                                                  match ff {
-                                                    (true, fee, net) => {
-                                                      new ppCh in {
-                                                        bcPlatform!(*ppCh) |
-                                                        for (@pp <- ppCh) {
-                                                          match pp {
-                                                            (true, platform) => {
-                                                              bcSettleWith!(st, opId, [
-                                                                {"owner": st.get("providerId"),
-                                                                 "amount": net + split.get("providerDamage")},
-                                                                {"owner": platform,
-                                                                 "amount": fee},
-                                                                {"owner": st.get("guestId"),
-                                                                 "amount": split.get("guestRefund")}
-                                                              ], "settled", st.get("assetId"), *ret2)
-                                                            }
-                                                            _ => { 1/0 }
-                                                          }
-                                                        }
-                                                      }
-                                                    }
-                                                    _ => { bcRefuse!(st, "bps", *ret2) }
-                                                  }
-                                                }
-                                              }
+                                              bcSettleRent!(
+                                                st, opId, "settled",
+                                                split.get("providerDamage"),
+                                                0 - split.get("providerDamage"),
+                                                *ret2)
                                             }
                                             _ => { bcRefuse!(st, "bps", *ret2) }
                                           }
@@ -286,16 +354,6 @@ contract bookingResolve(@key, ret) = {
                     } |
                     contract BookingContract(@"ops", ret2) = {
                       for (@st <<- bookingState) { ret2!((true, st.get("ops"))) }
-                    } |
-                    contract BookingContract(@"evidence", ret2) = {
-                      for (@st <<- bookingState) {
-                        ret2!((true, {
-                          "claimHash": st.get("claim").get("evidenceHash"),
-                          "claimAtHeight": st.get("claim").get("atHeight"),
-                          "disputeHash": st.get("disputeHash"),
-                          "disputeAtHeight": st.get("disputeAtHeight")
-                        }))
-                      }
                     } |
 
                     contract BookingContract(@"accept", dId2, @opId, ret2) = {
@@ -418,56 +476,8 @@ contract bookingResolve(@key, ret) = {
                                             for (@n <- nCh) {
                                               match n {
                                                 (true, now) => {
-                                                  new polCh in {
-                                                    bookingRemedy!(*polCh) |
-                                                    for (@p <- polCh) {
-                                                      match p {
-                                                        (true, Remedy) => {
-                                                          new sc in {
-                                                            @Remedy!("cancel",
-                                                              st.get("kind"),
-                                                              st.get("cancellation"),
-                                                              now,
-                                                              st.get("checkInHeight"),
-                                                              st.get("rent"),
-                                                              st.get("deposit"),
-                                                              "guest", *sc) |
-                                                            for (@s <- sc) {
-                                                              match s {
-                                                                (true, split) => {
-                                                                  new relCh in {
-                                                                    bcRelease!(st.get("unitSlots"), *relCh) |
-                                                                    for (@_ <- relCh) {
-                                                                      new ppCh in {
-                                                                        bcPlatform!(*ppCh) |
-                                                                        for (@pp <- ppCh) {
-                                                                          match pp {
-                                                                            (true, platform) => {
-                                                                              bcSettleWith!(st, opId, [
-                                                                                {"owner": st.get("providerId"),
-                                                                                 "amount": split.get("providerRent")},
-                                                                                {"owner": platform,
-                                                                                 "amount": split.get("platformFee")},
-                                                                                {"owner": st.get("guestId"),
-                                                                                 "amount": split.get("guestRefund")}
-                                                                              ], "cancelled", st.get("assetId"), *ret2)
-                                                                            }
-                                                                            _ => { 1/0 }
-                                                                          }
-                                                                        }
-                                                                      }
-                                                                    }
-                                                                  }
-                                                                }
-                                                                _ => { bcRefuse!(st, s, *ret2) }
-                                                              }
-                                                            }
-                                                          }
-                                                        }
-                                                        _ => { bcRefuse!(st, p, *ret2) }
-                                                      }
-                                                    }
-                                                  }
+                                                  bcCancelSettle!(
+                                                    st, opId, now, *ret2)
                                                 }
                                                 _ => { bcRefuse!(st, "clock", *ret2) }
                                               }
@@ -686,45 +696,8 @@ contract bookingResolve(@key, ret) = {
                                                 && now < st.get("depositReleaseHeight")) {
                                               bcRefuse!(st, "too early", *ret2)
                                             } else {
-                                              new polCh in {
-                                                bookingRemedy!(*polCh) |
-                                                for (@p <- polCh) {
-                                                  match p {
-                                                    (true, Remedy) => {
-                                                      new fCh in {
-                                                        @Remedy!("fee", st.get("rent"),
-                                                                 st.get("feeBps"), *fCh) |
-                                                        for (@ff <- fCh) {
-                                                          match ff {
-                                                            (true, fee, net) => {
-                                                              new ppCh in {
-                                                                bcPlatform!(*ppCh) |
-                                                                for (@pp <- ppCh) {
-                                                                  match pp {
-                                                                    (true, platform) => {
-                                                                      bcSettleWith!(st, opId, [
-                                                                        {"owner": st.get("providerId"),
-                                                                         "amount": net},
-                                                                        {"owner": platform,
-                                                                         "amount": fee},
-                                                                        {"owner": st.get("guestId"),
-                                                                         "amount": st.get("deposit")}
-                                                                      ], "settled", st.get("assetId"), *ret2)
-                                                                    }
-                                                                    _ => { 1/0 }
-                                                                  }
-                                                                }
-                                                              }
-                                                            }
-                                                            _ => { bcRefuse!(st, "bps", *ret2) }
-                                                          }
-                                                        }
-                                                      }
-                                                    }
-                                                    _ => { bcRefuse!(st, p, *ret2) }
-                                                  }
-                                                }
-                                              }
+                                              bcSettleRent!(st, opId, "settled",
+                                                            0, 0, *ret2)
                                             }
                                           }
                                           _ => { bcRefuse!(st, "clock", *ret2) }
@@ -815,45 +788,11 @@ contract bookingResolve(@key, ret) = {
                                                        + st.get("cancellation").get("disputeWindowBlocks")) {
                                               bcRefuse!(st, "too early", *ret2)
                                             } else {
-                                              new polCh in {
-                                                bookingRemedy!(*polCh) |
-                                                for (@p <- polCh) {
-                                                  match p {
-                                                    (true, Remedy) => {
-                                                      new fCh in {
-                                                        @Remedy!("fee", st.get("rent"),
-                                                                 st.get("feeBps"), *fCh) |
-                                                        for (@ff <- fCh) {
-                                                          match ff {
-                                                            (true, fee, net) => {
-                                                              new ppCh in {
-                                                                bcPlatform!(*ppCh) |
-                                                                for (@pp <- ppCh) {
-                                                                  match pp {
-                                                                    (true, platform) => {
-                                                                      bcSettleWith!(st, opId, [
-                                                                        {"owner": st.get("providerId"),
-                                                                         "amount": net + st.get("claim").get("amount")},
-                                                                        {"owner": platform,
-                                                                         "amount": fee},
-                                                                        {"owner": st.get("guestId"),
-                                                                         "amount": st.get("deposit") - st.get("claim").get("amount")}
-                                                                      ], "settled", st.get("assetId"), *ret2)
-                                                                    }
-                                                                    _ => { 1/0 }
-                                                                  }
-                                                                }
-                                                              }
-                                                            }
-                                                            _ => { bcRefuse!(st, "bps", *ret2) }
-                                                          }
-                                                        }
-                                                      }
-                                                    }
-                                                    _ => { bcRefuse!(st, p, *ret2) }
-                                                  }
-                                                }
-                                              }
+                                              bcSettleRent!(
+                                                st, opId, "settled",
+                                                st.get("claim").get("amount"),
+                                                0 - st.get("claim").get("amount"),
+                                                *ret2)
                                             }
                                           }
                                           _ => { bcRefuse!(st, "clock", *ret2) }
@@ -1065,49 +1004,11 @@ contract bookingResolve(@key, ret) = {
                                                              + st.get("cancellation").get("noShowBlocks")) {
                                                     bcRefuse!(st, "too early", *ret2)
                                                   } else {
-                                                    new polCh in {
-                                                      bookingRemedy!(*polCh) |
-                                                      for (@p <- polCh) {
-                                                        match p {
-                                                          (true, Remedy) => {
-                                                            new nsCh in {
-                                                              @Remedy!("noShow", st.get("rent"),
-                                                                       st.get("deposit"),
-                                                                       st.get("feeBps"), *nsCh) |
-                                                              for (@ns <- nsCh) {
-                                                                match ns {
-                                                                  (true, split) => {
-                                                                    new relCh in {
-                                                                      bcRelease!(st.get("unitSlots"), *relCh) |
-                                                                      for (@_ <- relCh) {
-                                                                        new ppCh in {
-                                                                          bcPlatform!(*ppCh) |
-                                                                          for (@pp <- ppCh) {
-                                                                            match pp {
-                                                                              (true, platform) => {
-                                                                                bcSettleWith!(st, opId, [
-                                                                                  {"owner": st.get("providerId"),
-                                                                                   "amount": split.get("providerRent")},
-                                                                                  {"owner": platform,
-                                                                                   "amount": split.get("platformFee")},
-                                                                                  {"owner": st.get("guestId"),
-                                                                                   "amount": split.get("guestRefund")}
-                                                                                ], "noShow", st.get("assetId"), *ret2)
-                                                                              }
-                                                                              _ => { 1/0 }
-                                                                            }
-                                                                          }
-                                                                        }
-                                                                      }
-                                                                    }
-                                                                  }
-                                                                  _ => { bcRefuse!(st, "bps", *ret2) }
-                                                                }
-                                                              }
-                                                            }
-                                                          }
-                                                          _ => { bcRefuse!(st, p, *ret2) }
-                                                        }
+                                                    new relCh in {
+                                                      bcRelease!(st.get("unitSlots"), *relCh) |
+                                                      for (@_ <- relCh) {
+                                                        bcSettleRent!(st, opId, "noShow",
+                                                                      0, 0, *ret2)
                                                       }
                                                     }
                                                   }
@@ -1203,45 +1104,8 @@ contract bookingResolve(@key, ret) = {
                                             if (now < st.get("checkOutHeight")) {
                                               bcRefuse!(st, "too early", *ret2)
                                             } else {
-                                              new polCh in {
-                                                bookingRemedy!(*polCh) |
-                                                for (@p <- polCh) {
-                                                  match p {
-                                                    (true, Remedy) => {
-                                                      new feeCh in {
-                                                        @Remedy!("fee", st.get("rent"),
-                                                                 st.get("feeBps"), *feeCh) |
-                                                        for (@ff <- feeCh) {
-                                                          match ff {
-                                                            (true, fee, net) => {
-                                                              new ppCh in {
-                                                                bcPlatform!(*ppCh) |
-                                                                for (@pp <- ppCh) {
-                                                                  match pp {
-                                                                    (true, platform) => {
-                                                                      bcSettleWith!(st, opId, [
-                                                                        {"owner": st.get("providerId"),
-                                                                         "amount": net},
-                                                                        {"owner": platform,
-                                                                         "amount": fee},
-                                                                        {"owner": st.get("guestId"),
-                                                                         "amount": st.get("deposit")}
-                                                                      ], "settled", st.get("assetId"), *ret2)
-                                                                    }
-                                                                    _ => { 1/0 }
-                                                                  }
-                                                                }
-                                                              }
-                                                            }
-                                                            _ => { bcRefuse!(st, "bps", *ret2) }
-                                                          }
-                                                        }
-                                                      }
-                                                    }
-                                                    _ => { bcRefuse!(st, p, *ret2) }
-                                                  }
-                                                }
-                                              }
+                                              bcSettleRent!(st, opId, "settled",
+                                                            0, 0, *ret2)
                                             }
                                           }
                                           _ => { bcRefuse!(st, "clock", *ret2) }

@@ -70,7 +70,7 @@ def main() -> int:
         '      (true, Nil) => { '
         '        B!("dispute", *dId, "op3", "hash", *c3) | '
         '        for (@r3 <- c3) { match r3 { '
-        '          (true, Nil) => { B!("evidence", *out) | '
+        '          (true, Nil) => { B!("info", *out) | '
         '                           for (@r <- out) { deployId!(r) } } '
         '          _ => { deployId!(("dispute", r3)) } '
         '        } } '
@@ -82,8 +82,9 @@ def main() -> int:
         '} }',
     ))
     expect_ok("evidence read", evidence)
-    if evidence[1].get("disputeHash") != "hash" or evidence[1].get("disputeAtHeight") <= 0:
-        raise AssertionError(f"evidence anchors: {evidence!r}")
+    state = evidence[1]
+    if state.get("disputeHash") != "hash" or state.get("disputeAtHeight") <= 0:
+        raise AssertionError(f"evidence anchors: {state!r}")
     print("  ok evidence anchors")
     return 0
 

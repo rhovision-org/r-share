@@ -159,6 +159,92 @@ in {
     }
   } |
 
+  contract BondFactory(@"createFromAccount", dId, @assetId, @expected,
+                       settleToken, ret) = {
+    new pCh in {
+      bondResolve!("component:payments", *pCh) |
+      for (@p <- pCh) {
+        match p {
+          (true, Payments) => {
+            new iCh in {
+              @Payments!("issuer", assetId, *iCh) |
+              for (@i <- iCh) {
+                match i {
+                  (true, brand, issuer) => {
+                    new aCh in {
+                      @Payments!("ensureAccount", *dId, *aCh) |
+                      for (@a <- aCh) {
+                        match a {
+                          (true, account, ownerId) => {
+                            new purseCh in {
+                              @issuer!("makeEmptyPurse", *purseCh) |
+                              for (@pu <- purseCh) {
+                                match pu {
+                                  (true, purse) => {
+                                    new wCh in {
+                                      @account!("withdraw", *dId, assetId,
+                                                expected, *wCh) |
+                                      for (@w <- wCh) {
+                                        match w {
+                                          (true, payment) => {
+                                            new mCh in {
+                                              @issuer!("getAmountOf",
+                                                       payment, *mCh) |
+                                              for (@m <- mCh) {
+                                                match m {
+                                                  (true, measured) => {
+                                                    if (measured != expected) {
+                                                      1/0
+                                                    } else {
+                                                      new depCh in {
+                                                        @purse!("deposit",
+                                                          payment, *depCh) |
+                                                        for (@dd <- depCh) {
+                                                          match dd {
+                                                            (true, balance) => {
+                                                              BondFactory!(
+                                                                "create", purse,
+                                                                brand, assetId,
+                                                                expected,
+                                                                *settleToken, *ret)
+                                                            }
+                                                            _ => { 1/0 }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                  _ => { 1/0 }
+                                                }
+                                              }
+                                            }
+                                          }
+                                          _ => { ret!(w) }
+                                        }
+                                      }
+                                    }
+                                  }
+                                  _ => { 1/0 }
+                                }
+                              }
+                            }
+                          }
+                          _ => { ret!(a) }
+                        }
+                      }
+                    }
+                  }
+                  _ => { ret!(i) }
+                }
+              }
+            }
+          }
+          _ => { ret!((false, "payments unavailable")) }
+        }
+      }
+    }
+  } |
+
   rl!(`__ROOT_URI__`, *rootCh) |
   for (Root <- rootCh) {
     rs!(bundle+{*BondFactory}, *c) |

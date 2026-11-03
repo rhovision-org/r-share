@@ -21,7 +21,7 @@ off-chain database in this repo.
 | Ticketing | transferable, redeemable proof of admission | Claim path passes; event-only ticket arms not exercised |
 | Municipal bike share | fleet, station-hour capacity, unlock credential | Claim path passes for the kind; fleet/station behavior not exercised |
 | Car rental | vehicle windows, inspection, damage deposit | Claim path passes for the kind; inspection not exercised |
-| Robotics-as-a-service | machine windows, operators, SLAs, session evidence | Claim path passes for the kind; per-unit pricing/SLAs not implemented |
+| Robotics-as-a-service | machine windows, operators, SLAs, session evidence | Claim path, per-unit pricing and per-unit windows pass; SLAs/evidence enforcement not implemented |
 
 ## What is here
 
@@ -43,13 +43,15 @@ on it.
 The 13 install terms build, measure, and parse with the target node's own parser;
 `make spec-check` passes. On 2026-11-03 a fresh devnet built from rholo `e2d073d` with
 r-cash `49b441d` recorded passing runs for `unit_root`, `unit_payments` and
-`unit_lifecycle`, `unit_claims`, `unit_pricing` and `unit_guestbook`. The lifecycle suite
-verifies the dispute gate, the arbitration gate, permissionless `resolveDispute` and the
-readable evidence anchors; the claims suite verifies
+`unit_lifecycle`, `unit_claims`, `unit_pricing`, `unit_guestbook` and `unit_booking`. The
+lifecycle suite verifies the dispute gate, the arbitration gate, permissionless
+`resolveDispute` and the readable evidence anchors; the claims suite verifies
 `buyerUseBreach`, `noFaultCancellation`, `noShow` and `damage` for lodging, events, bike,
-car and robot. `unit_pricing` verifies that a unit stores and validates its own price.
+car and robot. `unit_pricing` verifies that a unit stores and validates its own price, and
+`unit_booking` proves an end-to-end booking of a machine and operator at different prices:
+rent is the sum, the windows are the per-unit min/max, and the Bond total is rent + deposit.
 Coverage is 20/30 `passing`; `providerDeliveryBreach` and `partialPerformance` remain
-design. End-to-end rent aggregation across differently priced units is not yet tested. The remaining suites are placeholders that exit 2. See
+design. The remaining suites are placeholders that exit 2. See
 [Status, scope and honest limits](docs/orientation/status-and-scope.md).
 
 ## Quickstart
