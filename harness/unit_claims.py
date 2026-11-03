@@ -8,11 +8,41 @@ design-only and are not exercised.
 
 from __future__ import annotations
 
-from assertions import expect_ok, one
+import json
+from pathlib import Path
+
+import actors
+from assertions import expect, expect_ok, one
 from booking_fixture import booking_term, dummy_bond
 from preflight import require_devnet
 
 import deploy as node
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def vector_checks() -> None:
+    vectors = json.loads((ROOT / "spec" / "vectors" / "core.json").read_text())["vectors"]
+    remedy = actors.resolve("component:remedy")
+    fee_input = [int(x) for x in vectors["remedy.fee"]["input"].split(",")]
+    fee = actors.invoke(remedy, "fee", f"{fee_input[0]}, {fee_input[1]}")
+    expect("vector remedy.fee", fee[1], int(vectors["remedy.fee"]["output"]))
+    split_input = [int(x) for x in vectors["remedy.depositSplit.total"]["input"].split(",")]
+    split = actors.invoke(remedy, "depositSplit",
+                          f"{split_input[0]}, {split_input[1]}")
+    total = split[1]["providerDamage"] + split[1]["guestRefund"]
+    expect("vector remedy.depositSplit", total,
+           int(vectors["remedy.depositSplit.total"]["output"]))
+    full_input = [int(x) for x in vectors["remedy.full.total"]["input"].split(",")]
+    policy = {"fullRefundBeforeBlocks": 0, "partialRefundBeforeBlocks": 0,
+              "partialRefundBps": 0, "eventTransferCutoffBlocks": 0}
+    cancelled = actors.invoke(
+        remedy, "cancel",
+        f'"lodging", {json.dumps(policy)}, 100, 100, {full_input[0]}, '
+        f'{full_input[1]}, "guest"')
+    total = sum(cancelled[1][key] for key in
+                ("providerRent", "platformFee", "guestRefund", "providerDamage"))
+    expect("vector remedy.full", total, int(vectors["remedy.full.total"]["output"]))
 
 KINDS = ("lodging", "event", "bike", "car", "robot")
 
@@ -59,6 +89,7 @@ def main() -> int:
     if not require_devnet("unit-claims"):
         return 2
 
+    vector_checks()
     owner = node.load_keys()["deployer"]["address"]
     bond = dummy_bond()
     print(f"  bond {bond}")

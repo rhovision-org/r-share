@@ -453,3 +453,22 @@ theorem release_keeps_other {st st' : AllocState} {token : Token}
 
 end Allocator
 end RShare
+
+namespace RShare
+namespace Allocator
+
+/-- A unit is inserted as data; the allocator owns no per-unit cell. -/
+def ensureUnit (st : AllocState) (u : AllocUnit) : AllocState :=
+  { st with units := u :: st.units }
+
+theorem ensureUnit_head (st : AllocState) (u : AllocUnit) :
+    (ensureUnit st u).units = u :: st.units := rfl
+
+def setStatus (st : AllocState) (s : ListingStatus) : AllocState :=
+  { st with status := s }
+
+theorem setStatus_applied (st : AllocState) (s : ListingStatus) :
+    (setStatus st s).status = s := rfl
+
+end Allocator
+end RShare

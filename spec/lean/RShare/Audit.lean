@@ -1,4 +1,5 @@
 import RShare.Invariants
+import RShare.Model.System
 
 /-!
 # Axiom audit
@@ -34,3 +35,19 @@ import RShare.Invariants
 #print axioms RShare.h2a_caller_token
 #print axioms RShare.h2b_delegated
 #print axioms RShare.p2_await_then_commit
+
+#print axioms RShare.Remedy.fullRefund_conserves
+#print axioms RShare.Remedy.feeSettle_conserves
+#print axioms RShare.Remedy.depositSplit_conserves
+#print axioms RShare.Bond.pay_once
+#print axioms RShare.Bond.pay_closes
+#print axioms RShare.Bond.pay_conserves
+#print axioms RShare.Booking.terminal_no_step
+#print axioms RShare.Booking.terminal_sticky
+#print axioms RShare.Booking.settle_once
+#print axioms RShare.Booking.dispute_only_from_checked
+#print axioms RShare.Booking.progress
+#print axioms RShare.System.system_slot_single_owner
+#print axioms RShare.System.alloc_transition_is_one_commit
+#print axioms RShare.System.system_settle_once
+#print axioms RShare.System.system_terminal_progress

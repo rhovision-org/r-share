@@ -52,6 +52,38 @@
     "allocator.release.wrong_token": {
       "input": "9",
       "output": "none"
+    },
+    "bond.paid.once": {
+      "input": "150",
+      "output": "none"
+    },
+    "bond.pay.ok": {
+      "input": "150",
+      "output": "ok"
+    },
+    "booking.terminal.requested": {
+      "input": "",
+      "output": "false"
+    },
+    "booking.terminal.settled": {
+      "input": "",
+      "output": "true"
+    },
+    "remedy.depositSplit.total": {
+      "input": "50,4000",
+      "output": "50"
+    },
+    "remedy.fee": {
+      "input": "100,100",
+      "output": "1"
+    },
+    "remedy.feeSettle.total": {
+      "input": "100,50,100",
+      "output": "150"
+    },
+    "remedy.full.total": {
+      "input": "100,50",
+      "output": "150"
     }
   }
 }

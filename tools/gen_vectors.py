@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 LEAN = ROOT / "spec" / "lean"
-OUT = ROOT / "spec" / "vectors" / "allocator.json"
+OUT = ROOT / "spec" / "vectors" / "core.json"
 
 
 def emit() -> dict:

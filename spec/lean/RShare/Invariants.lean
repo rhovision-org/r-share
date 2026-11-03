@@ -1,6 +1,9 @@
 import RShare.Linear.Cell
 import RShare.Linear.Protocol
 import RShare.Model.Allocator
+import RShare.Model.Booking
+import RShare.Model.Bond
+import RShare.Model.Remedy
 
 /-!
 # Invariant aliases
@@ -13,6 +16,9 @@ namespace RShare
 namespace Invariants
 
 open Allocator
+open Booking
+open Bond
+open Remedy
 
 /-- S1 — acquisition is all-or-none and one reservation. -/
 def S1_acquire_all_or_none := @acquire_none_or_reservation
@@ -39,6 +45,22 @@ def S7_bounded_hold := @acquire_bounded
 
 /-- S8 — a successful confirm has a matching token reservation. -/
 def S8_confirm_token := @confirm_requires_token
+
+/-- S9 — remedy conservation. -/
+def S9_full_refund := @Remedy.fullRefund_conserves
+def S9_fee_settle := @Remedy.feeSettle_conserves
+def S9_no_show := @Remedy.noShow_conserves
+def S9_deposit_split := @Remedy.depositSplit_conserves
+
+/-- S10 — Bond single use and bucket conservation. -/
+def S10_pay_once := @Bond.pay_once
+def S10_pay_conserves := @Bond.pay_conserves
+
+/-- S11 — booking graph. -/
+def S11_terminal_sticky := @Booking.terminal_sticky
+def S11_progress := @Booking.progress
+def S11_settle_once := @Booking.settle_once
+def S11_dispute_gate := @Booking.dispute_only_from_checked
 
 /-- D1/D2/D3 — cell defects. -/
 def D1_peek_then_put := @RShare.peek_then_put_rejected

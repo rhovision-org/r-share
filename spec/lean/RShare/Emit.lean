@@ -1,4 +1,7 @@
 import RShare.Model.Allocator
+import RShare.Model.Bond
+import RShare.Model.Booking
+import RShare.Model.Remedy
 
 /-!
 # Deterministic vectors
@@ -75,6 +78,24 @@ def main : IO Unit := do
   let b := { base .active [unitA] with reservations := [one 1 9 15] }
   emit "allocator.probe.redact" "7,9"
     (if publicView a == publicView b then "same" else "different")
+
+  emit "remedy.full.total" "100,50"
+    (toString (Remedy.total (Remedy.fullRefund 100 50)))
+  emit "remedy.fee" "100,100" (toString (Remedy.fee 100 100))
+  emit "remedy.feeSettle.total" "100,50,100"
+    (toString (Remedy.total (Remedy.feeSettle 100 50 100)))
+  emit "remedy.depositSplit.total" "50,4000"
+    (toString (Remedy.total (Remedy.depositSplit 50 4000)))
+  let paid : Bond.BondState := { paid := true, expected := 150, remaining := 150 }
+  emit "bond.paid.once" "150"
+    (okNone (Bond.pay paid [{ owner := 1, amount := 150 }] 150 7 7))
+  let openBond : Bond.BondState := { paid := false, expected := 150, remaining := 150 }
+  emit "bond.pay.ok" "150"
+    (okNone (Bond.pay openBond [{ owner := 1, amount := 150 }] 150 7 7))
+  emit "booking.terminal.settled" ""
+    (if Booking.terminal Booking.BStatus.settled then "true" else "false")
+  emit "booking.terminal.requested" ""
+    (if Booking.terminal Booking.BStatus.requested then "true" else "false")
 
 end Emit
 end RShare

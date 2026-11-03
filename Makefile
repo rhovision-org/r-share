@@ -16,7 +16,7 @@ export RHOLO_DIR := $(abspath $(RHOLO_DIR))
         unit-provider unit-listing unit-booking unit-allocator unit-lifecycle \
         unit-claims unit-pricing unit-guestbook unit-events unit-admin unit-pause \
         unit-generality unit-conservation unit-behavior unit-all \
-        check ci clean lean-build lean-check vectors vectors-write formal-check
+        check ci clean lean-build lean-check vectors vectors-write check-flows formal-check
 
 venv:
 	python3 -m venv .venv
@@ -182,7 +182,10 @@ vectors-write:
 vectors:
 	$(PY) tools/check_vectors.py
 
-formal-check: lean-check vectors
+check-flows:
+	$(PY) tools/check_flows.py
+
+formal-check: lean-check vectors check-flows
 
 check: spec-check parse-check docs-check formal-check
 
