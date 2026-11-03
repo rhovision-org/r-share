@@ -69,8 +69,8 @@ make check-flows     # source arms, flow rules and Lean names agree
 make formal-check    # all three
 ```
 
-The suites consume the vectors: `unit_allocator` exercises the allocator transition table
-and `unit_claims` compares the remedy vectors against the deployed `Remedy` contract.
+`unit_allocator` exercises the allocator transition table on-chain; `unit_claims` compares
+the remedy vectors directly against the deployed `Remedy` contract.
 
 > **Where to go deeper.** [Verification record](verification.md) is the behavioural run.
 > [Invariants](invariants.md) is the normative list. [Concurrency
