@@ -89,6 +89,32 @@ new rl(`rho:registry:lookup`), rootCh, afCh, ac, oCh, fCh, bCh,
 """
 
 
+def account_balance(public_hex: str) -> tuple:
+    term = f"""
+new rl(`rho:registry:lookup`), rootCh, afCh, ac, oCh, bCh,
+    deployId(`rho:rchain:deployId`), deployerId(`rho:rchain:deployerId`) in {{
+  rl!(`{rcash_root_uri()}`, *rootCh) |
+  for (Root <- rootCh) {{
+    Root!("resolve", "component:account-factory", 1, *afCh) |
+    for (@(true, afUri, _) <- afCh) {{
+      rl!(afUri, *ac) |
+      for (AccountFactory <- ac) {{
+        AccountFactory!("getOrCreate", "{public_hex}".hexToBytes(), *oCh) |
+        for (@(true, account, ownerId) <- oCh) {{
+          @account!("balance", *deployerId, "REV", *bCh) |
+          for (@b <- bCh) {{ deployId!(b) }}
+        }}
+      }}
+    }}
+  }}
+}}
+"""
+    reply = one(term)
+    if not (isinstance(reply, tuple) and reply[0] is True):
+        raise AssertionError(f"account balance: {reply!r}")
+    return reply
+
+
 def block_height() -> int:
     term = """
 new bd(`rho:block:data`), ch, deployId(`rho:rchain:deployId`) in {
@@ -184,6 +210,9 @@ def main() -> int:
         raise AssertionError(f"fund account: {funded!r}")
     print(f"  funded {funded[1]}")
 
+    balance_before = account_balance(public_hex)[1]
+    print(f"  balance {balance_before}")
+
     unit_slots = [
         {"unitUri": unit_a_uri, "slots": ["s1"],
          "checkInHeight": now + 110, "checkOutHeight": now + 190},
@@ -213,6 +242,25 @@ def main() -> int:
     expect_ok("bond info", bond_info)
     if bond_info[1].get("expected") != 80:
         raise AssertionError(f"bond expected: {bond_info[1]!r}")
+
+    balance_after_book = account_balance(public_hex)[1]
+    if balance_before - balance_after_book != 80:
+        raise AssertionError(
+            f"escrow debit: {balance_before} -> {balance_after_book}")
+    print("  ok escrow debit 80")
+
+    cancelled = one(call_uri(
+        booking_uri, "cancel", f'*dId, "cancel:{now}"'))
+    expect_ok("cancel", cancelled)
+    balance_after_cancel = account_balance(public_hex)[1]
+    if balance_after_cancel != balance_before:
+        raise AssertionError(
+            f"refund: {balance_before} -> {balance_after_cancel}")
+    bond_after = one(call_uri(state["bondUri"], "info"))
+    expect_ok("bond after cancel", bond_after)
+    if bond_after[1].get("paid") is not True or bond_after[1].get("remaining") != 0:
+        raise AssertionError(f"bond after cancel: {bond_after[1]!r}")
+    print("  ok refund and bond closed")
 
     print("  ok rent, windows and bond total")
     return 0

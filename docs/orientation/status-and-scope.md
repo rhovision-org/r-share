@@ -39,7 +39,8 @@ words are reserved for a recorded command and artifact.
 | `unit_claims` | passing; four claim classes across five kinds (20/30 cells) |
 | `unit_pricing` | passing; per-unit price stored and validated |
 | `unit_guestbook` | passing; stable guest ledger |
-| `unit_booking` | passing; end-to-end rent, windows and Bond total |
+| `unit_booking` | passing; end-to-end rent, windows, Bond total and one-booking conservation |
+| `unit_pause` | passing; global, provider and unit pause |
 | Devnet bootstrap | `make devnet-up`, `make rcash-bootstrap`, `make install` |
 
 ## What is a design proposal

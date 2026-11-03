@@ -10,9 +10,10 @@ includes it so the book and the repository cannot drift.
 
 ## How the invariants are used
 
-- The implemented suites are `unit_root`, `unit_payments` and `unit_lifecycle`. Only
-  `unit_lifecycle` touches a money path; `harness/conservation.py` is not implemented yet,
-  so conservation is not yet checked by a suite.
+- `unit_booking` checks the escrow debit, the refund and the Bond closure for one real
+  booking: the account loses exactly `rent + deposit`, the refund restores it, and the Bond
+  ends paid with zero remaining. `harness/conservation.py` is still a stub, so the full
+  per-asset invariant set is not yet automated.
 - The M8 hardening milestone adds property tests and a soak test across disjoint slots.
 - A review that changes a money path must say which invariant it preserves and how.
 - A failure is a bug in the contract, not a flaky test; fix the contract or the test.

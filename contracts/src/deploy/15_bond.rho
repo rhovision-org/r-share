@@ -31,7 +31,7 @@ in {
 
   contract bondSum(@buckets, @i, @acc, ret) = {
     if (i >= buckets.length()) {
-      ret!(acc)
+      ret!((true, acc))
     } else {
       match buckets.nth(i) {
         b => {

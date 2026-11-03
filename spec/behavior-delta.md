@@ -6,9 +6,9 @@ refusals must match the R0 baseline exactly.
 
 | Delta | New behavior | Test |
 |---|---|---|
-| Global pause | `ShareAdmin.pauseAll` makes `GuestLedger.book` refuse `"paused"`; existing lifecycle arms still work | not implemented (planned `unit_pause`) |
-| Provider pause | A paused provider blocks new bookings on its existing listings with `"provider paused"`; resume restores | not implemented (planned `unit_pause`) |
-| Unit pause | `Unit.hold` refuses `"unit paused"`; `release` and `confirm` still work for existing holds | not implemented (planned `unit_pause`) |
+| Global pause | `ShareAdmin.pauseAll` makes `GuestLedger.book` refuse `"paused"`; existing lifecycle arms still work | `unit_pause` (passing) |
+| Provider pause | A paused provider blocks new bookings on its existing listings with `"provider paused"`; resume restores | `unit_pause` (passing) |
+| Unit pause | `Unit.hold` refuses `"unit paused"`; `release` and `confirm` still work for existing holds | `unit_pause` (passing) |
 | Contiguity | `contiguous` is enforced from the terms flag for every kind, not hardcoded to lodging | not implemented (planned `unit_listing`) |
 | Component keys | `component:policy` alias is removed; `component:remedy` remains; `component:listing-contract-factory` and `component:booking-factory` are removed or repointed | `unit_root` keys (passing) |
 | Bond refusals | Bond `"closed"`/`"not holder"` are mapped to the booking's documented refusal strings at the BookingContract boundary | not implemented (planned `unit_bond`) |

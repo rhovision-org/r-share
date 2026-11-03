@@ -26,7 +26,9 @@ unit-lifecycle pass   dispute from requested refuses;
 unit-claims    pass   four claim classes x five kinds (20/30 coverage cells)
 unit-pricing   pass   units store 10 and 20; a zero price refuses "price"
 unit-guestbook pass   getOrCreate is stable; ledger read-back matches
-unit-booking   pass   two priced units, per-unit windows, rent 30, bond 80
+unit-booking   pass   two priced units, per-unit windows, rent 30, bond 80;
+                      escrow debit/refund and bond closure
+unit-pause     pass   global pause/resume, provider pause/resume, unit admin pause
 ```
 
 The runner writes `deployments/suite-results.json` (gitignored) and exits 0 only when every
@@ -69,6 +71,16 @@ account through the deposit facet, and books both units. The booking has `rent =
 `checkInHeight == min(unit windows)`, `checkOutHeight == max(unit windows)`, status
 `"confirmed"`, and its Bond reports `expected == 80` (rent + deposit).
 
+The suite then measures the account balance: the booking debits exactly 80, a full-refund
+cancel restores it, and the Bond ends with `paid: true, remaining: 0`. This is a one-booking
+conservation check, not the full per-asset invariant harness.
+
+## What the pause suite proves
+
+`ShareAdmin.admin` accepts a 2-of-3 signed `pauseAll` and `resumeAll`; `isPaused` flips
+accordingly. A provider can pause and resume, and `isActive` follows. A unit with the admin
+set accepts a signed `adminPause` and reports status `"paused"`.
+
 ## What the guestbook and evidence checks prove
 
 `GuestBook("getOrCreate")` returns the same ledger on a second call and `GuestBook("ledger")`
@@ -87,7 +99,9 @@ clock, asset resolver and account factory; the AMM pool is not on its path.
 ## What is still not run
 
 - `providerDeliveryBreach` and `partialPerformance`, which have no code;
-- concurrency races, conservation, pause and admin;
+- same-block concurrency races;
+- the full per-asset conservation harness (one booking is covered);
+- admin threshold/replay/setAdmins cases beyond the signed pause path;
 - event-only ticket arms (`redeem`, `closeEvent`, `transferTicket`);
 - slot settlement and ERTP conservation (the claim fixture uses a stub Bond);
 - the event-only ticket arms and any bike/car/robot fleet fixture beyond the claim path.

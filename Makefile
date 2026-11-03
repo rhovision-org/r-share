@@ -9,13 +9,14 @@ NODE ?= http://localhost:40403
         check-money spec-check parse-check docs docs-serve docs-check devnet devnet-up \
         devnet-wait down status rcash-install rcash-bootstrap keys install setup unit-root unit-payments \
         unit-provider unit-listing unit-booking unit-concurrency unit-lifecycle \
-        unit-claims unit-pricing unit-guestbook unit-events unit-admin unit-generality \
-        unit-conservation unit-behavior unit-all \
+        unit-claims unit-pricing unit-guestbook unit-events unit-admin unit-pause \
+        unit-generality unit-conservation unit-behavior unit-all \
         check ci clean
 
 venv:
 	python3 -m venv .venv
 	$(PY) -m pip -q install --upgrade pip
+	$(PY) -m pip -q install -r harness/requirements.txt
 
 build:
 	$(PY) tools/build_contracts.py
@@ -137,6 +138,8 @@ unit-pricing:
 	$(PY) harness/unit_pricing.py
 unit-guestbook:
 	$(PY) harness/unit_guestbook.py
+unit-pause:
+	$(PY) harness/unit_pause.py
 unit-events:
 	$(PY) harness/unit_pending.py events
 unit-admin:

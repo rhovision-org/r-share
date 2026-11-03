@@ -1,6 +1,6 @@
 {
   "deploy_terms": 13,
-  "bytes_total": 105436,
+  "bytes_total": 105444,
   "bytes_max": 22365,
   "depth_max": 35,
   "contracts_max": 29,
@@ -52,7 +52,7 @@
       "contracts": 8
     },
     "15_bond.rho": {
-      "bytes": 4257,
+      "bytes": 4265,
       "depth": 32,
       "contracts": 5
     },
