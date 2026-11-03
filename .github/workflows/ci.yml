@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
 
 jobs:
   static:
@@ -24,6 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: rchain-community/rchain-rust
+          ref: e2d073dcd02f1e560ccb84749937138a1e184b0b
           path: rnode-rust
       - uses: actions/setup-python@v5
         with:
@@ -63,8 +66,8 @@ jobs:
 
   devnet:
     # The behavioural campaign needs Docker, r-cash and a local rholo devnet. It is not
-    # run on every PR. Run it manually or on a nightly schedule.
-    if: github.event_name == 'workflow_dispatch'
+    # run on every PR. Run it manually or on the nightly schedule.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,6 +79,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: rchain-community/rchain-rust
+          ref: e2d073dcd02f1e560ccb84749937138a1e184b0b
           path: rnode-rust
       - uses: actions/setup-python@v5
         with:
@@ -87,6 +91,13 @@ jobs:
           RHOLO_DIR: ${{ github.workspace }}/rnode-rust
         run: |
           make devnet
+          make devnet-wait
           make rcash-install
           make keys install
           make unit-all
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: suite-results
+          path: deployments/suite-results.json
+          if-no-files-found: ignore

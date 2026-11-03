@@ -39,7 +39,7 @@ def scorecard() -> dict:
         "trust_assumptions": trust,
         "trust_count": len(trust),
         "metrics": {
-            "terms": m["terms"],
+            "deploy_terms": m["deploy_terms"],
             "components": m["components"],
             "state_cell_types": m["state_cell_types"],
             "bytes_max": m["bytes_max"],

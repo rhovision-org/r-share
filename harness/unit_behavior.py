@@ -21,18 +21,11 @@ try:
 except Exception:  # pragma: no cover
     from harness import deploy as node  # type: ignore
 
-
-def devnet_ready() -> bool:
-    try:
-        status = node.http_json("GET", f"{node.NODE}/api/v1/status")
-    except Exception:
-        return False
-    return bool(status.get("acceptsDeploys")) and status.get("degraded") != "critical"
+from preflight import require_devnet
 
 
 def main() -> int:
-    if not devnet_ready():
-        print("unit-behavior: not run — no healthy devnet (acceptsDeploys is false)")
+    if not require_devnet("unit-behavior"):
         return 2
     golden = ROOT / "harness" / "scenarios" / "golden"
     if not golden.is_dir() or not any(golden.glob("*.rho")):

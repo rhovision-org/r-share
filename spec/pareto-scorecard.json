@@ -15,7 +15,7 @@
   ],
   "trust_count": 3,
   "metrics": {
-    "terms": 13,
+    "deploy_terms": 13,
     "components": 23,
     "state_cell_types": 12,
     "bytes_max": 22987,

@@ -6,10 +6,13 @@ from __future__ import annotations
 import sys
 
 from assertions import expect, expect_ok, expect_refusal, one, root_call
+from preflight import require_devnet
 
 
 def main() -> int:
     print("unit-root")
+    if not require_devnet("unit-root"):
+        return 2
     keys = one(root_call("keys", "Nil"))
     expect_ok("root keys", keys)
     if not isinstance(keys[1], list) or "component:root" not in keys[1]:

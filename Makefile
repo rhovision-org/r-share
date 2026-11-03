@@ -5,11 +5,12 @@ RHOLO_DIR ?= ../RNodeRust
 NODE ?= http://localhost:40403
 
 .PHONY: venv build build-check measure measure-check metrics metrics-compare \
-        check-arch check-captures check-select check-placeholders check-money \
-        spec-check parse-check docs docs-serve docs-check devnet down status \
-        rcash-install keys install setup unit-root unit-payments unit-provider \
-        unit-listing unit-booking unit-concurrency unit-lifecycle unit-events \
-        unit-admin unit-generality unit-all ci clean
+        metrics-baseline check-arch check-captures check-select check-placeholders \
+        check-money spec-check parse-check docs docs-serve docs-check devnet devnet-up \
+        devnet-wait down status rcash-install keys install setup unit-root unit-payments \
+        unit-provider unit-listing unit-booking unit-concurrency unit-lifecycle \
+        unit-events unit-admin unit-generality unit-conservation unit-behavior unit-all \
+        check ci clean
 
 venv:
 	python3 -m venv .venv
@@ -32,6 +33,9 @@ metrics:
 
 metrics-compare:
 	$(PY) tools/metrics.py --compare contracts/metrics-baseline.json
+
+metrics-baseline:
+	$(PY) tools/metrics.py --write-baseline
 
 check-arch:
 	$(PY) tools/check_arch.py
@@ -63,8 +67,8 @@ pareto:
 pareto-check:
 	$(PY) tools/pareto.py --check
 
-spec-check: build-check measure-check check-arch check-captures check-select \
-            check-placeholders check-money check-coverage check-remedy \
+spec-check: build-check measure-check metrics-compare check-arch check-captures \
+            check-select check-placeholders check-money check-coverage check-remedy \
             check-no-oracle pareto-check
 
 parse-check:
@@ -83,6 +87,14 @@ docs-check:
 
 devnet:
 	$(MAKE) -C $(RCASH_DIR) devnet RHOLO_DIR=$(abspath $(RHOLO_DIR))
+
+devnet-up:
+	-$(MAKE) -C $(RCASH_DIR) down RHOLO_DIR=$(abspath $(RHOLO_DIR))
+	$(MAKE) -C $(RCASH_DIR) devnet RHOLO_DIR=$(abspath $(RHOLO_DIR))
+	$(PY) harness/preflight.py --wait 300
+
+devnet-wait:
+	$(PY) harness/preflight.py --wait 300
 
 down:
 	$(MAKE) -C $(RCASH_DIR) down RHOLO_DIR=$(abspath $(RHOLO_DIR))
@@ -121,11 +133,18 @@ unit-admin:
 	$(PY) harness/unit_pending.py admin
 unit-generality:
 	$(PY) harness/unit_pending.py generality
+unit-conservation:
+	$(PY) harness/conservation.py
+unit-behavior:
+	$(PY) harness/unit_behavior.py
 
-# Only the suites implemented so far run in the campaign. The pending targets exit 2.
-unit-all: unit-root unit-payments
+# The runner reports pass / fail / not-run and writes deployments/suite-results.json.
+unit-all:
+	$(PY) harness/run_suites.py
 
-ci: spec-check unit-all
+check: spec-check parse-check docs-check
+
+ci: check unit-all
 
 clean:
 	rm -rf .venv __pycache__ harness/__pycache__ tools/__pycache__ contracts/build/* docs/book

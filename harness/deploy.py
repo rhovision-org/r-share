@@ -17,12 +17,22 @@ import urllib.request
 import uuid
 from pathlib import Path
 
-NODE = os.environ.get("RSHARE_NODE", "http://localhost:40403")
-ADMIN = os.environ.get("RSHARE_ADMIN", "http://localhost:40405")
+def _devnet_config() -> dict:
+    """Read configs/devnet.json so phlo and endpoint settings are not decorative."""
+    path = Path(__file__).resolve().parent.parent / "configs" / "devnet.json"
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+_CFG = _devnet_config()
+NODE = os.environ.get("RSHARE_NODE", _CFG.get("node", "http://localhost:40403"))
+ADMIN = os.environ.get("RSHARE_ADMIN", _CFG.get("admin_node", "http://localhost:40405"))
 CONTAINER = os.environ.get("RSHARE_CONTAINER", "devnet-bootstrap")
-SHARD = os.environ.get("RSHARE_SHARD", "/root")
-PHLO_LIMIT = int(os.environ.get("RSHARE_PHLO_LIMIT", "4000000"))
-PHLO_PRICE = int(os.environ.get("RSHARE_PHLO_PRICE", "1"))
+SHARD = os.environ.get("RSHARE_SHARD", _CFG.get("shard_id", "/root"))
+PHLO_LIMIT = int(os.environ.get("RSHARE_PHLO_LIMIT", _CFG.get("phlo_limit", 4000000)))
+PHLO_PRICE = int(os.environ.get("RSHARE_PHLO_PRICE", _CFG.get("phlo_price", 1)))
 DEPLOY_RE = re.compile(r"DeployId is:\s*([0-9a-fA-F]+)")
 
 
@@ -138,7 +148,7 @@ def faucet(address: str) -> dict:
 
 
 def keys_path() -> Path:
-    return Path(os.environ.get("RSHARE_KEYS", ".devnet/keys.json"))
+    return Path(os.environ.get("RSHARE_KEYS", _CFG.get("keys", ".devnet/keys.json")))
 
 
 def load_keys() -> dict:

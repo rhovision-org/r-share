@@ -5,10 +5,13 @@ from __future__ import annotations
 
 from assertions import (call, component_uri, expect, expect_ok,
                         expect_refusal, one)
+from preflight import require_devnet
 
 
 def main() -> int:
     print("unit-payments")
+    if not require_devnet("unit-payments"):
+        return 2
     payments = component_uri("40_payments.rho")
 
     health = one(call(payments, "health", "Nil"))

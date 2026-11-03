@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "harness"))
 
 import deploy as node  # noqa: E402
+import preflight  # noqa: E402
 
 ORDER = [
     "00_root.rho",
@@ -87,30 +88,45 @@ def find_uri(value) -> str | None:
     return None
 
 
-def admin_literal(keys: dict) -> str:
+def admin_literal(keys: dict, dev_single_key: bool) -> str:
     names = ["admin1", "admin2", "admin3"]
     picked = [keys[name]["public"] for name in names if name in keys]
-    if len(picked) < 3:
-        dep = keys["deployer"]["public"]
-        picked = [dep, dep, dep]
-    return "[" + ", ".join(f'"{key}".hexToBytes()' for key in picked[:3]) + "]"
+    distinct = list(dict.fromkeys(picked))
+    if len(distinct) < 3:
+        if not dev_single_key:
+            raise SystemExit(
+                "install: need admin1, admin2 and admin3 with distinct keys; "
+                "pass --dev-single-key only on a throwaway devnet"
+            )
+        distinct = [keys["deployer"]["public"]] * 3
+    return "[" + ", ".join(f'"{key}".hexToBytes()' for key in distinct[:3]) + "]"
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--node", default=None)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--dev-single-key", action="store_true",
+                    help="allow a 2-of-3 set built from one devnet key (never for production)")
     args = ap.parse_args(argv)
 
     if args.node:
         node.NODE = args.node
 
+    if not args.dry_run and not preflight.require_devnet("install"):
+        return 2
+
     cfg = load_json(ROOT / "configs" / "devnet.json")
     rcash = load_json(ROOT / "configs" / "rcash.json")
     if args.dry_run and not node.keys_path().is_file():
-        keys = {"deployer": {"address": "1111dryrun",
-                             "public": "02" + "11" * 32,
-                             "secret": "00" * 32}}
+        keys = {
+            "deployer": {"address": "1111dryrun",
+                         "public": "02" + "11" * 32,
+                         "secret": "00" * 32},
+            "admin1": {"public": "02" + "22" * 32},
+            "admin2": {"public": "02" + "33" * 32},
+            "admin3": {"public": "02" + "44" * 32},
+        }
     else:
         keys = node.load_keys()
     if "deployer" not in keys:
@@ -126,7 +142,7 @@ def main(argv: list[str] | None = None) -> int:
                          "run `make rcash-install` first")
 
     common = {
-        "__ADMINS__": admin_literal(keys),
+        "__ADMINS__": admin_literal(keys, args.dev_single_key),
         "__THRESHOLD__": "2",
         "__RCASH_ROOT_URI__": rcash_root,
         "__PLATFORM_OWNER__": keys["deployer"]["address"],

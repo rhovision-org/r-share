@@ -22,18 +22,11 @@ try:
 except Exception:  # pragma: no cover - import path when run directly
     from harness import deploy as node  # type: ignore
 
-
-def devnet_ready() -> bool:
-    try:
-        status = node.http_json("GET", f"{node.NODE}/api/v1/status")
-    except Exception:
-        return False
-    return bool(status.get("acceptsDeploys")) and status.get("degraded") != "critical"
+from preflight import require_devnet
 
 
 def main() -> int:
-    if not devnet_ready():
-        print("conservation: not run — no healthy devnet (acceptsDeploys is false)")
+    if not require_devnet("conservation"):
         return 2
     print("conservation: not implemented yet for this devnet build")
     print("  add the scenario drivers, then enable this gate in `make unit-all`")
