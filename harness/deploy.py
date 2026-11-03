@@ -130,7 +130,8 @@ def deploy_same_block(terms: list[str], secret: str) -> list[str]:
     ids = [deploy(term, secret) for term in terms]
     try:
         propose()
-    except DevnetError:
+    except Exception:
+        # The pinned node runs autopropose and may disable the manual endpoint.
         pass
     return ids
 

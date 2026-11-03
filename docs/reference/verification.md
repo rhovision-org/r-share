@@ -29,6 +29,10 @@ unit-guestbook pass   getOrCreate is stable; ledger read-back matches
 unit-booking   pass   two priced units, per-unit windows, rent 30, bond 80;
                       escrow debit/refund and bond closure
 unit-pause     pass   global pause/resume, provider pause/resume, unit admin pause
+unit-concurrency pass one of two same-slot books wins; loser refuses "slot held"
+unit-admin     pass   below-threshold and replay refusals; 3 admins, threshold 2
+unit-events    pass   redeem, closeEvent and transferTicket
+unit-generality pass  five kinds validate; an unknown kind refuses
 ```
 
 The runner writes `deployments/suite-results.json` (gitignored) and exits 0 only when every
@@ -79,7 +83,17 @@ conservation check, not the full per-asset invariant harness.
 
 `ShareAdmin.admin` accepts a 2-of-3 signed `pauseAll` and `resumeAll`; `isPaused` flips
 accordingly. A provider can pause and resume, and `isActive` follows. A unit with the admin
-set accepts a signed `adminPause` and reports status `"paused"`.
+set accepts a signed `adminPause` and reports status `"paused"`. A second provider register
+returns the same provider URI, exercising the existing-provider fast path.
+
+## What the concurrency and event suites prove
+
+Two same-slot book requests are submitted together: exactly one succeeds, the other refuses
+`"slot held"`, and no second booking is created. `unit_admin` proves a one-signature admin
+action refuses `"below threshold"` and a reused nonce refuses `"replay"`. `unit_events`
+proves `redeem` moves a booking to `"redeemed"`, `closeEvent` settles it, and
+`transferTicket` moves the ticket holder. `unit_generality` validates terms for all five
+kinds and refuses an unknown kind.
 
 ## What the guestbook and evidence checks prove
 
@@ -99,11 +113,11 @@ clock, asset resolver and account factory; the AMM pool is not on its path.
 ## What is still not run
 
 - `providerDeliveryBreach` and `partialPerformance`, which have no code;
-- same-block concurrency races;
 - the full per-asset conservation harness (one booking is covered);
-- admin threshold/replay/setAdmins cases beyond the signed pause path;
-- event-only ticket arms (`redeem`, `closeEvent`, `transferTicket`);
-- slot settlement and ERTP conservation (the claim fixture uses a stub Bond);
-- the event-only ticket arms and any bike/car/robot fleet fixture beyond the claim path.
+- `setAdmins` payload cases (pause, threshold and replay are covered);
+- multi-slot and multi-guest races beyond one same-slot pair;
+- a golden-transcript comparison against a committed baseline;
+- fleet fixtures beyond the claim path;
+- slot settlement outside the one booking scenario (the claim fixture uses a stub Bond).
 
 Do not describe those as passing. The coverage manifest records the real status.

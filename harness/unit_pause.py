@@ -99,6 +99,10 @@ def main() -> int:
     registered = one(call_uri(
         provider_book, "register", '*dId, {"name": "Pause Test"}'))
     expect_ok("provider register", registered)
+    again = one(call_uri(
+        provider_book, "register", '*dId, {"name": "Pause Test"}'))
+    if again != registered:
+        raise AssertionError(f"provider register changed: {again!r}")
     provider_uri = registered[1]
     expect_ok("provider pause", one(call_uri(provider_uri, "pause", "*dId")))
     expect("provider inactive", one(call_uri(provider_uri, "isActive")), (True, False))

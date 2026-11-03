@@ -129,7 +129,7 @@ unit-listing:
 unit-booking:
 	$(PY) harness/unit_booking.py
 unit-concurrency:
-	$(PY) harness/unit_pending.py concurrency
+	$(PY) harness/unit_concurrency.py
 unit-lifecycle:
 	$(PY) harness/unit_lifecycle.py
 unit-claims:
@@ -141,11 +141,11 @@ unit-guestbook:
 unit-pause:
 	$(PY) harness/unit_pause.py
 unit-events:
-	$(PY) harness/unit_pending.py events
+	$(PY) harness/unit_events.py
 unit-admin:
-	$(PY) harness/unit_pending.py admin
+	$(PY) harness/unit_admin.py
 unit-generality:
-	$(PY) harness/unit_pending.py generality
+	$(PY) harness/unit_generality.py
 unit-conservation:
 	$(PY) harness/conservation.py
 unit-behavior:

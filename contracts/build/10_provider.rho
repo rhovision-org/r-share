@@ -91,7 +91,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
       for (@o <- oCh) {
         match o {
           (true, ownerId) => {
-            for (@s <- providerBookState) {
+            for (@s <<- providerBookState) {
               match s.get(ownerId) {
                 Nil => {
                   new pCh, aCh, eCh in {
@@ -103,8 +103,11 @@ contract authIsOwner(dId, @ownerId, ret) = {
                         match e {
                           (true, account, accountOwner) => {
                             if (accountOwner != ownerId) {
-                              providerBookState!(s) | ret!((false, "account"))
+                              ret!((false, "account"))
                             } else {
+                              for (@s2 <- providerBookState) {
+                                match s2.get(ownerId) {
+                                  Nil => {
                               new ProviderContract, providerState, uCh in {
                                 providerState!({
                                   "providerId": ownerId,
@@ -359,19 +362,23 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                 } |
                                 rs!(bundle+{*ProviderContract}, *uCh) |
                                 for (@uri <- uCh) {
-                                  providerBookState!(s.set(ownerId, uri)) |
+                                  providerBookState!(s2.set(ownerId, uri)) |
                                   ret!((true, uri, ownerId))
                                 }
+                                }
+                                }
+                                uri => { providerBookState!(s2) | ret!((true, uri, ownerId)) }
+                              }
                               }
                             }
                           }
-                          _ => { providerBookState!(s) | ret!(e) }
+                          _ => { ret!(e) }
                         }
                       }
                     }
                   }
                 }
-                uri => { providerBookState!(s) | ret!((true, uri, ownerId)) }
+                uri => { ret!((true, uri, ownerId)) }
               }
             }
           }
