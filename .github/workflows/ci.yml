@@ -29,6 +29,8 @@ jobs:
         with:
           python-version: "3.12"
       - uses: dtolnay/rust-toolchain@1.95.0
+      - name: Install protobuf compiler for the node parser build
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - run: make venv
       - run: make build
       - name: Parse built and rendered terms with the node parser
