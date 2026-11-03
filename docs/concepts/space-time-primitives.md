@@ -47,7 +47,7 @@ verified signatures.
 ## How the pieces compose
 
 - A listing publishes capacity and terms.
-- A unit owns slots; each slot is an independent concurrency cell.
+- A unit owns slots; the listing allocator owns the slot records in one cell.
 - A booking holds one or more slots, funds a bond and starts a lifecycle.
 - The lifecycle records check-in, check-out, claims and arbitration.
 - A remedy turns the facts into buckets; the bond pays them once.

@@ -1,15 +1,18 @@
 # Verification record
 
-> **Status:** The recorded run below predates the per-listing allocator. The allocator
-> suites pass on the development devnet, but a fresh-devnet record is required before the
-> allocator is described as verified. The formal model and its gates are current.
+> **Status:** One recorded 16-suite behavioural run on a fresh local devnet, after the
+> per-listing allocator switch. It covers the allocator's atomic acquisition, the lifecycle,
+> claims across five kinds, booking, pause, admin on all three `setAdmins` surfaces, events,
+> provider, listing, the golden transcript and per-scenario conservation. It does not cover
+> the two design-only claim classes or fleet-scale allocation. The formal model is recorded
+> separately below.
 
 ## Recorded run
 
 | Field | Value |
 |---|---|
 | Date | 2026-11-03 |
-| r-share commit | the commit that adds this chapter (`M2: run on the pinned node…`) |
+| r-share commit | `41b7e06` (allocator and formal model); this chapter is the documentation commit |
 | rholo | `e2d073dcd02f1e560ccb84749937138a1e184b0b` |
 | r-cash | `49b441d` |
 | Node | fresh local devnet, `localhost:40403` |
@@ -31,7 +34,7 @@ unit-booking   pass   two priced units, per-unit windows, rent 30, bond 80;
 unit-pause     pass   global pause/resume, provider pause/resume, unit admin pause
 unit-allocator pass atomic multi-slot acquire; one held slot refuses the set;
                       token-only confirm/release; pause, expiry and privacy checks
-unit-admin     pass   below-threshold and replay refusals; 3 admins, threshold 2
+unit-admin     pass   booking, listing and provider setAdmins; threshold and replay
 unit-events    pass   redeem, closeEvent and transferTicket
 unit-generality pass  five kinds validate; an unknown kind refuses
 unit-provider  pass   register stable, profile update, pause/resume, owner check
@@ -123,12 +126,26 @@ r-cash `09_identity` step to install the account factory, and repairs
 `deployments/devnet-v4.json` from the install state. r-share needs only the r-cash Root,
 clock, asset resolver and account factory; the AMM pool is not on its path.
 
+## Formal model record
+
+`make formal-check` on the same checkpoint:
+
+```
+lean: built, 37 axiom audits, no sorry/admit/axiom/native_decide
+vectors: 21 vectors current
+check-flows: 33 rules, 29 arms, 13 core arms proved-model
+```
+
+The model proves allocator single-owner and all-or-none acquisition, bounded holds,
+token-gated confirm/release, booking terminal progress, Bond single use and remedy
+conservation. It does not prove a refinement of Rholang; `spec/flows/core.yaml` is the
+traceability link. See [Formal model](formal-model.md).
+
 ## What is still not run
 
 - `providerDeliveryBreach` and `partialPerformance`, which have no code;
-- `setAdmins` payload cases (pause, threshold and replay are covered);
-- multi-slot and multi-guest races beyond one same-slot pair;
-- fleet fixtures beyond the claim path;
-- slot settlement outside the one booking scenario (the claim fixture uses a stub Bond).
+- fleet-scale allocation and station capacity;
+- provider-bond legs, obligation objects, generalized claims and evidence enforcement
+  (Phase 2 design).
 
 Do not describe those as passing. The coverage manifest records the real status.

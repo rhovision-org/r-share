@@ -13,7 +13,7 @@ pass before the milestone is considered done. The machine-readable version is
 | M0 | repo bootstrap, build inliner, static gates, book scaffold | `make spec-check`, `make docs-check` |
 | M1 | kernel, Root, admin, Payments adapter | `unit_root`, `unit_payments` |
 | M2 | provider, listing, unit and slot provisioning | `unit_provider`, `unit_listing` |
-| M3 | booking creation, escrow, same-block races, multi-slot atomicity | `unit_booking`, `unit_allocator` |
+| M3 | booking creation, escrow, atomic multi-slot allocation and same-slot contention | `unit_booking`, `unit_allocator` |
 | M4 | lifecycle, cancellation, checkout, settlement, deposits, disputes | `unit_lifecycle` |
 | M5 | events and tickets | `unit_events` |
 | M6 | 2-of-3 pause, delist, arbitration, rotation | `unit_admin` |

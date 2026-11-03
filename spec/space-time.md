@@ -5,7 +5,7 @@ obligation model in this document is the Phase 2 target. It is not implemented o
 "Universal" is a design goal, not a measured result: the recorded base run covers the root,
 payments, lifecycle and four claim classes across all five kinds (`unit_root`,
 `unit_payments`, `unit_lifecycle`, `unit_claims`). `providerDeliveryBreach`,
-`partialPerformance`, concurrency, conservation and pause are not verified.
+`partialPerformance` are not verified; the allocator, conservation and pause suites pass, and the allocator cornerstone is proved in `spec/lean`.
 
 ## 1. Purpose and scope
 
@@ -54,7 +54,7 @@ There are no timers; expiry is lazy and permissionless.
   covers a machine plus an operator plus a site.
 - **Unit** is a resource instance: room, seat, bike, vehicle or machine, with `attrs` and a
   schedule.
-- **Slot** is the atomic reservable interval and the concurrency cell. A slot is exactly
+- **Slot** is the atomic reservable interval. Slots live in the per-listing allocation cell. A slot is exactly
   `free`, `held` or `booked`. A disjoint slot never contends with another.
 
 The current implementation keeps units and slots in one per-listing allocation cell owned by `ListingContract`

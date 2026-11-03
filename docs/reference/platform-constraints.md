@@ -54,9 +54,9 @@ contracts and the build.
 
 The largest term is `22_booking_contract.rho` at roughly 23 KiB, well under the cap. The
 budget leaves room for a fork's additions. If a fork pushes a term over 56 KiB, split the
-factory from the instance. r-share keeps the listing factory and instance in one term and the
-unit/ledger factories with their instances; it splits by deploy file when depth or size
-requires it (terms, remedy, bond, booking).
+factory from the instance. r-share keeps the listing factory and the allocator in one term;
+the ledger and booking factories are separate deploy files. It splits by deploy file when
+depth or size requires it (terms, remedy, bond, booking).
 
 > **Where to go deeper.** [Concurrency doctrine](../concepts/concurrency-doctrine.md) is the
 > design response. [Test your fork](../guides/test-your-fork.md) runs the gates. [Contract

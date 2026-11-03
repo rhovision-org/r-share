@@ -5,7 +5,7 @@
 r-share has static, parser and one recorded 16-suite behavioural run. On 2026-11-03, a fresh
 devnet built from rholo `e2d073d` with r-cash `49b441d` passed every suite in
 `harness/run_suites.py`: root, payments, lifecycle, claims, pricing, guestbook, booking,
-pause, concurrency, admin, events, generality, provider, listing, the golden transcript and
+pause, allocator, admin, events, generality, provider, listing, the golden transcript and
 conservation. The claims run verifies `buyerUseBreach`, `noFaultCancellation`, `noShow` and
 `damage` across all five kinds (20/30 coverage cells); conservation verifies seven real
 settlement scenarios over a closed balance set. `providerDeliveryBreach` and
@@ -43,8 +43,8 @@ words are reserved for a recorded command and artifact.
 | `unit_guestbook` | passing; stable guest ledger |
 | `unit_booking` | passing; end-to-end rent, windows, Bond total and one-booking conservation |
 | `unit_pause` | passing; global, provider and unit pause |
-| `unit_allocator` | passing; one of two same-slot books wins |
-| `unit_admin` | passing; threshold and replay refusals |
+| `unit_allocator` | passing; atomic multi-slot acquire, token gates, pause, expiry, privacy |
+| `unit_admin` | passing; booking, listing and provider `setAdmins`, threshold and replay |
 | `unit_events` | passing; redeem, closeEvent and transferTicket |
 | `unit_generality` | passing; five kinds validate |
 | `unit_provider` | passing; register, profile, pause/resume, owner |
@@ -69,6 +69,7 @@ The M2–M7 suite milestones have landed; the recorded 16-suite campaign is in
 | Item | Scope | Status |
 |---|---|---|
 | M8 | property tests, soak and broader invariant checks | planned |
+| Formal model | `make formal-check`: Lean allocator/booking/bond/remedy model, vectors and flow manifest | implemented, proved-model |
 | Phase 2 | provider bond leg, obligation objects, generalized claims, evidence enforcement | design |
 
 The acceptance map is in `spec/acceptance.yaml`. No suite placeholder remains in the
@@ -90,6 +91,7 @@ These belong to the fork or to the regulated product around it.
 
 ```sh
 make spec-check       # build drift, budgets, architecture, captures, select, money
+make formal-check     # Lean build, axiom audit, vectors and flow manifest
 make parse-check      # render install terms and parse with the target node parser
 make docs-check       # book links, orphans, coverage and build
 ```

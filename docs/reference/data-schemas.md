@@ -47,7 +47,7 @@ as `Nil` is optional or absent.
  "pricePerSlot", "maxHoldBlocks", "status": "active" | "paused"}
 ```
 
-The record carries no slot capability. `UnitContract("info")` is gone; use
+The record carries no slot capability. Use
 `ListingContract("unit", unitId)` for this projection.
 
 `attrs` is free-form data. Do not put personal data or secrets in it.

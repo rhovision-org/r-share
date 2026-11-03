@@ -63,7 +63,7 @@ make unit-root unit-payments
 Override `RCASH_DIR` and `RHOLO_DIR` if your layout differs. The installer writes
 `deployments/devnet.json`; the devnet keys live in `.devnet/` and are gitignored.
 
-The behavioural suites for provider, listing, booking, concurrency, lifecycle, events, admin
+The behavioural suites for provider, listing, booking, allocator, lifecycle, events, admin
 and generality are placeholders until their milestones. They exit 2; they never report a
 pass.
 

@@ -1,7 +1,7 @@
 # Milestone acceptance map. Each entry names the suite that must pass.
 M0:
   static: [build-check, measure-check, check-arch, check-captures, check-select,
-           check-placeholders, check-money, parse-check]
+           check-placeholders, check-money, check-suites, check-allocator, parse-check]
 M1:
   suite: unit_root
   also: unit_payments
@@ -22,3 +22,7 @@ M7:
 M8:
   suite: unit_all
   invariants: spec/invariants.md
+M9:
+  formal: [lean-check, vectors, check-flows]
+  model: spec/lean
+  flows: spec/flows

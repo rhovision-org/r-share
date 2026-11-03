@@ -4,6 +4,9 @@ Authority order: `contracts/src` and the static gates > `docs/` > this file.
 
 ## Platform pitfalls
 
+- **One allocation cell per listing.** `ListingContract` owns units and slots in one
+  `listingState` cell; `acquire` is one take/commit and writes every requested slot or none.
+  Do not reintroduce per-slot contracts or publish a slot URI/release token.
 - **`select` is not committed choice.** `rholang/src/normalizer.rs:256-274` desugars
   `PChoice` into parallel `for` receives. Never use it for exclusivity. `make check-select`
   fails the build. Use one consumable datum.
@@ -57,6 +60,8 @@ make unit-all        # implemented behavioural suites
   a new booking arm, the primitive is wrong.
 - Never add a shared mutable counter or a mutable availability cache.
 - Every new arm needs a refusal test and an idempotency test.
+- Every cornerstone arm names a Lean declaration in `spec/flows/core.yaml`; a new
+  mutating arm without one is `owed`, not proved.
 - Every value-moving path needs a balance-conservation assertion.
 
 ## Documentation

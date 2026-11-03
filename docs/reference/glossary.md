@@ -69,7 +69,7 @@ and is no worse on bytes, cells, dispute steps or liveness, with one strict impr
 
 **release token** — a fresh unforgeable name that authorizes a slot release or confirm.
 
-**reset token** — the unit-held token that authorizes a provider reset of a slot.
+**reset** — a listing-owner arm that frees a slot; the per-listing allocator holds the state.
 
 **RaaS** — robotics-as-a-service; the north star.
 

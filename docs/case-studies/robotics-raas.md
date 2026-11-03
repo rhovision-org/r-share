@@ -26,12 +26,13 @@ one deploy, so a machine is never held without an operator:
 
 ```text
 unitSlots = [
-  {"unitUri": droneUri,    "slots": ["drone-3:field-7:2026-11-05T06:00"]},
-  {"unitUri": operatorUri, "slots": ["pilot-2:field-7:2026-11-05T06:00"]}
+  {"unitId": "drone-3",    "slots": ["field-7:2026-11-05T06:00"]},
+  {"unitId": "pilot-2",    "slots": ["field-7:2026-11-05T06:00"]}
 ]
 ```
 
-Both slots are held or neither is. The release token is shared, so a partial session cannot
+The per-listing allocator writes both reservations in one commit: both slots are held or
+neither is. The release token is shared, so a partial session cannot
 be released into a half-booked state.
 
 ## Concrete example

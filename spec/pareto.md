@@ -106,7 +106,7 @@ classes remain design, and the alternative rows are estimates.
 
 - It covers both obligations with no new trusted party; the 2-of-3 arbiter already exists.
 - It adds one bond contract and one claim class parameter, not a new state machine.
-- It keeps the per-slot, per-booking concurrency model.
+- It keeps a per-listing allocation cell; bookings on one listing serialize.
 - It excludes the oracle core because that adds a trust assumption the maintainer explicitly
   rejected.
 

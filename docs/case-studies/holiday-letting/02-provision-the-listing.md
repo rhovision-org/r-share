@@ -59,11 +59,11 @@ ListingContract!("ensureUnit", *deployerId, "room-1",
 2. refuses if the listing is paused or delisted, or the unit already exists;
 3. resolves `component:clock` and `component:unit-factory`;
 4. calls `UnitFactory!("validate", kind, slots, maxLeadBlocks, maxSlotBlocks)`;
-5. calls `UnitFactory!("create", ...)`, which spawns the `UnitContract` and one
-   `SlotContract` per slot;
-6. stores `unitId -> unitUri` on the listing.
+5. inserts the unit record and one `["free", 0]` record per slot into the listing's
+   allocation cell;
+6. stores `unitId -> unit record` and `slots[unitId]` on the listing.
 
-Replies `(true, unitUri)`. Refusals: `"not active"`, `"not owner"`, `"unit exists"`,
+Replies `(true, unitId)`. Refusals: `"not active"`, `"not owner"`, `"unit exists"`,
 `"schedule"`, `"slots"`, `"slot id"`, `"slot gap"`, `"slot lead"`, `"slot duration"`.
 
 Repeat for `room-2`.
@@ -83,22 +83,20 @@ ProviderContract (Ana)
   listings: { "casa-do-mar" -> listing URI }
 
 ListingContract (active)
-  units: { "room-1" -> unit URI, "room-2" -> unit URI }
-
-UnitContract room-1
-  slots: { "room-1:2026-11-05" -> slot URI, ... }
+  units: { "room-1" -> unit record, "room-2" -> unit record }
+  slots: { "room-1" -> { "room-1:2026-11-05" -> ["free", 0], ... } }
   schedule: { "room-1:2026-11-05" -> {12000, 12288}, ... }
 ```
 
-Each `SlotContract` has its own private `["free", 0]` cell. Two guests booking different
-nights of room 1 touch different cells.
+The per-listing allocation cell owns every slot. One `acquire` writes all requested slots
+or none; bookings on one listing serialize on that cell.
 
 ## Checks before you hand the listing to guests
 
 - `ListingContract!("isActive")` returns `true`.
 - `ListingContract!("units")` lists every room.
-- `UnitContract!("schedule", slotIds)` returns the heights you expect.
-- `UnitContract!("probe", slotIds)` returns `["free", 0]` for each slot.
+- `ListingContract!("schedule", unitId)` returns the heights you expect.
+- `ListingContract!("probe", unitSlots)` returns `["free", 0]` for each slot.
 - The terms hash you show off-chain matches `ListingContract!("info")`.
 
 > **Where to go deeper.** [Listings, units and slots](../../concepts/listings-units-slots.md)

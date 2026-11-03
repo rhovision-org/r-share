@@ -20,8 +20,8 @@ ledger.
 
 ```rholang
 ListingContract!("info", *ret)          // status, terms, termsHash, units
-UnitContract!("schedule", slotIds, *ret) // slotId -> {startHeight, endHeight}
-UnitContract!("probe", slotIds, *ret)    // slotId -> ["free", gen] | ["held", ...] | ["booked", ...]
+ListingContract!("schedule", unitId, *ret)   // slotId -> {startHeight, endHeight}
+ListingContract!("probe", unitSlots, *ret)   // slotId -> ["free", gen] | ["held", ...] | ["booked", ...]
 ```
 
 The off-chain product should show the guest the terms hash and the cancellation windows
@@ -31,7 +31,7 @@ before they sign. The booking call can enforce the hash.
 
 ```rholang
 GuestLedger!("book", *deployerId, listingUri,
-             [{"unitUri": room1Uri,
+             [{"unitId": "room-1",
                "slots": ["room-1:2026-11-05",
                          "room-1:2026-11-06",
                          "room-1:2026-11-07"]}],
