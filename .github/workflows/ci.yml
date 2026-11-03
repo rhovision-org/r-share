@@ -84,11 +84,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@1.95.0
       - run: make venv
       - name: r-cash harness dependencies
         env:
           RCASH_DIR: ${{ github.workspace }}/rholo
         run: make -C "$RCASH_DIR" venv
+      - name: Build the rholo devnet image
+        env:
+          RCASH_DIR: ${{ github.workspace }}/rholo
+          RHOLO_DIR: ${{ github.workspace }}/rnode-rust
+        run: make -C "$RCASH_DIR" image RHOLO_DIR="$RHOLO_DIR"
       - name: devnet and suites
         env:
           RCASH_DIR: ${{ github.workspace }}/rholo
