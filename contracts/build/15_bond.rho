@@ -7,26 +7,30 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
-  bondPaySequence, bondResolve, bondSum
+  bondPaySequence, bondResolve, bondSum,
+  resolveComponent
 in {
-  contract bondResolve(@key, ret) = {
-    new rCh, Root, kCh in {
-      rl!(`__ROOT_URI__`, *rCh) |
-      for (Root <- rCh) {
-        Root!("resolve", key, 1, *kCh) |
-        for (@r <- kCh) {
-          match r {
-            (true, uri, _) => {
-              new cCh in {
-                rl!(uri, *cCh) |
-                for (C <- cCh) { ret!((true, *C)) }
-              }
+contract resolveComponent(@key, ret) = {
+  new rCh, Root, kCh in {
+    rl!(`__ROOT_URI__`, *rCh) |
+    for (Root <- rCh) {
+      Root!("resolve", key, 1, *kCh) |
+      for (@r <- kCh) {
+        match r {
+          (true, uri, _) => {
+            new cCh in {
+              rl!(uri, *cCh) |
+              for (C <- cCh) { ret!((true, *C)) }
             }
-            _ => { ret!((false, "unavailable", key)) }
           }
+          _ => { ret!((false, "unavailable", key)) }
         }
       }
     }
+  }
+} |
+  contract bondResolve(@key, ret) = {
+    resolveComponent!(key, *ret)
   } |
 
   contract bondSum(@buckets, @i, @acc, ret) = {

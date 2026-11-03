@@ -27,8 +27,10 @@ Authority order: `contracts/src` and the static gates > `docs/` > this file.
 - **`explore-deploy` has no block context.** Anything reading `rho:block:data` must be a
   signed deploy.
 - **Deploy lifespan is 50 blocks.** Anchor `validAfterBlockNumber` at the tip.
-- **r-cash capabilities are resolved per arm**, never captured in a bundle. Only the r-cash
-  Root URI string is stored in the adapter.
+- **r-cash capabilities are resolved per arm**, never captured in a bundle. The common
+  resolution body is `lib/Resolve.rho`; the source metric counts one copy, but each inlined
+  call performs its own Root lookup. Only the r-cash Root URI string is stored in the
+  adapter.
 - **Admin actions call the deployed `AdminGuard`** through the shared
   `lib/AdminGuard.rho` wrapper; owner checks use the inlined `Auth` fragment.
   `lib/Guard.rho` is inlined only in the bootstrap Root, which cannot resolve itself before

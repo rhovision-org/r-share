@@ -9,8 +9,10 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
-  adminGuard, authIsOwner, authOwner, unitAllConfirm, unitAllHold, unitAllRelease, unitClock, unitSchedule, unitTerms, unitMin, unitMax, unitSlotScan, unitUnitCheck, unitScanUnits
+  adminGuard, authIsOwner, authOwner, unitAllConfirm, unitAllHold, unitAllRelease, unitClock, unitSchedule, unitTerms, unitMin, unitMax, unitSlotScan, unitUnitCheck, unitScanUnits,
+  resolveComponent
 in {
+  // @@INLINE:lib/Resolve.rho@@
   // @@INLINE:lib/Auth.rho@@
 
   // @@INLINE:lib/AdminGuard.rho@@
@@ -30,16 +32,7 @@ in {
   } |
 
   contract unitTerms(ret) = {
-    new rCh, Root, uCh, cCh in {
-      rl!(`__ROOT_URI__`, *rCh) |
-      for (Root <- rCh) {
-        Root!("resolve", "component:terms", 1, *uCh) |
-        for (@(true, uri, _) <- uCh) {
-          rl!(uri, *cCh) |
-          for (Terms <- cCh) { ret!((true, *Terms)) }
-        }
-      }
-    }
+    resolveComponent!("component:terms", *ret)
   } |
 
   contract UnitFactory(@"validate", @kind, @slots, @maxLeadBlocks,

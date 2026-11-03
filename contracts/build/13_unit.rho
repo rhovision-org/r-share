@@ -9,8 +9,28 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
-  adminGuard, authIsOwner, authOwner, unitAllConfirm, unitAllHold, unitAllRelease, unitClock, unitSchedule, unitTerms, unitMin, unitMax, unitSlotScan, unitUnitCheck, unitScanUnits
+  adminGuard, authIsOwner, authOwner, unitAllConfirm, unitAllHold, unitAllRelease, unitClock, unitSchedule, unitTerms, unitMin, unitMax, unitSlotScan, unitUnitCheck, unitScanUnits,
+  resolveComponent
 in {
+contract resolveComponent(@key, ret) = {
+  new rCh, Root, kCh in {
+    rl!(`__ROOT_URI__`, *rCh) |
+    for (Root <- rCh) {
+      Root!("resolve", key, 1, *kCh) |
+      for (@r <- kCh) {
+        match r {
+          (true, uri, _) => {
+            new cCh in {
+              rl!(uri, *cCh) |
+              for (C <- cCh) { ret!((true, *C)) }
+            }
+          }
+          _ => { ret!((false, "unavailable", key)) }
+        }
+      }
+    }
+  }
+} |
 // Deployer identity helpers. r-cash owns accounts; r-share only derives the owner id.
 
 contract authOwner(dId, ret) = {
@@ -75,16 +95,7 @@ contract adminGuard(@domain, @nonce, @action, @args, @sigs,
   } |
 
   contract unitTerms(ret) = {
-    new rCh, Root, uCh, cCh in {
-      rl!(`__ROOT_URI__`, *rCh) |
-      for (Root <- rCh) {
-        Root!("resolve", "component:terms", 1, *uCh) |
-        for (@(true, uri, _) <- uCh) {
-          rl!(uri, *cCh) |
-          for (Terms <- cCh) { ret!((true, *Terms)) }
-        }
-      }
-    }
+    resolveComponent!("component:terms", *ret)
   } |
 
   contract UnitFactory(@"validate", @kind, @slots, @maxLeadBlocks,

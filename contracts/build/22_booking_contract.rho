@@ -10,8 +10,28 @@ new
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
   adminGuard, authIsOwner, authOwner, bookingResolve, bookingNow, bookingPayments,
-  bookingRemedy
+  bookingRemedy,
+  resolveComponent
 in {
+contract resolveComponent(@key, ret) = {
+  new rCh, Root, kCh in {
+    rl!(`__ROOT_URI__`, *rCh) |
+    for (Root <- rCh) {
+      Root!("resolve", key, 1, *kCh) |
+      for (@r <- kCh) {
+        match r {
+          (true, uri, _) => {
+            new cCh in {
+              rl!(uri, *cCh) |
+              for (C <- cCh) { ret!((true, *C)) }
+            }
+          }
+          _ => { ret!((false, "unavailable", key)) }
+        }
+      }
+    }
+  }
+} |
 // Deployer identity helpers. r-cash owns accounts; r-share only derives the owner id.
 
 contract authOwner(dId, ret) = {
@@ -63,23 +83,7 @@ contract adminGuard(@domain, @nonce, @action, @args, @sigs,
 
 
 contract bookingResolve(@key, ret) = {
-    new rCh, Root, kCh in {
-      rl!(`__ROOT_URI__`, *rCh) |
-      for (Root <- rCh) {
-        Root!("resolve", key, 1, *kCh) |
-        for (@r <- kCh) {
-          match r {
-            (true, uri, _) => {
-              new cCh in {
-                rl!(uri, *cCh) |
-                for (C <- cCh) { ret!((true, *C)) }
-              }
-            }
-            _ => { ret!((false, "unavailable", key)) }
-          }
-        }
-      }
-    }
+    resolveComponent!(key, *ret)
   } |
   contract bookingNow(ret) = {
     new cCh in {

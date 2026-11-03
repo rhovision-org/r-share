@@ -8,30 +8,16 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
-  GuestLedgerBook, GuestLedgerDrop, GuestLedgerFinish, GuestLedgerGate, GuestLedgerPay, GuestLedgerReserve, GuestLedgerSpawn, authIsOwner, authOwner, ledgerAdmin, ledgerBookingFactory, ledgerBookListing, ledgerConfirmUnits, ledgerHoldUnits, ledgerListingCheck, ledgerNow, ledgerOpenListing, ledgerPayments, ledgerProviderActive, ledgerReleaseUnits, ledgerResolve
+  GuestLedgerBook, GuestLedgerDrop, GuestLedgerFinish, GuestLedgerGate, GuestLedgerPay, GuestLedgerReserve, GuestLedgerSpawn, authIsOwner, authOwner, ledgerAdmin, ledgerBookingFactory, ledgerBookListing, ledgerConfirmUnits, ledgerHoldUnits, ledgerListingCheck, ledgerNow, ledgerOpenListing, ledgerPayments, ledgerProviderActive, ledgerReleaseUnits, ledgerResolve,
+  resolveComponent
 in {
+  // @@INLINE:lib/Resolve.rho@@
   // @@INLINE:lib/Auth.rho@@
 
   // ---- stateless resolution and scan helpers ------------------------------------------
 
   contract ledgerResolve(@key, ret) = {
-    new rCh, Root, kCh in {
-      rl!(`__ROOT_URI__`, *rCh) |
-      for (Root <- rCh) {
-        Root!("resolve", key, 1, *kCh) |
-        for (@r <- kCh) {
-          match r {
-            (true, uri, _) => {
-              new cCh in {
-                rl!(uri, *cCh) |
-                for (C <- cCh) { ret!((true, *C)) }
-              }
-            }
-            _ => { ret!((false, "unavailable", key)) }
-          }
-        }
-      }
-    }
+    resolveComponent!(key, *ret)
   } |
   contract ledgerNow(ret) = {
     new cCh in {
@@ -41,9 +27,15 @@ in {
       }
     }
   } |
-  contract ledgerPayments(ret) = { ledgerResolve!("component:payments", *ret) } |
-  contract ledgerBookingFactory(ret) = { ledgerResolve!("component:booking-factory", *ret) } |
-  contract ledgerAdmin(ret) = { ledgerResolve!("component:admin", *ret) } |
+  contract ledgerPayments(ret) = {
+    resolveComponent!("component:payments", *ret)
+  } |
+  contract ledgerBookingFactory(ret) = {
+    resolveComponent!("component:booking-factory", *ret)
+  } |
+  contract ledgerAdmin(ret) = {
+    resolveComponent!("component:admin", *ret)
+  } |
   contract ledgerProviderActive(@providerUri, ret) = {
     if (providerUri == Nil) {
       ret!((true, true))

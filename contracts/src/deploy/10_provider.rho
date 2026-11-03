@@ -7,8 +7,10 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
-  adminGuard, authIsOwner, authOwner, providerAdmins, providerPayments
+  adminGuard, authIsOwner, authOwner, providerAdmins, providerPayments,
+  resolveComponent
 in {
+  // @@INLINE:lib/Resolve.rho@@
   // @@INLINE:lib/Auth.rho@@
 
   // @@INLINE:lib/AdminGuard.rho@@
@@ -28,13 +30,12 @@ in {
   } |
 
   contract providerAdmins(ret) = {
-    new rCh, Root, aCh, cCh in {
-      rl!(`__ROOT_URI__`, *rCh) |
-      for (Root <- rCh) {
-        Root!("resolve", "component:admin", 1, *aCh) |
-        for (@(true, uri, _) <- aCh) {
-          rl!(uri, *cCh) |
-          for (ShareAdmin <- cCh) { ShareAdmin!("keys", *ret) }
+    new cCh in {
+      resolveComponent!("component:admin", *cCh) |
+      for (@r <- cCh) {
+        match r {
+          (true, ShareAdmin) => { @ShareAdmin!("keys", *ret) }
+          _ => { ret!(r) }
         }
       }
     }

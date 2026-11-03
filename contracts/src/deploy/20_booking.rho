@@ -7,28 +7,14 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
-  authIsOwner, authOwner, guestResolve
+  authIsOwner, authOwner, guestResolve,
+  resolveComponent
 in {
+  // @@INLINE:lib/Resolve.rho@@
   // @@INLINE:lib/Auth.rho@@
 
   contract guestResolve(@key, ret) = {
-    new rCh, Root, kCh in {
-      rl!(`__ROOT_URI__`, *rCh) |
-      for (Root <- rCh) {
-        Root!("resolve", key, 1, *kCh) |
-        for (@r <- kCh) {
-          match r {
-            (true, uri, _) => {
-              new cCh in {
-                rl!(uri, *cCh) |
-                for (C <- cCh) { ret!((true, *C)) }
-              }
-            }
-            _ => { ret!((false, "unavailable", key)) }
-          }
-        }
-      }
-    }
+    resolveComponent!(key, *ret)
   } |
 
   contract GuestBook(@"getOrCreate", dId, ret) = {
