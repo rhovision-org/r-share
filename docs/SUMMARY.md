@@ -55,6 +55,7 @@
 - [System channels](reference/system-channels.md)
 - [Invariants](reference/invariants.md)
 - [Platform constraints](reference/platform-constraints.md)
+- [Verification record](reference/verification.md)
 - [Install order and component keys](reference/install-order-and-keys.md)
 - [Obligation schema](reference/obligation-schema.md)
 - [Bond arms](reference/bond-arms.md)

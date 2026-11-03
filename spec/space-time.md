@@ -2,6 +2,8 @@
 
 **Status:** Design proposal. Phase 1 (the modular base layer) is implemented; the bilateral
 obligation model in this document is the Phase 2 target. It is not implemented or verified.
+"Universal" is a design goal, not a measured result: the recorded base run covers lodging
+(`unit_root`, `unit_payments`, `unit_lifecycle`); the other classes remain mapping-only.
 
 ## 1. Purpose and scope
 

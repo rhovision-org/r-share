@@ -74,6 +74,7 @@ as `Nil` is optional or absent.
            "redeemed" | "settled" | "rejected" | "cancelled" |
            "expired" | "noShow" | "disputed",
  "checkInAtHeight", "checkOutAtHeight", "depositReleaseHeight",
+ "disputeAtHeight", "rejectReason",
  "ticket": {"holderId", "redeemed", "redeemedAtHeight", "transferCutoffHeight"},
  "claim": {"amount", "evidenceHash", "atHeight"},
  "ops": {opId -> result}, "nonce"}

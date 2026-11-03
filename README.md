@@ -41,11 +41,13 @@ Devnet-only, unaudited, and pinned to r-cash v0.5 at commit `49b441d`. Do not pu
 on it.
 
 The 13 install terms build, measure, and parse with the target node's own parser;
-`make spec-check` passes. Only `unit_root` and `unit_payments` are implemented behavioural
-suites; the rest are milestone placeholders that exit 2. The devnet available while this
-repository was created was degraded and refused new work, so no behavioural suite has a
-recorded passing run here. "Implemented" means source plus static/parser gates, not
-behavioural verification. See [Status, scope and honest limits](docs/orientation/status-and-scope.md).
+`make spec-check` passes. On 2026-11-03 a fresh devnet built from rholo `e2d073d` with
+r-cash `49b441d` recorded passing runs for `unit_root`, `unit_payments` and
+`unit_lifecycle`. The lifecycle suite verifies the dispute gate, the arbitration gate and
+permissionless `resolveDispute`. The remaining suites are placeholders that exit 2.
+Coverage is still 0/30 `passing`: the claim-class scenarios are not implemented, and
+`mapping` is not coverage. See
+[Status, scope and honest limits](docs/orientation/status-and-scope.md).
 
 ## Quickstart
 
@@ -60,8 +62,8 @@ make docs-check
 Optional devnet path (Docker plus sibling r-cash and node checkouts):
 
 ```sh
-make devnet rcash-install keys install
-make unit-root unit-payments
+make devnet-up keys rcash-bootstrap install
+make unit-all
 ```
 
 See [Fork and run](docs/guides/fork-and-run.md) for the full setup.

@@ -10,7 +10,9 @@ includes it so the book and the repository cannot drift.
 
 ## How the invariants are used
 
-- Every behavioural suite checks conservation after its scenarios.
+- The implemented suites are `unit_root`, `unit_payments` and `unit_lifecycle`. Only
+  `unit_lifecycle` touches a money path; `harness/conservation.py` is not implemented yet,
+  so conservation is not yet checked by a suite.
 - The M8 hardening milestone adds property tests and a soak test across disjoint slots.
 - A review that changes a money path must say which invariant it preserves and how.
 - A failure is a bug in the contract, not a flaky test; fix the contract or the test.

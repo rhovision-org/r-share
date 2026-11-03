@@ -2,10 +2,11 @@
 
 > **Status:** This chapter defines the labels used everywhere else in the book.
 
-r-share has static and parser evidence, but no recorded behavioural run on a healthy devnet.
-The devnet available while the repository was created was degraded and refused new work, so
-the behavioural suites have not been executed here. Every claim in this book is labelled
-accordingly.
+r-share has static, parser and one recorded behavioural run. On 2026-11-03, a fresh devnet
+built from rholo `e2d073d` with r-cash `49b441d` passed `unit_root`, `unit_payments` and
+`unit_lifecycle`. The lifecycle run verifies the dispute gate, the arbitration gate and
+permissionless `resolveDispute`. Everything else is still mapping, design or not
+implemented; every claim in this book is labelled accordingly.
 
 ## Status labels
 
@@ -30,8 +31,10 @@ words are reserved for a recorded command and artifact.
 | No `select`, no capability captures, no unknown placeholders | `make check-select`, `make check-captures`, `make check-placeholders` |
 | Integer money only | `make check-money` |
 | Renderer | `harness/install.py --dry-run` renders every term with real placeholders |
-| `unit_root` | implemented suite; needs a healthy devnet |
-| `unit_payments` | implemented suite; needs a healthy devnet |
+| `unit_root` | passing on the recorded devnet |
+| `unit_payments` | passing on the recorded devnet |
+| `unit_lifecycle` | passing; dispute gate, arbitrate gate and `resolveDispute` |
+| Devnet bootstrap | `make devnet-up`, `make rcash-bootstrap`, `make install` |
 
 ## What is a design proposal
 

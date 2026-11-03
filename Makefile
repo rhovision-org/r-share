@@ -7,7 +7,7 @@ NODE ?= http://localhost:40403
 .PHONY: venv build build-check measure measure-check metrics metrics-compare \
         metrics-baseline check-arch check-captures check-select check-placeholders \
         check-money spec-check parse-check docs docs-serve docs-check devnet devnet-up \
-        devnet-wait down status rcash-install keys install setup unit-root unit-payments \
+        devnet-wait down status rcash-install rcash-bootstrap keys install setup unit-root unit-payments \
         unit-provider unit-listing unit-booking unit-concurrency unit-lifecycle \
         unit-events unit-admin unit-generality unit-conservation unit-behavior unit-all \
         check ci clean
@@ -105,13 +105,16 @@ status:
 rcash-install:
 	$(MAKE) -C $(RCASH_DIR) install RHOLO_DIR=$(abspath $(RHOLO_DIR))
 
+rcash-bootstrap:
+	$(PY) harness/rcash_bootstrap.py --rcash $(RCASH_DIR) --node $(NODE)
+
 keys:
 	$(PY) tools/keygen.py --out .devnet/keys.json
 
 install:
 	$(PY) harness/install.py --node $(NODE)
 
-setup: devnet keys rcash-install install
+setup: devnet-up keys rcash-bootstrap install
 
 unit-root:
 	$(PY) harness/unit_root.py

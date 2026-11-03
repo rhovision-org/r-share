@@ -265,6 +265,7 @@ BookingContract("settle", @opId, ret) -> (true, Nil) | (false, "closed" | "claim
 BookingContract("claimDeposit", dId, @opId, @amount, @evidenceHash, ret) -> (true, Nil) | (false, "not owner" | "closed" | "too late" | "amount" | "replay")
 BookingContract("resolveDeposit", @opId, ret) -> (true, Nil) | (false, "closed" | "not claimed" | "too early" | "bps" | "replay")
 BookingContract("dispute", dId, @opId, @reasonHash, ret) -> (true, Nil) | (false, "not party" | "closed" | "replay")
+BookingContract("resolveDispute", @opId, ret) -> (true, Nil) | (false, "closed" | "too early" | "release" | "bps" | "replay")
 BookingContract("arbitrate", @nonce, @splitBps, @sigs, @opId, ret) -> (true, Nil) | (false, "replay" | "below threshold" | "bps" | "closed")
 BookingContract("expire", @opId, ret) -> (true, Nil) | (false, "closed" | "too early" | "replay")
 BookingContract("claimNoShow", dId, @opId, ret) -> (true, Nil) | (false, "not owner" | "closed" | "too early" | "bps" | "replay")
