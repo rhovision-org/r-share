@@ -158,6 +158,7 @@ The reference client has its own recorded campaign on the same node.
 | Field | Value |
 |---|---|
 | Date | 2026-11-04 |
+| r-share client commit | `e84af13` |
 | rholo | `e2d073dcd02f1e560ccb84749937138a1e184b0b` |
 | r-cash | `49b441d` |
 | Rust | 1.95.0 |
