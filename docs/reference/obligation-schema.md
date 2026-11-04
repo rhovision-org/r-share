@@ -48,5 +48,5 @@ the single authoritative cell.
 
 > **Where to go deeper.** [Obligations and bonds](../concepts/obligations-and-bonds.md) is the
 > narrative. [Claim classes](claim-classes.md) is the remedy vocabulary. [Space-time
-> spec](https://github.com/PatrickMockridge/r-share/blob/main/spec/space-time.md) is the
+> spec](https://github.com/rhovision-org/r-share/blob/main/spec/space-time.md) is the
 > normative proposal.

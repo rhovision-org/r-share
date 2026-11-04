@@ -18,7 +18,7 @@ local r-cash devnet with r-share installed.
 ## Clone and check the static surface
 
 ```sh
-git clone git@github.com:PatrickMockridge/r-share.git
+git clone git@github.com:rhovision-org/r-share.git
 cd r-share
 make venv
 make spec-check

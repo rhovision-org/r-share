@@ -12,8 +12,8 @@ create-missing = false
 [output.html]
 default-theme = "light"
 preferred-dark-theme = "navy"
-git-repository-url = "https://github.com/PatrickMockridge/r-share"
-edit-url-template = "https://github.com/PatrickMockridge/r-share/edit/main/docs/{path}"
+git-repository-url = "https://github.com/rhovision-org/r-share"
+edit-url-template = "https://github.com/rhovision-org/r-share/edit/main/docs/{path}"
 
 [output.html.fold]
 enable = true

@@ -19,7 +19,7 @@ whether the assertion is true; it applies a default and a bounded override.
 | `partialPerformance` | either party | pro-rata rent by `performedBps`; fee pro-rata; remainder refunded | `performedBps` within the band |
 
 The full table, pseudocode and worked examples are in
-[the remedy table](https://github.com/PatrickMockridge/r-share/blob/main/spec/remedy-table.md).
+[the remedy table](https://github.com/rhovision-org/r-share/blob/main/spec/remedy-table.md).
 
 ## One claim arm
 
@@ -58,5 +58,5 @@ Those belong to the off-chain product or a fork with a different trust model.
 
 > **Where to go deeper.** [Claim classes](../reference/claim-classes.md) is the compact
 > reference. [Obligations and bonds](obligations-and-bonds.md) is the duty model. [Pareto
-> analysis](https://github.com/PatrickMockridge/r-share/blob/main/spec/pareto.md) explains
+> analysis](https://github.com/rhovision-org/r-share/blob/main/spec/pareto.md) explains
 > the trade.

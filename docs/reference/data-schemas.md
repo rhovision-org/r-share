@@ -151,5 +151,5 @@ before paying.
 ```
 
 > **Where to go deeper.** [Arm reference](arms.md) is the signatures. [Data schemas in the
-> source](https://github.com/PatrickMockridge/r-share/blob/main/contracts/src/deploy/22_booking_contract.rho)
+> source](https://github.com/rhovision-org/r-share/blob/main/contracts/src/deploy/22_booking_contract.rho)
 > is the booking state. [Glossary](glossary.md) defines the terms.

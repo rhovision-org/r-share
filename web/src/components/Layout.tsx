@@ -51,7 +51,7 @@ export default function Layout() {
       </main>
       <footer className="footer">
         <span>
-          Devnet only · no real funds · <a href="https://github.com/PatrickMockridge/r-share">source (AGPL-3.0-or-later)</a>
+          Devnet only · no real funds · <a href="https://github.com/rhovision-org/r-share">source (AGPL-3.0-or-later)</a>
         </span>
       </footer>
       <Unlock />

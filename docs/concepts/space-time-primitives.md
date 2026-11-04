@@ -61,5 +61,5 @@ without rewriting the booking path.
 
 > **Where to go deeper.** [Obligations and bonds](obligations-and-bonds.md) applies the model
 > to the two duties. [Remedies and claims](remedies-and-claims.md) is the money table.
-> [Space-time spec](https://github.com/PatrickMockridge/r-share/blob/main/spec/space-time.md)
+> [Space-time spec](https://github.com/rhovision-org/r-share/blob/main/spec/space-time.md)
 > is the normative proposal.

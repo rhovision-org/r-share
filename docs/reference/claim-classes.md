@@ -41,5 +41,5 @@ bond or negative), `"evidence"` (missing or malformed hash), `"bps"` (split outs
 class bound), `"closed"` (terminal), `"replay"` (opId used).
 
 > **Where to go deeper.** [Remedies and claims](../concepts/remedies-and-claims.md) is the
-> narrative. [Remedy table](https://github.com/PatrickMockridge/r-share/blob/main/spec/remedy-table.md)
+> narrative. [Remedy table](https://github.com/rhovision-org/r-share/blob/main/spec/remedy-table.md)
 > is the normative table. [Bond arms](bond-arms.md) is the money side.

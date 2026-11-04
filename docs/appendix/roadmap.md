@@ -36,7 +36,7 @@ pass before the milestone is considered done. The machine-readable version is
 
 ## Universal-core roadmap
 
-The [space-time proposal](https://github.com/PatrickMockridge/r-share/blob/main/spec/space-time.md)
+The [space-time proposal](https://github.com/rhovision-org/r-share/blob/main/spec/space-time.md)
 adds a second, design-first track after the primitive milestones:
 
 | Phase | Adds | Must not add |

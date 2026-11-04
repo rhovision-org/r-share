@@ -51,7 +51,7 @@ If you write about the primitives, cite the repository and the book:
 
 ```
 r-share: booking and rental primitives for rholo.
-https://github.com/PatrickMockridge/r-share
+https://github.com/rhovision-org/r-share
 ```
 
 If you build a product, say that it is built on r-share and that you are responsible for
