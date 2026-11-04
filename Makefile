@@ -228,7 +228,7 @@ web-test:
 web-build: web-install
 	cd web && npm run build
 
-web-e2e: web-install
+web-e2e: web-install client-keystores
 	cd web && npm run test:e2e
 
 check: spec-check parse-check docs-check formal-check

@@ -170,6 +170,8 @@ jobs:
         run: make client-journey
       - name: Build the web app
         run: npm --prefix web run build
+      - name: Create encrypted admin profiles for the browser journey
+        run: make client-keystores
       - name: Install Playwright Chromium
         run: cd web && npx playwright install --with-deps chromium
       - name: Run browser journeys
