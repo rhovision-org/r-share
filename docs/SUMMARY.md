@@ -43,6 +43,9 @@
 - [Fork and run](guides/fork-and-run.md)
 - [Create a listing and book it](guides/create-a-listing-and-book-it.md)
 - [Write a client](guides/write-a-client.md)
+- [Use the web app](guides/use-the-web-app.md)
+- [Run a provider](guides/run-a-provider.md)
+- [Fund a devnet account](guides/fund-a-devnet-account.md)
 - [Extend a policy](guides/extend-a-policy.md)
 - [Test your fork](guides/test-your-fork.md)
 - [Operate safely](guides/operate-safely.md)
@@ -50,6 +53,11 @@
 # Part V — Reference
 
 - [Contract map](reference/contract-map.md)
+- [Client architecture](reference/client-architecture.md)
+- [Client reads](reference/client-reads.md)
+- [Discovery and share links](reference/discovery-and-share-links.md)
+- [Admin multisig](reference/admin-multisig.md)
+- [Status vocabulary](reference/status-vocabulary.md)
 - [Arm reference](reference/arms.md)
 - [Data schemas](reference/data-schemas.md)
 - [System channels](reference/system-channels.md)

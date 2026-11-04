@@ -38,6 +38,24 @@ Authority order: `contracts/src` and the static gates > `docs/` > this file.
   `lib/AdminGuard.rho` wrapper; owner checks use the inlined `Auth` fragment.
   `lib/Guard.rho` is inlined only in the bootstrap Root, which cannot resolve itself before
   it is registered.
+- **The client key never crosses into JavaScript.** It is created/decrypted in
+  `rshare-wasm`; the browser stores only a Web3 v3 keystore in IndexedDB. Do not add a
+  plaintext-key path or a second TypeScript signer.
+- **Explore vs signed.** `explore-deploy` has no block context and no deployer. `quote`,
+  guest ledger/ops, account balance and every write are signed. Do not "fix" a stale quote
+  by switching it to explore.
+- **Finality.** A processed deploy is not success. Require finalized + processedWithSuccess
+  + `(true, …)`. Never retry a value-moving deploy with a new op id unless you proved the
+  first had no effect.
+- **Client term budget is 56 KiB**, checked by `rshare-core` before signing. The node cap is
+  64 KiB. Keep previews under the budget.
+- **No indexer.** Discovery is a curated catalogue plus share links. A provider booking
+  inbox requires the guest's link. Do not add a fake search or inbox.
+- **`setAdmins` payload quirk.** The signed payload uses the comma-joined public-key text
+  and threshold; the call uses byte arrays. Build payloads with the deployed
+  `Codec("adminPayload")`, not TypeScript string joining.
+- **Admin nonce.** Listing/provider/booking expose a nonce; global `ShareAdmin` does not.
+  Use height + margin and treat `replay` as a state read, not a retry.
 
 ## Commands
 
@@ -54,6 +72,14 @@ make rcash-bootstrap # install the r-cash components r-share needs
 make keys install    # copy the keys and install r-share
 make unit-all        # all 16 behavioural suites
 make formal-check    # Lean build, axiom audit, vectors and flow manifest
+make client-test     # Rust SDK, core and keystore tests
+make client-lint     # fmt and clippy on the client crates
+make client-wasm     # wasm32 check
+make client-check    # client gates + WASM smoke + web tests/build
+make client-fixtures # real provider/listing/unit + catalogue
+make client-journey  # CLI journey with positive/negative checks
+make client-keystores # encrypted admin1/admin2 profiles for the browser
+npm --prefix web run dev / test / test:e2e
 ```
 
 ## Rules for changes

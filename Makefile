@@ -16,7 +16,10 @@ export RHOLO_DIR := $(abspath $(RHOLO_DIR))
         unit-provider unit-listing unit-booking unit-allocator unit-lifecycle \
         unit-claims unit-pricing unit-guestbook unit-events unit-admin unit-pause \
         unit-generality unit-conservation unit-behavior unit-all \
-        check ci clean lean-build lean-check vectors vectors-write check-flows formal-check
+        check ci clean lean-build lean-check vectors vectors-write check-flows formal-check \
+        client-lint client-test client-wasm client-wasm-smoke client-check \
+        client-fixtures client-journey client-keystores \
+        web-install web-test web-build web-e2e
 
 venv:
 	python3 -m venv .venv
@@ -186,6 +189,47 @@ check-flows:
 	$(PY) tools/check_flows.py
 
 formal-check: lean-check vectors check-flows
+
+# ---- reference client ---------------------------------------------------------------
+
+client-lint:
+	cargo fmt --all -- --check
+	cargo clippy -p rshare-core -p rshare-keystore -p rshare-sdk -p rshare-cli --all-targets -- -D warnings
+
+client-test:
+	cargo test -p rshare-core -p rshare-keystore -p rshare-sdk
+
+client-wasm:
+	cargo check -p rshare-wasm --target wasm32-unknown-unknown
+
+web-install:
+	cd web && npm ci --no-audit --no-fund
+
+client-wasm-smoke: web-install
+	cd web && npm run test:wasm
+
+client-check: client-lint client-test client-wasm client-wasm-smoke
+	cd web && npm run typecheck && npm test && npm run build
+
+client-fixtures:
+	cargo run -q -p rshare-cli -- devnet fixtures
+
+client-journey:
+	cargo run -q -p rshare-cli -- devnet journey --json
+
+client-keystores:
+	mkdir -p .devnet/keystores
+	cargo run -q -p rshare-cli -- keystore encrypt --name admin1 --password e2e-admin-password --out .devnet/keystores/admin1.json
+	cargo run -q -p rshare-cli -- keystore encrypt --name admin2 --password e2e-admin-password --out .devnet/keystores/admin2.json
+
+web-test:
+	cd web && npm test
+
+web-build: web-install
+	cd web && npm run build
+
+web-e2e: web-install
+	cd web && npm run test:e2e
 
 check: spec-check parse-check docs-check formal-check
 

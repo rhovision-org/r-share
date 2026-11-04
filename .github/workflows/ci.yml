@@ -79,6 +79,40 @@ jobs:
           mdbook --version
       - run: make docs-check PY=python3
 
+  client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.95.0
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@wasm-pack
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Rust format and lint
+        run: make client-lint
+      - name: Rust tests
+        run: make client-test
+      - name: WASM type check
+        run: make client-wasm
+      - name: Web dependencies
+        run: npm ci --prefix web
+      - name: Build WASM
+        run: npm --prefix web run wasm:build
+      - name: WASM smoke (offline)
+        run: npm --prefix web run test:wasm
+      - name: Web typecheck
+        run: npm --prefix web run typecheck
+      - name: Web unit tests
+        run: npm --prefix web test
+      - name: Web build
+        run: npm --prefix web run build
+
   devnet:
     # The behavioural campaign needs Docker, r-cash and a local rholo devnet. It is not
     # run on every PR. Run it manually or on the nightly schedule.
@@ -122,6 +156,24 @@ jobs:
         run: make keys install
       - name: Run behavioural suites
         run: make unit-all
+      - uses: taiki-e/install-action@wasm-pack
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install web dependencies
+        run: npm ci --prefix web
+      - name: Create client fixtures and catalogue
+        run: make client-fixtures
+      - name: Run the client journey
+        run: make client-journey
+      - name: Build the web app
+        run: npm --prefix web run build
+      - name: Install Playwright Chromium
+        run: cd web && npx playwright install --with-deps chromium
+      - name: Run browser journeys
+        run: cd web && npx playwright test
       - name: Devnet diagnostics
         if: failure()
         run: |
@@ -133,5 +185,8 @@ jobs:
         if: always()
         with:
           name: suite-results
-          path: deployments/suite-results.json
+          path: |
+            deployments/suite-results.json
+            deployments/client-results.json
+            web/test-results
           if-no-files-found: ignore

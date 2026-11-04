@@ -24,7 +24,8 @@ cut and owning the relationship. You care about deposits, cancellation windows, 
 claims and disputes.
 
 Read the [holiday-letting walkthrough](../case-studies/holiday-letting/index.md) end to end.
-You will still need an off-chain booking UI, a calendar, payments on-ramp, support, and local
+You can start from the reference client, but a production product still needs an off-chain
+booking UI, a calendar, a payments on-ramp, support, and local
 consumer-law compliance.
 
 ## The event organiser
@@ -65,7 +66,8 @@ are the contract.
 
 ## What every reader should know
 
-- The chain is the backend. This repository has no server, UI, or off-chain database.
+- The chain is the backend. This repository ships a reference client, but no backend
+  server, indexer or off-chain database.
 - "Implemented" means the contract path exists and passes the static and parser gates, not
   that a behavioural suite has passed on a healthy chain.
 - The project is devnet-only and unaudited. Do not put real value on it.

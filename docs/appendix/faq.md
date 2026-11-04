@@ -4,7 +4,8 @@
 
 ## Is r-share an Airbnb?
 
-No. It is a primitive layer that an Airbnb-like product could use. It has no UI, no
+No. It is a primitive layer that an Airbnb-like product could use. It ships a reference
+client (Rust SDK, CLI, WASM wallet and React app), not a marketplace. It has no
 marketplace, no ranking, no customer relationship and no off-chain database.
 
 ## Is it production-ready?

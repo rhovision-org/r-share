@@ -63,3 +63,25 @@ depth or size requires it (terms, remedy, bond, booking).
 > **Where to go deeper.** [Concurrency doctrine](../concepts/concurrency-doctrine.md) is the
 > design response. [Test your fork](../guides/test-your-fork.md) runs the gates. [Contract
 > map](contract-map.md) is the term list.
+
+## Client constraints
+
+The Rust client shares the node's limits and adds a few rules of its own.
+
+| Constraint | Value | Consequence |
+|---|---|---|
+| Client term budget | 56 KiB | `rshare-core` refuses a larger term before signing |
+| Default phlo | `4_000_000` at price `1` | a book deploy resolves several components |
+| Deploy lifespan | 50 blocks | an inclusion window, **not** a booking hold |
+| Read split | explore for peeks; signed for `Clock` and `deployerId` | a free quote is impossible |
+| Success | finalized + processed + `(true, …)` | a processed deploy is not success |
+
+The 50-block deploy lifespan anchors whether a deploy can be included. Booking holds,
+check-in, review and dispute deadlines are contract heights and have nothing to do with the
+deploy lifespan. Do not build UI timers on 50 blocks.
+
+The client has one node and discovery disabled. There is no hostlist or pool UI. Funding
+uses the devnet faucet and the ERTP `revFund` bridge; neither is a production deposit rail.
+
+The catalogue is curated and share links are first-class. There is no indexer, provider
+inbox or notification stream; disabled screens say so.

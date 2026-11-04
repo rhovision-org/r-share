@@ -61,7 +61,9 @@ wrong, or the requirement is a new primitive that deserves a design discussion.
 
 ## The tradeoffs we accepted
 
-- **No UI or server.** The repo stops at the chain. Every fork builds its own front end.
+- **A reference client, no server.** The repo ships a Rust SDK, CLI, WASM wallet and React
+  reference app, but no backend server, indexer or off-chain database. A fork owns its
+  product UI and operations.
 - **Opaque time.** Slot IDs are provider-chosen strings and all enforcement is in block
   heights. Calendar semantics live off-chain. This avoids trusting a proposer's clock, at
   the cost of a provider mapping dates to heights.

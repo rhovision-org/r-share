@@ -1,106 +1,108 @@
 # Write a client
 
-> **Status:** Implemented. The harness is the reference client on the devnet.
+> **Status:** Implemented. r-share ships a Rust SDK, a CLI, a WASM facade and a React
+> reference app. This chapter is the contract they share.
 
-A client does three things: resolve a component from the r-share Root, sign and submit a
-deploy, and read the result. This repository deliberately does not ship an SDK; the harness
-shows the devnet path.
+A client resolves a component from the r-share Root, signs and submits a deploy, and reads
+the result. The repository's own client is the reference; a fork can reuse it or port the
+SDK surface.
 
-## Signing and submitting
+## The three-layer client
 
-The devnet harness submits through the node's own CLI inside the devnet container:
+| Layer | Crate | What it does |
+|---|---|---|
+| Pure | `rshare-core` | terms, slots, statuses, op ids, Rholang rendering, budgets |
+| Chain-aware | `rshare-sdk` | Root resolution, reads/writes, lifecycle, admin, funding |
+| Surfaces | `rshare-cli`, `rshare-wasm`, `web` | scripts, browser wallet, UI |
 
-```text
-rnode --grpc-host localhost deploy \
-  --phlo-limit <limit> --phlo-price <price> \
-  --private-key <secret> --shard-id /root \
-  --valid-after-block-number <tip> <term-file>
-```
+`rshare-sdk` reuses r-cash's `rcash-sdk`/`rcash-chain` for signing, deploy encoding, node
+HTTP, finality polling and `RhoValue` decoding. Do not write a second signer in TypeScript.
 
-The node prints `DeployId is: <hex>`. Poll `GET /api/v1/deploy-status/{id}` until the status
-is `ProcessedWithSuccess` or `ProcessedWithError`. For production clients, sign the
-`DeployDataProto` yourself and post to `/api/v1/deploy` (HTTP) or call the gRPC
-`DeployService.doDeploy`. The exact wire shape is in the node's documentation.
-
-Never put a private key in a term. The key signs the deploy; the contract sees only the
-`deployerId`.
-
-## Resolving a component
-
-The r-share Root is a directory of `component:<name>` entries. A client that has the Root URI
-can resolve any component:
+## Resolve
 
 ```rholang
-new rl(`rho:registry:lookup`), rootCh, ret, deployId(`rho:rchain:deployId`) in {
+new return, rl(`rho:registry:lookup`), rootCh, ret in {
   rl!(`<ROOT_URI>`, *rootCh) |
   for (Root <- rootCh) {
     Root!("resolve", "component:listing-factory", 1, *ret) |
-    for (@r <- ret) { deployId!(r) }
+    for (@r <- ret) { return!(r) }
   }
 }
 ```
 
 `resolve` returns `(true, uri, version)` or `(false, "unknown component" | "retired" |
-"stale")`. Then look up the URI and call the arm.
+"stale")`. `resolveMany` returns a map of `{uri, version}`. Explore-deploy captures the
+first `new`-bound private name; a signed deploy replies on `rho:rchain:deployId`.
 
-## Calling an arm
+## Read vs write
 
-Every arm is a send whose first field is the arm name. Data arguments use plain values; names
-(payments, purses, facets, tokens) are sent with `*`:
+- Use `explore-deploy` for height-independent peeks: provider, listing, booking, Bond,
+  `probe`, `Terms`, `ShareAdmin`, `Payments`.
+- Use a signed deploy for `GuestBook("getOrCreate")`, `GuestLedger("ops")`, account balance,
+  `quote`, and every write. `quote` calls `Clock`; the guest arms take a `deployerId`.
+
+Every SDK read returns the block height, hash and source, so a UI can say what it read and
+when.
+
+## Call an arm
 
 ```rholang
-new rl(`rho:registry:lookup`), ch, ret, deployId(`rho:rchain:deployId`) in {
+new return, rl(`rho:registry:lookup`), ch, ret in {
   rl!(`<COMPONENT_URI>`, *ch) |
   for (C <- ch) {
     C!("isActive", *ret) |
-    for (@r <- ret) { deployId!(r) }
+    for (@r <- ret) { return!(r) }
   }
 }
 ```
 
-Replies are `(true, value)` or `(false, reason)`. Read them exhaustively; an unmatched `for`
-is silence, not an error.
+Data arguments use plain values; names (payments, purses, facets, tokens) use `*`. Replies
+are `(true, value)` or `(false, reason)`; a few stateless arms (`Terms("fields")`,
+`Terms("booking")`, `Terms("remedy")`) reply with a bare value.
 
-## Reading without a deploy
+## Booking
 
-`POST /api/v1/explore-deploy` runs a term read-only. It has no block context, so anything
-that reads `rho:block:data` must be a signed deploy. Use explore for static reads and a
-signed deploy for `Clock`, `probe` at a height, or anything that depends on the current
-block.
+```ts
+const quote = await client.listing_quote(listingUri, unitSlotsJson);
+const opId = client.new_op_id("book", BigInt(Date.now()));
+const receipt = await client.book(listingUri, unitSlotsJson, opId, listing.termsHash);
+```
 
-For state at a pinned block, use `data-at-name-by-block-hash` or
-`explore-deploy-by-block-hash`.
+Use a unique op id per user intent. `bookingId = guestId:opId`. A replay returns the stored
+booking and moves no money. A new intent gets a new op id.
 
-## The read model a client needs
+## Sign and submit
 
-- **Provider page:** `ProviderContract("info")`, `listings`.
-- **Listing page:** `ListingContract("info")`, `units`, `unit`, `isActive`.
-- **Calendar:** `ListingContract("schedule", unitId)` and `ListingContract("probe", unitSlots)`.
-- **Booking page:** `BookingContract("info")`, `status`, `ticket`, `ops`.
-- **Ops:** `GuestLedger("ops")` for the guest's op results.
+The SDK signs `DeployData` with secp256k1, waits for the deploy to be processed and its block
+to be final, and decodes the reply. Success requires all three:
 
-There is no indexer in this repo. A production client either walks the registry or runs its
-own indexer over deploy events.
+1. the deploy is finalized;
+2. the status is `processedWithSuccess`;
+3. the reply is `(true, …)`.
 
-## Idempotency
+A `(false, reason)` is a refusal. A deploy error is a rollback. An unfinalized outcome is
+unknown; do not resubmit a value-moving deploy blindly.
 
-Use a unique `opId` per user intent. A replay with the same `opId` returns the stored result
-and moves no money. A new intent gets a new `opId`, even if it targets the same booking.
+## Wallets
 
-## OCapN
+The WASM facade keeps the key in Rust. The browser stores an encrypted Web3 v3 keystore in
+IndexedDB. The CLI uses `.devnet/keys.json`, which is plaintext devnet tooling. Never put a
+private key in a term; the key signs the deploy and the contract sees only the deployer id.
 
-The node exposes OCapN for non-Rholang clients. An OCapN call becomes a signed deploy using
-the node's configured deployer key. It is a transport, not a different authority model; the
-contract still checks the deployer.
+## Terms and sizes
 
-## Error handling
+The 20-field terms order is authoritative in `Terms("fields")`. Local validation is
+advisory; `Terms("validate")` decides. Read the listing's `termsHash` and pass it to `book`;
+the SDK renders it as bytes, not as a string.
 
-- `(false, reason)` is a designed refusal. Show the reason and let the user choose.
-- A deploy that errors is a rollback; nothing moved.
-- A deploy that never processes is a liveness problem; retry with a new deploy and the same
-  `opId`.
-- Never retry a mutating deploy with a new `opId` unless you intend a second operation.
+The node cap is 64 KiB; the client budget is 56 KiB. The SDK checks before signing. Preview
+terms when a fork adds large attrs or schedules.
 
-> **Where to go deeper.** [Bookings and lifecycle](../concepts/bookings-and-lifecycle.md) is
-> the state machine. [Arm reference](../reference/arms.md) is the signature list. [Platform
-> constraints](../reference/platform-constraints.md) covers deploy limits.
+## What the client does not do
+
+No indexer, search, provider inbox or notifications. The catalogue is curated and share
+links are first-class. Discovery is an operator concern.
+
+> **Where to go deeper.** [Client architecture](../reference/client-architecture.md) is
+> the layer map. [Client reads](../reference/client-reads.md) is the read split. [Admin
+> multisig](../reference/admin-multisig.md) is the signature ceremony.

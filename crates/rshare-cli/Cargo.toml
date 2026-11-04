@@ -1,0 +1,22 @@
+[package]
+name = "rshare-cli"
+description = "Reference command-line client for r-share"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "rshare-cli"
+path = "src/main.rs"
+
+[dependencies]
+rshare-core.workspace = true
+rshare-sdk = { workspace = true, features = ["native"] }
+rshare-keystore.workspace = true
+rcash-chain.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true

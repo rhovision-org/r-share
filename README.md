@@ -9,8 +9,9 @@ The north star is robotics-as-a-service.
 
 r-share models a rental as **capacity over an interval**: a provider publishes a listing, a
 listing owns units, and each unit owns slots. Booking, escrow, cancellation, deposits,
-disputes and tickets are shared. The chain is the backend; there is no server, UI, or
-off-chain database in this repo.
+disputes and tickets are shared. The chain is the backend. A Rust SDK, a CLI, a WASM wallet
+and a React reference client live in this repo; there is no backend server, indexer or
+off-chain database.
 
 ## The ladder
 
@@ -30,6 +31,8 @@ off-chain database in this repo.
 | `contracts/src/deploy/` | 13 deployable Rholang terms (root, terms/remedy, capacity, bond, booking, payments) |
 | `contracts/src/lib/` | build-time fragments (`Auth` inline; `Guard` only for the bootstrap Root; `Money` into Remedy) |
 | `harness/` | installer, devnet driver, fixtures, behavioural suites |
+| `crates/` | `rshare-core`, `rshare-sdk`, `rshare-keystore`, `rshare-cli`, `rshare-wasm` |
+| `web/` | React + Vite + TypeScript reference client |
 | `tools/` | build inliner, size/allocator/flow lints, node-parser check, docs check |
 | `spec/` | invariants and the milestone acceptance map |
 | `docs/` | the mdBook source; `docs/book/` is generated and ignored |
@@ -63,6 +66,14 @@ provider and listing suites cover their full arms; a normalized lifecycle transc
 compared against a committed golden file. Coverage is 20/30 `passing`;
 `providerDeliveryBreach` and `partialPerformance` remain design.
 
+A reference client now exercises the same surface from Rust, the CLI and a browser. On
+2026-11-03/04 the CLI devnet journey passed: quote, book, held-slot refusal, replay,
+wrong-terms refusal, manual accept/cancel and a one-signature refusal plus a two-signature
+global pause/resume. The browser campaign passed the guest, provider and admin-multisig
+journeys against the same devnet. The client uses a curated catalogue and share links; it
+has no indexer, provider inbox, search or fiat ramp. See
+[Client architecture](docs/reference/client-architecture.md).
+
 The allocator cornerstone is also modelled in Lean: `make formal-check` proves the
 single-owner, atomic-acquisition, bounded-hold, token-gate and conservation obligations over
 the model, and `spec/flows/core.yaml` names the theorem for every core arm. The result is
@@ -78,6 +89,7 @@ make formal-check     # Lean model, vectors and flow manifest
 make parse-check      # needs ../RNodeRust, the rholo node checkout
 make docs
 make docs-check
+make client-check     # Rust SDK/CLI, WASM smoke, web unit tests and build
 ```
 
 Optional devnet path (Docker plus sibling r-cash and node checkouts):
@@ -85,6 +97,8 @@ Optional devnet path (Docker plus sibling r-cash and node checkouts):
 ```sh
 make devnet-up rcash-keys rcash-bootstrap keys install
 make unit-all
+make client-fixtures client-journey
+cd web && npm install && npm run dev     # http://localhost:5173
 ```
 
 See [Fork and run](docs/guides/fork-and-run.md) for the full setup.
@@ -101,12 +115,13 @@ See [Fork and run](docs/guides/fork-and-run.md) for the full setup.
 
 ## Fork it and build your own
 
-Fork the repo, keep the AGPL notices, and copy `contracts/`, `harness/` and `tools/`. Change
+Fork the repo, keep the AGPL notices, and copy `contracts/`, `harness/`, `tools/`, `crates/`
+and `web/`. Change
 the `kind`, the `attrs`, the slot IDs, the terms, and a pure `Remedy` branch. Do not add a
 booking arm; if you think you need one, read
 [Adding a new resource class](docs/case-studies/new-resource-class.md) first. Name your
-product distinctly. You own the off-chain parts: UI, identity, calendar, telemetry, support,
-insurance, and regulation.
+product distinctly. You own the off-chain parts: identity, calendar, telemetry, support,
+insurance, and regulation. The included client is a reference, not a hosted marketplace.
 
 ## Documentation
 

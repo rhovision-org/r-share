@@ -51,6 +51,9 @@ words are reserved for a recorded command and artifact.
 | `unit_listing` | passing; create, unit, activate, pause/resume, delist |
 | `unit_behavior` | passing; golden lifecycle transcript |
 | `unit_conservation` | passing; seven real scenarios, closed-set sum constant, Bond closure, replay, negative control |
+| Rust SDK and CLI | `make client-test`, `make client-journey` on the recorded devnet |
+| WASM wallet and keystore | `npm --prefix web run test:wasm` (offline) |
+| Web client | `npm --prefix web run build`; guest, provider and admin Playwright journeys |
 | Devnet bootstrap | `make devnet-up`, `make rcash-bootstrap`, `make install` |
 
 ## What is a design proposal
@@ -70,14 +73,19 @@ The M2–M7 suite milestones have landed; the recorded 16-suite campaign is in
 |---|---|---|
 | M8 | property tests, soak and broader invariant checks | planned |
 | Formal model | `make formal-check`: Lean allocator/booking/bond/remedy model, vectors and flow manifest | implemented, proved-model |
+| Client | Rust SDK, CLI, WASM wallet, React app; curated catalogue and share links | implemented, exercised on devnet |
 | Phase 2 | provider bond leg, obligation objects, generalized claims, evidence enforcement | design |
+
+The client is deliberately not a marketplace. It has no indexer, provider inbox, search,
+notifications or fiat ramp; see [Discovery and share
+links](../reference/discovery-and-share-links.md).
 
 The acceptance map is in `spec/acceptance.yaml`. No suite placeholder remains in the
 runner: an unhealthy devnet reports `not run`, never a pass.
 
 ## What is out of scope
 
-- a UI, backend server, indexer or off-chain database;
+- a backend server, indexer or off-chain database;
 - KYC, fiat on-ramps, tax, invoicing and insurance;
 - privacy or confidential bookings;
 - cross-shard settlement;
@@ -94,6 +102,7 @@ make spec-check       # build drift, budgets, architecture, captures, select, mo
 make formal-check     # Lean build, axiom audit, vectors and flow manifest
 make parse-check      # render install terms and parse with the target node parser
 make docs-check       # book links, orphans, coverage and build
+make client-check     # Rust SDK/CLI, WASM smoke, web unit tests and build
 ```
 
 The behavioural suites need the devnet path:
@@ -101,6 +110,9 @@ The behavioural suites need the devnet path:
 ```sh
 make devnet-up rcash-keys rcash-bootstrap keys install
 make unit-all
+make client-fixtures client-journey
+make client-keystores
+cd web && npm install && npm run test:e2e
 ```
 
 If a suite cannot run, it must be reported as not run, not as passing.

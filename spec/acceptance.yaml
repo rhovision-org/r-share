@@ -26,3 +26,8 @@ M9:
   formal: [lean-check, vectors, check-flows]
   model: spec/lean
   flows: spec/flows
+M10:
+  rust: [client-lint, client-test, client-wasm]
+  wasm: web/tests/wasm-smoke.mjs
+  web: [typecheck, test, build]
+  devnet: [client-fixtures, client-journey, web-e2e]

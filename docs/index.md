@@ -42,6 +42,7 @@ Do not put real value on it.
 | Static gates (`make spec-check`) | Passing |
 | 16 behavioural suites | Passing on a fresh devnet; see [Verification](reference/verification.md) |
 | Allocator cornerstone | `make formal-check`; Lean model, vectors and flow manifest (`proved-model`) |
+| Reference client | Rust SDK, CLI, WASM wallet and React app; CLI journey and three browser journeys pass on the recorded devnet |
 | Full holiday-letting path | Contract path exercised by booking, lifecycle and conservation |
 | Events/ticketing, bike, car, robotics | Kind-level suites pass; fleet/SLA behaviour is mapping only |
 
@@ -58,6 +59,8 @@ throughout the book.
 | `contracts/src/lib/` | fragments inlined at build time (`Auth`, `Guard`, `Terms`, `Money`) |
 | `contracts/build/` | generated, committed, drift-checked deploy terms |
 | `harness/` | installer, devnet driver, fixtures, behavioural suites |
+| `crates/` | Rust SDK, keystore, CLI and WASM facade |
+| `web/` | React + Vite + TypeScript reference client |
 | `tools/` | build inliner, size and concurrency lints, node-parser check, docs check |
 | `spec/` | invariants and the milestone acceptance map |
 | `docs/` | this book's source; `docs/book/` is generated |
@@ -74,6 +77,9 @@ throughout the book.
   [Robotics-as-a-service](case-studies/robotics-raas.md).
 - **Forking the repo?** Read [Fork and run](guides/fork-and-run.md) and
   [Adding a new resource class](case-studies/new-resource-class.md).
+- **Building a client?** Read [Use the web app](guides/use-the-web-app.md),
+  [Write a client](guides/write-a-client.md) and
+  [Client architecture](reference/client-architecture.md).
 - **Designing the core primitives?** Read [Space-time primitives](concepts/space-time-primitives.md),
   [Obligations and bonds](concepts/obligations-and-bonds.md), and
   [Remedies and claims](concepts/remedies-and-claims.md).

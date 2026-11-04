@@ -1,0 +1,28 @@
+[package]
+name = "rshare-sdk"
+description = "Typed r-share protocol operations over the r-cash signed-deploy client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[features]
+default = ["native"]
+native = ["rcash-sdk/native", "rcash-chain/native"]
+wasm = ["rcash-sdk/wasm", "rcash-chain/wasm"]
+
+[dependencies]
+rshare-core.workspace = true
+rcash-core.workspace = true
+rcash-chain.workspace = true
+rcash-sdk.workspace = true
+rchain-crypto.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+getrandom.workspace = true
+
+[dev-dependencies]
+async-trait.workspace = true
+tokio = { workspace = true, features = ["rt", "macros"] }

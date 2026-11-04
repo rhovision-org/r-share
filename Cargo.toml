@@ -1,0 +1,56 @@
+[workspace]
+resolver = "2"
+# The node-parser harness creates a temporary crate here; it is not a workspace member.
+exclude = [".devnet/parse-check"]
+members = [
+  "crates/rshare-core",
+  "crates/rshare-keystore",
+  "crates/rshare-sdk",
+  "crates/rshare-cli",
+  "crates/rshare-wasm",
+]
+# rshare-wasm is a wasm32-only artifact. Keep it out of the default members so a host
+# `cargo build`/`cargo test` does not try to link it; `-p rshare-wasm --target
+# wasm32-unknown-unknown` still works.
+default-members = [
+  "crates/rshare-core",
+  "crates/rshare-keystore",
+  "crates/rshare-sdk",
+  "crates/rshare-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+rust-version = "1.95"
+repository = "https://github.com/PatrickMockridge/r-share"
+
+[workspace.dependencies]
+rshare-core = { path = "crates/rshare-core" }
+rshare-keystore = { path = "crates/rshare-keystore" }
+rshare-sdk = { path = "crates/rshare-sdk", default-features = false }
+
+# r-cash is the payments rail and also the single source of the deploy/signing
+# primitives. Pin it by commit; do not path-depend on a sibling checkout.
+rcash-core = { git = "https://github.com/rhovision-org/r-cash", rev = "49b441dea4f5561992387ed670ab263fcd5dd164" }
+rcash-chain = { git = "https://github.com/rhovision-org/r-cash", rev = "49b441dea4f5561992387ed670ab263fcd5dd164", default-features = false }
+rcash-sdk = { git = "https://github.com/rhovision-org/r-cash", rev = "49b441dea4f5561992387ed670ab263fcd5dd164", default-features = false }
+rchain-crypto = { git = "https://github.com/rhovision-org/rholo", rev = "841cb842876369deaa63e3b3e26c20d60e6c74c6", default-features = false }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+zeroize = "1"
+async-trait = "0.1"
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+getrandom = { version = "0.4", features = ["wasm_js"] }
+sha3 = "0.12"
+aes = "0.9"
+ctr = "0.10"
+scrypt = "0.12"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+clap = { version = "4", features = ["derive", "env"] }
+tokio = { version = "1", features = ["macros", "time", "rt", "rt-multi-thread", "sync"] }

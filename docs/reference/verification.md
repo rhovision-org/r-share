@@ -150,3 +150,47 @@ traceability link. See [Formal model](formal-model.md).
   (Phase 2 design).
 
 Do not describe those as passing. The coverage manifest records the real status.
+
+## Client campaign
+
+The reference client has its own recorded campaign on the same node.
+
+| Field | Value |
+|---|---|
+| Date | 2026-11-04 |
+| rholo | `e2d073dcd02f1e560ccb84749937138a1e184b0b` |
+| r-cash | `49b441d` |
+| Rust | 1.95.0 |
+| Node | fresh local devnet, `localhost:40403` |
+| Commands | `make client-fixtures`, `make client-journey`, `make client-keystores`, `cd web && npx playwright test` |
+
+The CLI journey (`deployments/client-results.json`, gitignored) passed every check:
+
+```
+quote                         ok   rent matches the listing price
+book                          ok   status confirmed
+held slot refuses            ok   "slot held"
+replay returns same booking  ok   same booking URI
+wrong terms hash refuses     ok   "terms"
+manual listing               ok   requested -> accepted -> cancelled
+one admin signature          ok   "below threshold"
+two admin signatures         ok   pauseAll and resumeAll finalized
+```
+
+The browser campaign passed three Playwright journeys:
+
+```
+guest-journey     create wallet -> faucet -> fund account -> catalogue -> quote -> book
+provider-journey  register -> create non-instant listing -> add unit -> activate
+                  -> guest books -> provider accepts
+admin-multisig    import admin1 and admin2 -> build pauseAll payload -> sign both
+                  -> submit -> paused; build resumeAll -> sign both -> submit
+```
+
+The admin journey uses the real global admin set; one signature is insufficient. The
+journeys run with one worker because the admin test changes global pause state. They need a
+fresh devnet, fixtures and a browser; the offline gates (`make client-check`) do not.
+
+The WASM smoke test is offline: create/unlock/lock/export, wrong password, tampered MAC,
+r-cash keystore cross-decrypt, a signature parity fixture against `tools/sign_payload.py`,
+op-id format, evidence hashing and a preview size check.
