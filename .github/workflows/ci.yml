@@ -118,7 +118,7 @@ jobs:
     # run on every PR. Run it manually or on the nightly schedule.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 90
     env:
       RCASH_DIR: ${{ github.workspace }}/rholo
       RHOLO_DIR: ${{ github.workspace }}/rnode-rust
