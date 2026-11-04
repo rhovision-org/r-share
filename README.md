@@ -90,6 +90,7 @@ make parse-check      # needs ../RNodeRust, the rholo node checkout
 make docs
 make docs-check
 make client-check     # Rust SDK/CLI, WASM smoke, web unit tests and build
+                       # needs Rust 1.95, wasm-pack and Node 22
 ```
 
 Optional devnet path (Docker plus sibling r-cash and node checkouts):

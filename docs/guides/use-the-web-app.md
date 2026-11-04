@@ -6,6 +6,8 @@
 
 ## Run it
 
+Prerequisites: Rust 1.95, `wasm-pack`, Node 22, and a running devnet.
+
 ```sh
 make devnet-up rcash-keys rcash-bootstrap keys install
 make client-fixtures              # provider, listing, unit, catalogue
