@@ -4,15 +4,16 @@
 # registry_lookups: number of rl! calls per arm.
 # consumed_cells: cells consumed by the arm. "short" means the cell is reposted before
 #   any external call; "held" means it is held across a callee, as with bookingState.
-# The allocator cell is one commit: it is taken after the clock read, updated, and reposted
-# with no external await in between.
+# acquire is one take/await/put: it takes the listing cell after the clock read, checks
+# the pause and provider gates, awaits UnitFactory.slotScan, and reposts the new state.
+# Other listing arms block while the cell is empty; this is not a single comm event.
 
 operations:
   acquire:
-    root_resolves_max: 1               # UnitFactory for slotScan
-    registry_lookups_max: 1            # listing URI
-    consumed_cells: [listingState]
-    peeks: [listingState]              # status/terms before the take
+    root_resolves_max: 3               # UnitFactory, Admin
+    registry_lookups_max: 2            # listing URI, provider URI
+    consumed_cells: [listingState held]
+    peeks: []
   confirm:
     root_resolves_max: 0
     registry_lookups_max: 1            # listing URI

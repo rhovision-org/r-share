@@ -13,10 +13,11 @@ import {
   Uri,
 } from "../components/ui";
 import { parseRead, parseWrite, shareUrl } from "../lib/api";
-import { parseUnits } from "../lib/format";
+import { chainInt } from "../lib/decode";
+import { bondInfo, bookingView, emptyData } from "../lib/decoders";
+import { jsonArgs, parseUnits } from "../lib/format";
 import { record } from "../lib/journal";
 import { useWallet } from "../lib/store";
-import type { BondInfo, BookingView } from "../lib/types";
 
 export default function Booking() {
   const { uri } = useParams<{ uri: string }>();
@@ -32,7 +33,11 @@ export default function Booking() {
   const info = useQuery({
     queryKey: ["booking", uri],
     enabled: Boolean(client && uri),
-    queryFn: async () => parseRead<BookingView>(await client!.booking_info(uri!)),
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      if (!uri) throw new Error("no booking URI");
+      return parseRead(await client.booking_info(uri), bookingView);
+    },
     staleTime: 5_000,
   });
 
@@ -41,14 +46,22 @@ export default function Booking() {
   const height = useQuery({
     queryKey: ["height"],
     enabled: Boolean(client),
-    queryFn: async () => Number(await client!.height()),
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      return chainInt(await client.height(), "$.height");
+    },
     refetchInterval: 5_000,
   });
 
   const bond = useQuery({
     queryKey: ["bond", booking?.bondUri],
     enabled: Boolean(client && booking),
-    queryFn: async () => parseRead<BondInfo>(await client!.bond_info(booking!.bondUri)),
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      const bondUri = booking?.bondUri;
+      if (!bondUri) throw new Error("no bond URI");
+      return parseRead(await client.bond_info(bondUri), bondInfo);
+    },
     staleTime: 5_000,
   });
 
@@ -58,8 +71,8 @@ export default function Booking() {
     setError(null);
     try {
       const opId = client.new_op_id(action, BigInt(Date.now()));
-      const raw = await client.booking_action(uri, action, opId, JSON.stringify(args));
-      const write = parseWrite<Record<string, never>>(raw);
+      const raw = await client.booking_action(uri, action, opId, jsonArgs(args));
+      const write = parseWrite(raw, emptyData);
       await record({
         id: opId,
         kind: action,
@@ -82,7 +95,7 @@ export default function Booking() {
   if (!uri) return <ErrorBox error={new Error("No booking URI.")} />;
   if (!client) return <Panel><Empty>Waiting for the deployment manifest.</Empty></Panel>;
 
-  const current = height.data ?? 0;
+  const current = height.data ?? 0n;
   const isGuest = address === booking?.guestId;
   const isProvider = address === booking?.providerId;
   const status = booking?.status;
@@ -112,10 +125,10 @@ export default function Booking() {
               <div className="stat"><span className="muted">Rent</span><Money value={booking.rent} /></div>
               <div className="stat"><span className="muted">Deposit</span><Money value={booking.deposit} /></div>
               <div className="stat"><span className="muted">Fee</span><strong>{(booking.feeBps / 100).toFixed(2)}%</strong></div>
-              <div className="stat"><span className="muted">Check-in height</span><strong>{booking.checkInHeight}</strong></div>
-              <div className="stat"><span className="muted">Check-out height</span><strong>{booking.checkOutHeight}</strong></div>
-              <div className="stat"><span className="muted">Hold until</span><strong>{booking.holdUntilHeight}</strong></div>
-              <div className="stat"><span className="muted">Finalized height</span><strong>{current}</strong></div>
+              <div className="stat"><span className="muted">Check-in height</span><strong>{booking.checkInHeight.toString()}</strong></div>
+              <div className="stat"><span className="muted">Check-out height</span><strong>{booking.checkOutHeight.toString()}</strong></div>
+              <div className="stat"><span className="muted">Hold until</span><strong>{booking.holdUntilHeight.toString()}</strong></div>
+              <div className="stat"><span className="muted">Finalized height</span><strong>{current.toString()}</strong></div>
               <div className="stat"><span className="muted">Bond</span><strong>{bond.data ? (bond.data.data.paid ? "paid" : "open") : "…"}</strong></div>
               <div className="stat"><span className="muted">Bond remaining</span>{bond.data ? <Money value={bond.data.data.remaining} /> : <strong>…</strong>}</div>
             </div>
@@ -137,7 +150,7 @@ export default function Booking() {
             {isEvent && (
               <p className="muted">
                 Ticket holder {booking.ticket.holderId} · redeemed {String(booking.ticket.redeemed)} ·
-                transfer cutoff {booking.ticket.transferCutoffHeight}
+                transfer cutoff {booking.ticket.transferCutoffHeight.toString()}
               </p>
             )}
           </Panel>
@@ -159,10 +172,32 @@ export default function Booking() {
                 </>
               )}
               {isProvider && status === "confirmed" && (
-                <>
-                  <button disabled={busy} onClick={() => void run("checkIn")}>Check in</button>
-                  <button className="ghost" disabled={busy} onClick={() => void run("claimNoShow")}>Claim no-show</button>
-                </>
+                <button disabled={busy} onClick={() => void run("checkIn")}>Check in</button>
+              )}
+              {isProvider && status === "confirmed"
+                && booking.cancellation.disputeWindowBlocks > 0
+                && current >= booking.checkInHeight + BigInt(booking.cancellation.noShowBlocks) && (
+                <button className="ghost" disabled={busy}
+                  onClick={() => void run("claimNoShow")}>Claim no-show</button>
+              )}
+              {isGuest && status === "noShowClaimed" && reason
+                && current < booking.noShowClaimAtHeight + BigInt(booking.cancellation.disputeWindowBlocks) && (
+                <button className="ghost" disabled={busy}
+                  onClick={() => void run("disputeNoShow", [client.hash_text(reason)])}>
+                  Contest no-show
+                </button>
+              )}
+              {status === "noShowClaimed"
+                && current >= booking.noShowClaimAtHeight + BigInt(booking.cancellation.disputeWindowBlocks) && (
+                <button disabled={busy} onClick={() => void run("resolveNoShow")}>
+                  Resolve no-show
+                </button>
+              )}
+              {status === "noShowDisputed"
+                && current >= booking.disputeAtHeight + BigInt(booking.cancellation.disputeWindowBlocks) && (
+                <button disabled={busy} onClick={() => void run("resolveNoShow")}>
+                  Resolve contested no-show
+                </button>
               )}
               {isProvider && status === "checkedIn" && (
                 <button disabled={busy} onClick={() => void run("checkOut")}>Check out</button>
@@ -206,7 +241,7 @@ export default function Booking() {
                   disabled={busy || !claimAmount || !evidence}
                   onClick={() =>
                     void run("claimDeposit", [
-                      Number(parseUnits(claimAmount)),
+                      parseUnits(claimAmount),
                       client.hash_text(evidence),
                     ])
                   }
@@ -216,7 +251,10 @@ export default function Booking() {
               </div>
             )}
 
-            {(isGuest || isProvider) && status !== "settled" && status !== "cancelled" && status !== "expired" && status !== "rejected" && (
+            {(isGuest || isProvider) && status !== "settled" && status !== "cancelled"
+              && status !== "expired" && status !== "rejected"
+              && status !== "noShowClaimed" && status !== "noShowDisputed"
+              && status !== "noShowRefunded" && (
               <div className="action-box">
                 <h3>Dispute</h3>
                 <Field label="Reason (hashed locally)">

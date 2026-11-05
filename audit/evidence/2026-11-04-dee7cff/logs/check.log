@@ -1,0 +1,124 @@
+.venv/bin/python tools/build_contracts.py --check
+build-contracts: 13 term(s) up to date
+.venv/bin/python tools/measure_contracts.py --check
+measure: 13 term(s) within budget
+.venv/bin/python tools/metrics.py --compare contracts/metrics-baseline.json
+metric                         baseline    current    delta
+deploy_terms                         13         13       +0
+bytes_total                      106003     106003       +0
+bytes_max                         23289      23289       +0
+depth_max                            33         33       +0
+contracts_max                        28         28       +0
+components                           21         21       +0
+state_cell_types                     10         10       +0
+arm_declarations                    114        114       +0
+root_resolve_sites                    4          4       +0
+registry_lookup_sites                31         31       +0
+registry_insert_sites                21         21       +0
+.venv/bin/python tools/check_arch.py
+check-arch: 21 component(s), 10 state cell(s), acyclic
+.venv/bin/python tools/check_captures.py
+check-captures: no forbidden bundles
+.venv/bin/python tools/check_select.py
+check-select: no select
+.venv/bin/python tools/check_placeholders.py
+check-placeholders: all placeholders are install-rendered
+.venv/bin/python tools/check_money.py
+check-money: integer money only
+.venv/bin/python tools/check_coverage.py
+check-coverage: 30 cells — passing 20, mapping 0, design 10, not implemented 0
+.venv/bin/python tools/check_remedy_table.py
+check-remedy: 6 classes, bounds and vectors present
+.venv/bin/python tools/check_no_oracle.py
+check-no-oracle: 16 keys, 3 trust assumptions, no attestor
+.venv/bin/python tools/check_suites.py
+check-suites: 21 suites mapped and documented
+.venv/bin/python tools/check_allocator.py
+check-allocator: no slot contracts or raw state replies
+.venv/bin/python tools/pareto.py --check
+pareto: scorecard current
+.venv/bin/python harness/install.py --dry-run
+install: rendered 00_root.rho (8286 bytes minified)
+install: rendered 01_kernel.rho (2591 bytes minified)
+install: rendered 02_admin.rho (4187 bytes minified)
+install: rendered 40_payments.rho (5066 bytes minified)
+install: rendered 03_terms.rho (6852 bytes minified)
+install: rendered 04_remedy.rho (2978 bytes minified)
+install: rendered 10_provider.rho (8727 bytes minified)
+install: rendered 13_unit.rho (4050 bytes minified)
+install: rendered 14_listing_contract.rho (23292 bytes minified)
+install: rendered 15_bond.rho (4359 bytes minified)
+install: rendered 22_booking_contract.rho (23287 bytes minified)
+install: rendered 23_guest_ledger.rho (10819 bytes minified)
+install: rendered 20_booking.rho (2452 bytes minified)
+tools/parse_check.sh contracts/build/*.rho .devnet/rendered/*.rho
+OK   /home/patrick/RShare/contracts/build/00_root.rho
+OK   /home/patrick/RShare/contracts/build/01_kernel.rho
+OK   /home/patrick/RShare/contracts/build/02_admin.rho
+OK   /home/patrick/RShare/contracts/build/03_terms.rho
+OK   /home/patrick/RShare/contracts/build/04_remedy.rho
+OK   /home/patrick/RShare/contracts/build/10_provider.rho
+OK   /home/patrick/RShare/contracts/build/13_unit.rho
+OK   /home/patrick/RShare/contracts/build/14_listing_contract.rho
+OK   /home/patrick/RShare/contracts/build/15_bond.rho
+OK   /home/patrick/RShare/contracts/build/20_booking.rho
+OK   /home/patrick/RShare/contracts/build/22_booking_contract.rho
+OK   /home/patrick/RShare/contracts/build/23_guest_ledger.rho
+OK   /home/patrick/RShare/contracts/build/40_payments.rho
+OK   /home/patrick/RShare/.devnet/rendered/00_root.rho
+OK   /home/patrick/RShare/.devnet/rendered/01_kernel.rho
+OK   /home/patrick/RShare/.devnet/rendered/02_admin.rho
+OK   /home/patrick/RShare/.devnet/rendered/03_terms.rho
+OK   /home/patrick/RShare/.devnet/rendered/04_remedy.rho
+OK   /home/patrick/RShare/.devnet/rendered/10_provider.rho
+OK   /home/patrick/RShare/.devnet/rendered/13_unit.rho
+OK   /home/patrick/RShare/.devnet/rendered/14_listing_contract.rho
+OK   /home/patrick/RShare/.devnet/rendered/15_bond.rho
+OK   /home/patrick/RShare/.devnet/rendered/20_booking.rho
+OK   /home/patrick/RShare/.devnet/rendered/22_booking_contract.rho
+OK   /home/patrick/RShare/.devnet/rendered/23_guest_ledger.rho
+OK   /home/patrick/RShare/.devnet/rendered/40_payments.rho
+.venv/bin/python tools/check_docs.py
+README.md:111: warning: plain http link
+docs/guides/use-the-web-app.md:22: warning: plain http link
+docs/reference/client-architecture.md:45: warning: plain http link
+check-docs: 64 chapters, 274 relative links, 1 includes, 21 components, 16 component keys
+mdbook build
+ INFO Book building has started
+ INFO Running the html backend
+ INFO HTML book written to `/home/patrick/RShare/docs/book`
+.venv/bin/python tools/check_lean.py
+lean: built, 70 axiom audits, 66 source theorems, no sorry/admit/axiom/native_decide
+.venv/bin/python tools/check_vectors.py
+vectors: 21 vectors current
+.venv/bin/python tools/check_flows.py
+check-flows: warning: L-acquire: proved-model target RShare.Model.Allocator.acquire is a def, not a theorem
+check-flows: warning: L-confirm: proved-model target RShare.Model.Allocator.confirm is a def, not a theorem
+check-flows: warning: L-release: proved-model target RShare.Model.Allocator.release is a def, not a theorem
+check-flows: warning: L-probe: proved-model target RShare.Model.Allocator.public is a def, not a theorem
+check-flows: warning: L-quote: proved-model target RShare.Model.Allocator.checkAcquire is a def, not a theorem
+check-flows: warning: L-ensure-unit: proved-model target RShare.Model.Allocator.ensureUnit is a def, not a theorem
+check-flows: warning: L-status: proved-model target RShare.Model.Allocator.setStatus is a def, not a theorem
+check-flows: warning: B-accept: proved-model target RShare.Model.Booking.Step.accept is a constructor, not a theorem
+check-flows: warning: B-reject: proved-model target RShare.Model.Booking.Step.reject is a constructor, not a theorem
+check-flows: warning: B-cancel: proved-model target RShare.Model.Booking.Step.cancelRequested is a constructor, not a theorem
+check-flows: warning: B-checkin: proved-model target RShare.Model.Booking.Step.checkIn is a constructor, not a theorem
+check-flows: warning: B-checkout: proved-model target RShare.Model.Booking.Step.checkOut is a constructor, not a theorem
+check-flows: warning: B-settle: proved-model target RShare.Model.Booking.Step.settle is a constructor, not a theorem
+check-flows: warning: B-dispute: proved-model target RShare.Model.Booking.Step.disputeIn is a constructor, not a theorem
+check-flows: warning: B-arbitrate: proved-model target RShare.Model.Booking.Step.resolve is a constructor, not a theorem
+check-flows: warning: B-resolve-dispute: proved-model target RShare.Model.Booking.Step.resolve is a constructor, not a theorem
+check-flows: warning: B-expire: proved-model target RShare.Model.Booking.Step.expire is a constructor, not a theorem
+check-flows: warning: B-nosHow: proved-model target RShare.Model.Booking.Step.noShow is a constructor, not a theorem
+check-flows: warning: D-pay: proved-model target RShare.Model.Bond.pay is a def, not a theorem
+check-flows: warning: R-fee: proved-model target RShare.Model.Remedy.fee is a def, not a theorem
+check-flows: warning: R-cancel: proved-model target RShare.Model.Remedy.fullRefund is a def, not a theorem
+check-flows: warning: R-noshow: proved-model target RShare.Model.Remedy.noShow is a constructor, not a theorem
+check-flows: warning: R-split: proved-model target RShare.Model.Remedy.depositSplit is a def, not a theorem
+check-flows: 33 rules, 29 arms, 13 core arms proved-model, 23 proof-quality warnings
+.venv/bin/python tools/check_audit.py
+check-audit: 20 findings, 39 hazards, 66 theorems, 21 improvements, 13 tests, 114 arms
+.venv/bin/python tools/check_arm_inventory.py
+check-arm-inventory: 114 source arms, 114 registered, 29 flow rules
+.venv/bin/python tools/audit_trace.py --check
+audit-trace: 114 arms current

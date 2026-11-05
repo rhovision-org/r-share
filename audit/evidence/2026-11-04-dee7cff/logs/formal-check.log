@@ -1,0 +1,29 @@
+.venv/bin/python tools/check_lean.py
+lean: built, 70 axiom audits, 66 source theorems, no sorry/admit/axiom/native_decide
+.venv/bin/python tools/check_vectors.py
+vectors: 21 vectors current
+.venv/bin/python tools/check_flows.py
+check-flows: warning: L-acquire: proved-model target RShare.Model.Allocator.acquire is a def, not a theorem
+check-flows: warning: L-confirm: proved-model target RShare.Model.Allocator.confirm is a def, not a theorem
+check-flows: warning: L-release: proved-model target RShare.Model.Allocator.release is a def, not a theorem
+check-flows: warning: L-probe: proved-model target RShare.Model.Allocator.public is a def, not a theorem
+check-flows: warning: L-quote: proved-model target RShare.Model.Allocator.checkAcquire is a def, not a theorem
+check-flows: warning: L-ensure-unit: proved-model target RShare.Model.Allocator.ensureUnit is a def, not a theorem
+check-flows: warning: L-status: proved-model target RShare.Model.Allocator.setStatus is a def, not a theorem
+check-flows: warning: B-accept: proved-model target RShare.Model.Booking.Step.accept is a constructor, not a theorem
+check-flows: warning: B-reject: proved-model target RShare.Model.Booking.Step.reject is a constructor, not a theorem
+check-flows: warning: B-cancel: proved-model target RShare.Model.Booking.Step.cancelRequested is a constructor, not a theorem
+check-flows: warning: B-checkin: proved-model target RShare.Model.Booking.Step.checkIn is a constructor, not a theorem
+check-flows: warning: B-checkout: proved-model target RShare.Model.Booking.Step.checkOut is a constructor, not a theorem
+check-flows: warning: B-settle: proved-model target RShare.Model.Booking.Step.settle is a constructor, not a theorem
+check-flows: warning: B-dispute: proved-model target RShare.Model.Booking.Step.disputeIn is a constructor, not a theorem
+check-flows: warning: B-arbitrate: proved-model target RShare.Model.Booking.Step.resolve is a constructor, not a theorem
+check-flows: warning: B-resolve-dispute: proved-model target RShare.Model.Booking.Step.resolve is a constructor, not a theorem
+check-flows: warning: B-expire: proved-model target RShare.Model.Booking.Step.expire is a constructor, not a theorem
+check-flows: warning: B-nosHow: proved-model target RShare.Model.Booking.Step.noShow is a constructor, not a theorem
+check-flows: warning: D-pay: proved-model target RShare.Model.Bond.pay is a def, not a theorem
+check-flows: warning: R-fee: proved-model target RShare.Model.Remedy.fee is a def, not a theorem
+check-flows: warning: R-cancel: proved-model target RShare.Model.Remedy.fullRefund is a def, not a theorem
+check-flows: warning: R-noshow: proved-model target RShare.Model.Remedy.noShow is a constructor, not a theorem
+check-flows: warning: R-split: proved-model target RShare.Model.Remedy.depositSplit is a def, not a theorem
+check-flows: 33 rules, 29 arms, 13 core arms proved-model, 23 proof-quality warnings

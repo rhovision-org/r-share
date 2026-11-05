@@ -1,0 +1,37 @@
+// Admin-set validation shared by Root, ShareAdmin and the owner-scoped objects.
+// The signed payload shape is not changed; this helper runs after verification.
+// One recursive contract keeps the inlined contract count within the project budget.
+
+contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
+  if (threshold < 2) {
+    ret!((false, "threshold"))
+  } else {
+    if (admins.length() < 2) {
+      ret!((false, "threshold"))
+    } else {
+      if (threshold > admins.length()) {
+        ret!((false, "threshold"))
+      } else {
+      if (i >= admins.length()) {
+        ret!((true, Nil))
+      } else {
+        match admins.nth(i) {
+          a => {
+            new hCh in {
+              hCh!(a.bytesToHex()) |
+              for (@k <- hCh) {
+                if (seen.get(k) != Nil) {
+                  ret!((false, "duplicate key"))
+                } else {
+                  adminsValid!(admins, threshold, i + 1,
+                               seen.set(k, true), *ret)
+                }
+              }
+            }
+          }
+        }
+      }
+      }
+    }
+  }
+} |

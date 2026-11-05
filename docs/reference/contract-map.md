@@ -63,11 +63,11 @@ ShareRoot
   +-- ProviderBook ---- ProviderContract
   +-- ListingFactory ---- ListingContractFactory ---- ListingContract
   |                                             \---- UnitFactory (stateless)
-  +-- ListingContract ---- UnitFactory (stateless) / Clock / AdminGuard
+  +-- ListingContract ---- UnitFactory (stateless) / Clock / AdminGuard / ShareAdmin / ProviderContract
   |                    \--- owns units and slots in one allocState cell
   +-- BondFactory ---- Bond ---- Payments
   +-- GuestBook ---- GuestLedgerFactory ---- GuestLedger
-  +-- BookingContractFactory ---- BookingContract
+  +-- BookingContractFactory ---- BookingContract ---- ListingContract (verifyHold)
   +-- GuestLedger / BookingContract ---- ListingContract (acquire/confirm/release)
 ```
 
@@ -88,10 +88,11 @@ arm entry; no registry capability is cached in a bundle.
 - `contracts/src/deploy/` — the 13 terms above.
 - `contracts/src/lib/` — `Auth` (inlined into owner-gated terms), `AdminGuard` (the
   shared wrapper inlined into the four terms that verify admin signatures), `AdminsText`
-  (canonicalises an admin list because the node has no list `toString`), `Resolve` (the
-  generic component resolver behind each term's resolve helper), `Guard` (only the
-  bootstrap Root), `Money` (inlined into Remedy). The source metric counts one `Resolve`
-  copy; the inlined helper still performs one Root lookup per call at runtime.
+  (canonicalises an admin list because the node has no list `toString`), `AdminSet`
+  (distinct-key/threshold validation inlined into Root, ShareAdmin, provider, listing and
+  booking), `Resolve` (the generic component resolver behind each term's resolve helper),
+  `Guard` (only the bootstrap Root), `Money` (inlined into Remedy). The source metric counts
+  one `Resolve` copy; the inlined helper still performs one Root lookup per call at runtime.
 - `contracts/components.json` — the machine-readable catalogue.
 - `contracts/measure.json` — per-term size, depth and contract count.
 

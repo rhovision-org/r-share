@@ -1,0 +1,72 @@
+{
+  "run_id": "2026-11-04-dee7cff-audit-dynamic",
+  "date": "2026-11-04",
+  "commit": "dee7cff448c30bd84890af408eb2fc4d6012494c",
+  "branch": "main",
+  "dirty": true,
+  "node": "http://localhost:41403 (isolated rshare-audit devnet; rgen-bootstrap untouched)",
+  "rholo_commit": null,
+  "rcash_commit": null,
+  "lean_version": "4.12.0",
+  "rust": "1.95.0",
+  "nodejs": "22.22.2",
+  "commands": [
+    "python3 tools/check_audit.py",
+    "python3 tools/check_arm_inventory.py",
+    "python3 tools/audit_trace.py --check",
+    "make audit-dynamic (audit_reset,audit_no_show,audit_event,audit_admin_keys,audit_pause)",
+    "make unit-all (16 behavioural suites) on the isolated devnet",
+    "make audit-check",
+    "make formal-check",
+    "make check (offline gates)"
+  ],
+  "results": {
+    "audit_reset": "REPRODUCED F-001",
+    "audit_no_show": "REPRODUCED F-004",
+    "audit_event": "REPRODUCED F-005",
+    "audit_admin_keys": "REPRODUCED F-006",
+    "audit_pause": "REPRODUCED F-007",
+    "unit_all": "16/16 pass on isolated rshare-audit devnet",
+    "audit_check": "20 findings, 39 hazards, 66 theorems, 21 improvements, 114 arms",
+    "formal_check": "70 axiom audits, 66 source theorems, 23 flow proof-quality warnings",
+    "check": "exit 0; 70 axiom audits, 66 theorems, 23 flow warnings, 39 hazards, 114 arms"
+  },
+  "inputs_sha256": {
+    "contracts/src/deploy/14_listing_contract.rho": "5f3241298f804ea765925f1ebfd24745388ab49f33b0f05205896d7f4480f69b",
+    "contracts/src/deploy/20_booking.rho": "39bb4ff950b3e28d0e3907db8d7fefab6e1cb86328ace8cf0485bd0a932c46a8",
+    "contracts/src/deploy/22_booking_contract.rho": "88c1bd2d3db088eb15e70cdf85ed27a9b901bf014b8e999c104fdc49231cea3c",
+    "contracts/src/deploy/23_guest_ledger.rho": "7d07ec50500ea9ed208fa1d5c1184513e781e42d4fbcd53be97f2fb87c3aa41e",
+    "spec/flows/core.yaml": "55de5ac95f18a81196825389ebdcb9c28124a7ff9d6a3405db0f9c8afd25c439",
+    "audit/registers/findings.yaml": "94d6baf4b2f71a26d026bc9419f32ce8dfe9e5d26738db5a4707df5c7b8b9248",
+    "audit/registers/hazards.yaml": "dd2b99f81506a1c7b80ad1cadca53a7d9a85ca5d9c44142ca62d3015bc2b9e71"
+  },
+  "artifacts": [
+    "audit/evidence/2026-11-04-dee7cff/logs/audit-dynamic.log",
+    "audit/evidence/2026-11-04-dee7cff/results/suite-results.json",
+    "audit/evidence/2026-11-04-dee7cff/logs/unit-all.log",
+    "audit/evidence/2026-11-04-dee7cff/results/unit-all-suite-results.json",
+    "audit/evidence/2026-11-04-dee7cff/logs/audit-check.log",
+    "audit/evidence/2026-11-04-dee7cff/logs/formal-check.log",
+    "audit/evidence/2026-11-04-dee7cff/logs/audit-dynamic-make.log",
+    "audit/evidence/2026-11-04-dee7cff/results/audit-dynamic-suite-results.json",
+    "audit/evidence/2026-11-04-dee7cff/logs/check.log",
+    "audit/evidence/2026-11-04-dee7cff/logs/audit-check-final.log",
+    "audit/evidence/2026-11-04-dee7cff/logs/docs-check-final.log",
+    "audit/evidence/2026-11-04-dee7cff/logs/check-final2.log"
+  ],
+  "outputs_sha256": {
+    "audit/evidence/2026-11-04-dee7cff/logs/audit-dynamic.log": "c83bc801a7ceba847d694494cb5a60d12882ed6751fb900c9afc29dd5c8dbae3",
+    "audit/evidence/2026-11-04-dee7cff/results/suite-results.json": "352d53a12df487cd804d58f980d9b25d0d583a077c53faa95e833b42260df215",
+    "audit/evidence/2026-11-04-dee7cff/logs/unit-all.log": "79e2ae57c9fcd14f252b0f2b6d8d9e719c5d72ebee9b7370d0438cb9809b7382",
+    "audit/evidence/2026-11-04-dee7cff/results/unit-all-suite-results.json": "7b6a2bcd924efe7a089fded01376ecba4e31e80bd661ac488a01869996a0a123",
+    "audit/evidence/2026-11-04-dee7cff/logs/audit-check.log": "42c74467fb151ebbd646635238000ff32c79803c3dcd8c308cbc915e6075939a",
+    "audit/evidence/2026-11-04-dee7cff/logs/formal-check.log": "7f9069a14632b0503ab48480831988bdf427be51bb63358d38ecaebc4f4e4ac2",
+    "audit/evidence/2026-11-04-dee7cff/logs/audit-dynamic-make.log": "4174d10fc1bb9591f7d3702e6301fe381d47971f6dc8754c6c45212bace536a7",
+    "audit/evidence/2026-11-04-dee7cff/results/audit-dynamic-suite-results.json": "12d8a7162cc15a719b0e5bdf24aa5551857f292567e1df4ebf6a159823fb2a60",
+    "audit/evidence/2026-11-04-dee7cff/logs/check.log": "4e66a9ead247567b30218efccc4dc8446c87c1967dbd9ed79de8333c594f9601",
+    "audit/evidence/2026-11-04-dee7cff/logs/audit-check-final.log": "42c74467fb151ebbd646635238000ff32c79803c3dcd8c308cbc915e6075939a",
+    "audit/evidence/2026-11-04-dee7cff/logs/docs-check-final.log": "7f4abdc70f4700265d79017892fe7647cd40b1429f06aea91cbf105ac5abe754",
+    "audit/evidence/2026-11-04-dee7cff/logs/check-final2.log": "4e66a9ead247567b30218efccc4dc8446c87c1967dbd9ed79de8333c594f9601"
+  },
+  "notes": "Isolated devnet on ports 41402/41403/41405 under DEVNET_PREFIX=rshare-audit; r-cash identity installed at rho:id:8grkgpa5xkai348ja3gngz9tteeabuo4g4ee5f78us5mujf3xtto; r-share root rho:id:stnzu4wd3x53bzrmm1trgrz16rzk1sqnde1ucej15zrbrjwn53wy. Dynamic suites are expected-failure audit reproductions, not green regression gates. No credentials in evidence. The isolated rshare-audit devnet was stopped after evidence capture; rgen-bootstrap was not touched."
+}

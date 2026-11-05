@@ -1,7 +1,8 @@
 import { expect, type Page } from "@playwright/test";
+import { int, object, required } from "../src/lib/decode";
 
 export const PASSWORD = "e2e-password-123";
-export const NODE = "http://localhost:40403";
+export const NODE = process.env.RSHARE_NODE ?? "http://localhost:40403";
 
 export async function createWallet(page: Page, label = "e2e"): Promise<void> {
   await page.goto("/");
@@ -28,8 +29,9 @@ export async function faucetAndFund(page: Page, rev = "0.1"): Promise<void> {
 
 export async function nodeHeight(page: Page): Promise<number> {
   const response = await page.request.get(`${NODE}/api/v1/status`);
-  const status = (await response.json()) as { latestBlockNumber: number };
-  return status.latestBlockNumber;
+  const body: unknown = await response.json();
+  const status = object(body, "$.status");
+  return required(status, "latestBlockNumber", int({ min: 0 }), "$.status");
 }
 
 export async function unlockSaved(page: Page): Promise<void> {

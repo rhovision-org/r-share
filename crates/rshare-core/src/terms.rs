@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::error::{Result, RshareError};
+use crate::primitives::{Amount, BasisPoints, BlockCount};
 use crate::render::{quote_string, render_bool, render_i64, render_map};
 use rcash_core::assets::AssetId;
 
@@ -104,52 +105,52 @@ pub enum TermsError {
 pub struct Terms {
     pub kind: ResourceKind,
     pub asset_id: AssetId,
-    pub price_per_slot: i64,
-    pub deposit: i64,
+    pub price_per_slot: Amount,
+    pub deposit: Amount,
     pub min_slots: i64,
     pub max_slots: i64,
     pub instant_book: bool,
     pub contiguous: bool,
-    pub hold_blocks: i64,
-    pub deposit_review_blocks: i64,
-    pub dispute_window_blocks: i64,
-    pub no_show_blocks: i64,
-    pub full_refund_before_blocks: i64,
-    pub partial_refund_bps: i64,
-    pub partial_refund_before_blocks: i64,
-    pub fee_bps: i64,
-    pub max_lead_blocks: i64,
-    pub max_slot_blocks: i64,
+    pub hold_blocks: BlockCount,
+    pub deposit_review_blocks: BlockCount,
+    pub dispute_window_blocks: BlockCount,
+    pub no_show_blocks: BlockCount,
+    pub full_refund_before_blocks: BlockCount,
+    pub partial_refund_bps: BasisPoints,
+    pub partial_refund_before_blocks: BlockCount,
+    pub fee_bps: BasisPoints,
+    pub max_lead_blocks: BlockCount,
+    pub max_slot_blocks: BlockCount,
     pub max_units: i64,
-    pub event_transfer_cutoff_blocks: i64,
+    pub event_transfer_cutoff_blocks: BlockCount,
 }
 
 impl Terms {
     /// A conservative starter policy. The values mirror the harness fixture and are
     /// real inputs, not mock prices: a provider must review them before publishing.
-    pub fn default_for(kind: ResourceKind) -> Self {
-        Self {
+    pub fn default_for(kind: ResourceKind) -> Result<Self> {
+        Ok(Self {
             kind,
-            asset_id: AssetId::new("REV").expect("REV is a valid asset id"),
-            price_per_slot: 100,
-            deposit: 50,
+            asset_id: AssetId::new("REV")?,
+            price_per_slot: Amount::new(100)?,
+            deposit: Amount::new(50)?,
             min_slots: 1,
             max_slots: 4,
             instant_book: true,
             contiguous: false,
-            hold_blocks: 1000,
-            deposit_review_blocks: 0,
-            dispute_window_blocks: 0,
-            no_show_blocks: 0,
-            full_refund_before_blocks: 0,
-            partial_refund_bps: 0,
-            partial_refund_before_blocks: 0,
-            fee_bps: 0,
-            max_lead_blocks: 1_000_000,
-            max_slot_blocks: 1000,
+            hold_blocks: BlockCount::new(1000)?,
+            deposit_review_blocks: BlockCount::new(0)?,
+            dispute_window_blocks: BlockCount::new(0)?,
+            no_show_blocks: BlockCount::new(0)?,
+            full_refund_before_blocks: BlockCount::new(0)?,
+            partial_refund_bps: BasisPoints::ZERO,
+            partial_refund_before_blocks: BlockCount::new(0)?,
+            fee_bps: BasisPoints::ZERO,
+            max_lead_blocks: BlockCount::new(1_000_000)?,
+            max_slot_blocks: BlockCount::new(1000)?,
             max_units: 2,
-            event_transfer_cutoff_blocks: 0,
-        }
+            event_transfer_cutoff_blocks: BlockCount::new(0)?,
+        })
     }
 
     /// Parse a terms map. `kind` is supplied separately; a `kind` in the map must agree.
@@ -177,24 +178,24 @@ impl Terms {
         Ok(Self {
             kind,
             asset_id,
-            price_per_slot: int(map, "pricePerSlot")?,
-            deposit: int(map, "deposit")?,
+            price_per_slot: amount(map, "pricePerSlot")?,
+            deposit: amount(map, "deposit")?,
             min_slots: int(map, "minSlots")?,
             max_slots: int(map, "maxSlots")?,
             instant_book: boolean(map, "instantBook")?,
             contiguous: boolean(map, "contiguous")?,
-            hold_blocks: int(map, "holdBlocks")?,
-            deposit_review_blocks: int(map, "depositReviewBlocks")?,
-            dispute_window_blocks: int(map, "disputeWindowBlocks")?,
-            no_show_blocks: int(map, "noShowBlocks")?,
-            full_refund_before_blocks: int(map, "fullRefundBeforeBlocks")?,
-            partial_refund_bps: int(map, "partialRefundBps")?,
-            partial_refund_before_blocks: int(map, "partialRefundBeforeBlocks")?,
-            fee_bps: int(map, "feeBps")?,
-            max_lead_blocks: int(map, "maxLeadBlocks")?,
-            max_slot_blocks: int(map, "maxSlotBlocks")?,
+            hold_blocks: blocks(map, "holdBlocks")?,
+            deposit_review_blocks: blocks(map, "depositReviewBlocks")?,
+            dispute_window_blocks: blocks(map, "disputeWindowBlocks")?,
+            no_show_blocks: blocks(map, "noShowBlocks")?,
+            full_refund_before_blocks: blocks(map, "fullRefundBeforeBlocks")?,
+            partial_refund_bps: bps(map, "partialRefundBps")?,
+            partial_refund_before_blocks: blocks(map, "partialRefundBeforeBlocks")?,
+            fee_bps: bps(map, "feeBps")?,
+            max_lead_blocks: blocks(map, "maxLeadBlocks")?,
+            max_slot_blocks: blocks(map, "maxSlotBlocks")?,
             max_units: int(map, "maxUnits")?,
-            event_transfer_cutoff_blocks: int(map, "eventTransferCutoffBlocks")?,
+            event_transfer_cutoff_blocks: blocks(map, "eventTransferCutoffBlocks")?,
         })
     }
 
@@ -246,7 +247,7 @@ impl Terms {
         if self.min_slots > self.max_slots {
             return Err(TermsError::Slots);
         }
-        if self.partial_refund_before_blocks < self.full_refund_before_blocks {
+        if self.partial_refund_before_blocks.get() < self.full_refund_before_blocks.get() {
             return Err(TermsError::RefundWindow);
         }
         Ok(())
@@ -323,41 +324,53 @@ impl Terms {
     pub fn to_map_json(&self) -> Value {
         let mut map = Map::new();
         map.insert("assetId".into(), Value::from(self.asset_id.as_str()));
-        map.insert("pricePerSlot".into(), Value::from(self.price_per_slot));
-        map.insert("deposit".into(), Value::from(self.deposit));
+        map.insert(
+            "pricePerSlot".into(),
+            Value::from(self.price_per_slot.get()),
+        );
+        map.insert("deposit".into(), Value::from(self.deposit.get()));
         map.insert("minSlots".into(), Value::from(self.min_slots));
         map.insert("maxSlots".into(), Value::from(self.max_slots));
         map.insert("instantBook".into(), Value::from(self.instant_book));
         map.insert("contiguous".into(), Value::from(self.contiguous));
-        map.insert("holdBlocks".into(), Value::from(self.hold_blocks));
+        map.insert("holdBlocks".into(), Value::from(self.hold_blocks.get()));
         map.insert(
             "depositReviewBlocks".into(),
-            Value::from(self.deposit_review_blocks),
+            Value::from(self.deposit_review_blocks.get()),
         );
         map.insert(
             "disputeWindowBlocks".into(),
-            Value::from(self.dispute_window_blocks),
+            Value::from(self.dispute_window_blocks.get()),
         );
-        map.insert("noShowBlocks".into(), Value::from(self.no_show_blocks));
+        map.insert(
+            "noShowBlocks".into(),
+            Value::from(self.no_show_blocks.get()),
+        );
         map.insert(
             "fullRefundBeforeBlocks".into(),
-            Value::from(self.full_refund_before_blocks),
+            Value::from(self.full_refund_before_blocks.get()),
         );
         map.insert(
             "partialRefundBps".into(),
-            Value::from(self.partial_refund_bps),
+            Value::from(self.partial_refund_bps.get()),
         );
         map.insert(
             "partialRefundBeforeBlocks".into(),
-            Value::from(self.partial_refund_before_blocks),
+            Value::from(self.partial_refund_before_blocks.get()),
         );
-        map.insert("feeBps".into(), Value::from(self.fee_bps));
-        map.insert("maxLeadBlocks".into(), Value::from(self.max_lead_blocks));
-        map.insert("maxSlotBlocks".into(), Value::from(self.max_slot_blocks));
+        map.insert("feeBps".into(), Value::from(self.fee_bps.get()));
+        map.insert(
+            "maxLeadBlocks".into(),
+            Value::from(self.max_lead_blocks.get()),
+        );
+        map.insert(
+            "maxSlotBlocks".into(),
+            Value::from(self.max_slot_blocks.get()),
+        );
         map.insert("maxUnits".into(), Value::from(self.max_units));
         map.insert(
             "eventTransferCutoffBlocks".into(),
-            Value::from(self.event_transfer_cutoff_blocks),
+            Value::from(self.event_transfer_cutoff_blocks.get()),
         );
         Value::Object(map)
     }
@@ -374,10 +387,11 @@ impl Terms {
 
 fn range(
     field: &'static str,
-    value: i64,
+    value: impl Into<i64>,
     min: i64,
     max: i64,
 ) -> std::result::Result<(), TermsError> {
+    let value = value.into();
     if value < min || value > max {
         Err(TermsError::Field(field))
     } else {
@@ -389,6 +403,20 @@ fn int(map: &Map<String, Value>, field: &'static str) -> Result<i64> {
     map.get(field)
         .and_then(Value::as_i64)
         .ok_or(RshareError::Terms(TermsError::Field(field)))
+}
+
+fn amount(map: &Map<String, Value>, field: &'static str) -> Result<Amount> {
+    Amount::new(int(map, field)?).map_err(|_| RshareError::Terms(TermsError::Field(field)))
+}
+
+fn blocks(map: &Map<String, Value>, field: &'static str) -> Result<BlockCount> {
+    BlockCount::new(int(map, field)?).map_err(|_| RshareError::Terms(TermsError::Field(field)))
+}
+
+fn bps(map: &Map<String, Value>, field: &'static str) -> Result<BasisPoints> {
+    let raw = u16::try_from(int(map, field)?)
+        .map_err(|_| RshareError::Terms(TermsError::Field(field)))?;
+    BasisPoints::new(raw).map_err(|_| RshareError::Terms(TermsError::Field(field)))
 }
 
 fn boolean(map: &Map<String, Value>, field: &'static str) -> Result<bool> {
@@ -409,7 +437,7 @@ mod tests {
     use serde_json::json;
 
     fn robot() -> Terms {
-        Terms::default_for(ResourceKind::Robot)
+        Terms::default_for(ResourceKind::Robot).unwrap()
     }
 
     #[test]
@@ -465,7 +493,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(terms.kind, ResourceKind::Lodging);
-        assert_eq!(terms.price_per_slot, 100);
+        assert_eq!(terms.price_per_slot.get(), 100);
     }
 
     #[test]
@@ -476,12 +504,12 @@ mod tests {
         assert_eq!(terms.validate(), Err(TermsError::Slots));
 
         let mut terms = robot();
-        terms.price_per_slot = 0;
+        terms.price_per_slot = Amount::new(0).unwrap();
         assert_eq!(terms.validate(), Err(TermsError::Field("pricePerSlot")));
 
         let mut terms = robot();
-        terms.full_refund_before_blocks = 10;
-        terms.partial_refund_before_blocks = 5;
+        terms.full_refund_before_blocks = BlockCount::new(10).unwrap();
+        terms.partial_refund_before_blocks = BlockCount::new(5).unwrap();
         assert_eq!(terms.validate(), Err(TermsError::RefundWindow));
     }
 

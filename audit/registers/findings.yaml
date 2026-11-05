@@ -1,0 +1,728 @@
+schema: rshare.findings/v1
+total: 21
+findings:
+- id: F-001
+  title: reset frees booked and held slots
+  severity: P0
+  class: state/value
+  status: fixed
+  confidence: high
+  components:
+  - ListingContract
+  arms:
+  - ListingContract@"reset"
+  hazards:
+  - HZ-001
+  invariants:
+  - INV-6
+  - INV-8
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/14_listing_contract.rho:768
+  - kind: test-gap
+    ref: no reset suite in harness/
+  - kind: test
+    ref: audit/evidence/2026-11-04-dee7cff/results/suite-results.json
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: ListingContract("reset") consumes listingState, checks only that the caller is the listing owner, and writes ["free",0] over the slot record regardless of whether it is free, held, or booked.
+  preconditions: Caller is the listing provider owner; a live held or booked slot exists.
+  impact: A provider can free a slot that a booking still owns, allowing a second acquire and a double sale. The first booking can still settle against the missing slot. This contradicts invariants 6 and 8 and the Lean single-owner theorem, which does not model reset.
+  reproduction: 'Static trace: 14_listing_contract.rho:768-798; run the planned unit_reset_safety suite on a fresh devnet.'
+  proposed_fix: R-001
+  lean_backlog:
+  - THM-RESET
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-002
+  title: GuestBook.getOrCreate can consume guestBookState without reposting
+  severity: P0
+  class: liveness/state
+  status: fixed
+  confidence: high
+  components:
+  - GuestBook
+  arms:
+  - GuestBook@"getOrCreate"
+  hazards:
+  - HZ-002
+  invariants:
+  - INV-1
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/20_booking.rho:20
+  - kind: test-gap
+    ref: no factory-failure test
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: After taking guestBookState, the Nil branch calls the guest-ledger factory. If the factory returns a refusal or is unavailable, the arm returns without guestBookState!(s2), leaving the singleton index empty.
+  preconditions: A guest with no ledger; GuestLedgerFactory create returns (false, ...) or the factory cannot be resolved.
+  impact: Every later getOrCreate blocks waiting on an empty cell. New guests cannot obtain a ledger; existing guests are unaffected only because their path peeks an existing entry. This is a platform-wide onboarding outage until redeploy.
+  reproduction: 'Static trace: 20_booking.rho:20-67; planned unit_cell_liveness and fault-injection suite.'
+  proposed_fix: R-002
+  lean_backlog:
+  - THM-CELL
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-003
+  title: GuestLedgerPay leaves a pending op when the Bond factory is unavailable
+  severity: P0
+  class: liveness
+  status: fixed
+  confidence: high
+  components:
+  - GuestLedger
+  arms:
+  - GuestLedger@"book"
+  hazards:
+  - HZ-003
+  invariants:
+  - INV-1
+  - INV-9
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/23_guest_ledger.rho:248
+  - kind: test-gap
+    ref: no bond-factory-unavailable test
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: GuestLedgerPay reserves a fresh opId, acquires slots, then resolves the Bond factory. The non-(true, BondFactory) branch returns (false, "bond factory unavailable") without GuestLedgerDrop or a listing release.
+  preconditions: A guest books a valid listing while component:bond-factory cannot be resolved.
+  impact: 'The opId stays {"pending": true} forever, so replay refuses "pending"; the held slots remain until untilHeight. The guest cannot retry the same intent and the inventory is temporarily stranded.'
+  reproduction: 'Static trace: 23_guest_ledger.rho:248-286; fault-injection fixture with missing component:bond-factory.'
+  proposed_fix: R-003
+  lean_backlog:
+  - THM-LEDGER
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-004
+  title: Provider can capture rent by never checking in and claiming no-show
+  severity: P0
+  class: value/fairness
+  status: fixed
+  confidence: high
+  components:
+  - BookingContract
+  arms:
+  - BookingContract@"claimNoShow"
+  - BookingContract@"dispute"
+  hazards:
+  - HZ-004
+  invariants:
+  - INV-3
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/22_booking_contract.rho:931
+  - kind: source
+    ref: contracts/src/deploy/22_booking_contract.rho:759
+  - kind: test
+    ref: harness/unit_claims.py:105 exercises the happy path only
+  - kind: test
+    ref: audit/evidence/2026-11-04-dee7cff/results/suite-results.json
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: claimNoShow is provider-only, available from confirmed after checkInHeight + noShowBlocks, and terminal. The provider controls checkIn, so it can simply not check in and then claim no-show. The guest cannot dispute from confirmed; dispute only accepts checkedIn or checkedOut.
+  preconditions: A confirmed booking; provider does not check in; now >= checkInHeight + noShowBlocks.
+  impact: The provider receives rent net of fee without delivering the service; the guest has no on-chain dispute path. This is an economic fairness hazard, not a double spend.
+  reproduction: 'Planned unit_adversarial case: book, wait past checkInHeight + noShowBlocks, call claimNoShow as provider, then attempt dispute as guest; expect dispute refusal "closed".'
+  proposed_fix: R-004
+  lean_backlog:
+  - THM-NOSHOW
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-005
+  title: settle from redeemed does not require the event to be over
+  severity: P1
+  class: state/time
+  status: fixed
+  confidence: high
+  components:
+  - BookingContract
+  arms:
+  - BookingContract@"settle"
+  - BookingContract@"redeem"
+  - BookingContract@"closeEvent"
+  hazards:
+  - HZ-005
+  invariants:
+  - INV-3
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/22_booking_contract.rho:624
+  - kind: source
+    ref: contracts/src/deploy/22_booking_contract.rho:1033
+  - kind: test
+    ref: audit/evidence/2026-11-04-dee7cff/results/suite-results.json
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: settle accepts checkedOut or redeemed and only applies the deposit-release height check to checkedOut. closeEvent separately requires now >= checkOutHeight. A provider can redeem a confirmed event booking and immediately settle before the event.
+  preconditions: An event booking in confirmed; provider calls redeem; then anyone calls settle before checkOutHeight.
+  impact: Escrow is released before the event. If the event is later cancelled or not delivered, the guest has no refund path; the provider has already been paid.
+  reproduction: 'Planned unit_event_timing: create an event booking with checkOutHeight in the future, redeem, settle, and compare with closeEvent refusal "too early".'
+  proposed_fix: R-005
+  lean_backlog:
+  - THM-EVENT
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-006
+  title: Admin sets accept duplicate public keys and a threshold of one
+  severity: P0
+  class: authorization
+  status: fixed
+  confidence: high
+  components:
+  - AdminGuard
+  - ShareAdmin
+  - Root
+  - ProviderContract
+  - ListingContract
+  - BookingContract
+  arms:
+  - ShareRoot@"admin"
+  - ShareAdmin@"admin"
+  - ProviderContract@"setAdmins"
+  - ListingContract@"setAdmins"
+  - BookingContract@"setAdmins"
+  hazards:
+  - HZ-006
+  invariants:
+  - INV-10
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/02_admin.rho:31
+  - kind: source
+    ref: contracts/src/deploy/02_admin.rho:116
+  - kind: source
+    ref: contracts/src/deploy/14_listing_contract.rho:1051
+  - kind: source
+    ref: contracts/src/deploy/22_booking_contract.rho:1127
+  - kind: test
+    ref: audit/evidence/2026-11-04-dee7cff/results/suite-results.json
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: AdminGuard.guardCount walks the stored key list and counts each entry for which any signature verifies. It does not require keys to be distinct. setAdmins validates only 1 <= threshold <= newAdmins.length(); duplicate keys are accepted and threshold 1 is legal on Root/ShareAdmin.
+  preconditions: A 2-of-3 set contains the same public key twice, or an admin action sets threshold 1.
+  impact: With keys [A,A,B] and threshold 2, one signature from A satisfies two entries, so a nominal 2-of-3 becomes 1-of-3. With threshold 1, one compromised key controls the object. This is a governance takeover hazard.
+  reproduction: 'Planned unit_admin_keys: deploy a test AdminGuard-compatible set with duplicate keys, sign once, and observe threshold success; then test threshold=1 on ShareAdmin.'
+  proposed_fix: R-006
+  lean_backlog:
+  - THM-ADMIN
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-007
+  title: Global pause only gates GuestLedger.book; direct acquire bypasses it
+  severity: P1
+  class: authorization/availability
+  status: fixed
+  confidence: high
+  components:
+  - ShareAdmin
+  - GuestLedger
+  - ListingContract
+  arms:
+  - ShareAdmin@"admin"
+  - GuestLedger@"book"
+  - ListingContract@"acquire"
+  hazards:
+  - HZ-007
+  invariants:
+  - INV-1
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/23_guest_ledger.rho:51
+  - kind: source
+    ref: contracts/src/deploy/14_listing_contract.rho:644
+  - kind: source
+    ref: contracts/src/deploy/10_provider.rho:45
+  - kind: test
+    ref: audit/evidence/2026-11-04-dee7cff/results/suite-results.json
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: ShareAdmin.pauseAll is read only by GuestLedgerGate. ListingContract.acquire checks listing status and unit status but not global pause or provider status. ListingFactory.create checks provider ownership but not provider status.
+  preconditions: Global pause is active; a caller invokes ListingContract.acquire directly with a valid bookingId, slots and release token, or creates a listing while the provider is paused.
+  impact: An emergency pause does not stop direct slot acquisition, and provider pause does not stop direct listing creation. The operator-facing claim that pause blocks new bookings is narrower than it appears.
+  reproduction: Static trace plus planned pause-bypass case; direct acquire requires a release token but no escrow.
+  proposed_fix: R-009
+  lean_backlog:
+  - THM-PAUSE
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-008
+  title: Payments.assets allowlist is never consulted
+  severity: P2
+  class: value
+  status: fixed
+  confidence: high
+  components:
+  - Payments
+  arms:
+  - Payments@"issuer"
+  - Payments@"admin"
+  hazards:
+  - HZ-008
+  invariants: []
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/40_payments.rho:117
+  - kind: source
+    ref: contracts/src/deploy/40_payments.rho:174
+  - kind: source
+    ref: contracts/src/deploy/40_payments.rho:222
+  - kind: test
+    ref: harness/unit_payments.py
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: paymentsState stores an assets list and setAssets updates it, but Payments.issuer calls the r-cash AssetResolver for any assetId without checking the list.
+  preconditions: A listing uses an assetId that is resolvable by r-cash but not in Payments.assets.
+  impact: The documented allowlist is inert. A deployment that relies on it to restrict settlement assets is exposed to any issuer that r-cash resolves.
+  reproduction: 'Static trace: grep for assets in 40_payments.rho shows no read outside initialization/admin write.'
+  proposed_fix: R-007
+  lean_backlog:
+  - THM-ASSET
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-009
+  title: BookingContractFactory accepts arbitrary booking data from any guest
+  severity: P1
+  class: integrity
+  status: fixed
+  confidence: high
+  components:
+  - BookingContractFactory
+  - BookingContract
+  arms:
+  - BookingContractFactory@"create"
+  hazards:
+  - HZ-009
+  invariants:
+  - INV-9
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/22_booking_contract.rho:37
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: The registered factory checks only that the deployer-derived guestId equals data.guestId. It does not require a GuestLedger reservation, a listing check, a real Bond, or trusted provider/rent/deposit fields.
+  preconditions: Any caller with a REV account and the factory URI constructs a data map with its own guestId.
+  impact: Anyone can create fake BookingContracts with arbitrary providerId, listingUri, rents, deposits, admins and status, polluting provider views and enabling misleading share links. No direct theft is demonstrated, but the factory is not an authenticated booking boundary.
+  reproduction: Planned unit_adversarial direct-factory case using the fixture booking_term with attacker-chosen data.
+  proposed_fix: R-008
+  lean_backlog:
+  - THM-FACTORY
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-010
+  title: Documentation contradicts source on terminality, reset, pause and invariant 7
+  severity: P2
+  class: docs
+  status: fixed
+  confidence: high
+  components:
+  - docs
+  arms: []
+  hazards:
+  - HZ-010
+  invariants:
+  - INV-7
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: docs/reference/status-vocabulary.md
+  - kind: source
+    ref: docs/concepts/concurrency-doctrine.md
+  - kind: source
+    ref: docs/concepts/authority-and-refusal.md
+  - kind: source
+    ref: spec/invariants.md
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: status-vocabulary calls redeemed terminal although the contract and Lean terminal predicate exclude it. concurrency-doctrine calls acquire a single commit and reset an emergency path without stating the token-gate bypass. authority-and-refusal describes Unit.reset, which no longer exists. invariants said invariant 7 was proved; the audit added summaryOf_rent/count but rentOf_eq_sum is still open, and the formal-status line now says so. The other docs contradictions remain.
+  preconditions: A reader relies on the docs for behaviour or proof status.
+  impact: Operators and reviewers can misjudge terminality, emergency reset and formal coverage. This is a correctness-of-claims finding, not a contract exploit.
+  reproduction: Read the cited lines and compare to 22_booking_contract.rho:624, 14_listing_contract.rho:768 and spec/lean/RShare/Model/Allocator.lean.
+  proposed_fix: R-020
+  lean_backlog:
+  - THM-RENT
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-011
+  title: acquire holds listingState across an external UnitFactory call
+  severity: P1
+  class: concurrency/docs
+  status: fixed
+  confidence: high
+  components:
+  - ListingContract
+  arms:
+  - ListingContract@"acquire"
+  hazards:
+  - HZ-011
+  invariants:
+  - INV-1
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/14_listing_contract.rho:644
+  - kind: source
+    ref: spec/operations.yaml:13
+  - kind: source
+    ref: docs/concepts/concurrency-doctrine.md:14
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: acquire takes listingState, then resolves component:unit-factory and calls UnitFactory.slotScan while the cell is empty, then reposts. The docs call this one commit/no external await.
+  preconditions: A concurrent process in the same deploy attempts to use listingState while acquire is awaiting UnitFactory.
+  impact: The implementation is safe under deploy atomicity but is not the single-comm-event pattern the Lean commit model and doctrine describe. A stale-write or blocking class exists if the pattern is copied elsewhere; the deployed acquire tie cannot honestly be called linearizable from the current model.
+  reproduction: Planned unit_cell_liveness/acquire interleaving case; static trace 14:644-686.
+  proposed_fix: R-015
+  lean_backlog:
+  - THM-AWAIT
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-012
+  title: Provider removeListing leaves the listing active
+  severity: P2
+  class: integrity
+  status: fixed
+  confidence: high
+  components:
+  - ProviderContract
+  - ListingContract
+  arms:
+  - ProviderContract@"removeListing"
+  - ListingContract@"acquire"
+  hazards:
+  - HZ-012
+  invariants: []
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/10_provider.rho:218
+  - kind: source
+    ref: contracts/src/deploy/14_listing_contract.rho:644
+  - kind: test
+    ref: harness/unit_provider_index.py
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: removeListing only flips the provider index copy to status "removed"; the listing contract keeps status active and remains bookable by URI. ProviderContract.listing reports removed while ListingContract.isActive may report true.
+  preconditions: Provider registers a listing, then calls removeListing without delisting the listing.
+  impact: The index and authoritative listing disagree. A client that trusts the provider index hides a live listing; a share link still books it.
+  reproduction: Static trace; planned unit_listing/removeListing case.
+  proposed_fix: R-014
+  lean_backlog: []
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-013
+  title: Refund and transfer cutoffs can precede the slot start
+  severity: P2
+  class: time
+  status: fixed
+  confidence: high
+  components:
+  - Terms
+  - Remedy
+  arms:
+  - Remedy@"cancel"
+  - Terms@"validate"
+  hazards:
+  - HZ-013
+  invariants: []
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/03_terms.rho:73
+  - kind: source
+    ref: contracts/src/deploy/14_listing_contract.rho:358
+  - kind: test
+    ref: harness/unit_cutoffs.py
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: Terms.validate bounds each refund/cutoff window to 0..100000 but does not relate it to slot start or duration. Remedy.cancel subtracts the window from startHeight; a window larger than the start produces a negative cutoff and silently falls to the late-refund branch.
+  preconditions: A listing created near genesis or with a large fullRefundBeforeBlocks/partialRefundBeforeBlocks/eventTransferCutoffBlocks relative to its slot start.
+  impact: A guest can receive a worse refund than the policy appears to promise, or a ticket transfer can be impossible. No value is created, but policy semantics are surprising.
+  reproduction: Planned unit_boundaries with startHeight below the cutoff and now at the boundary.
+  proposed_fix: R-010
+  lean_backlog:
+  - THM-TERMS
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-014
+  title: resume reactivates a delisted listing
+  severity: P2
+  class: state
+  status: fixed
+  confidence: high
+  components:
+  - ListingContract
+  arms:
+  - ListingContract@"resume"
+  - ListingContract@"delist"
+  hazards:
+  - HZ-014
+  invariants: []
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/14_listing_contract.rho:978
+  - kind: source
+    ref: contracts/src/deploy/14_listing_contract.rho:994
+  - kind: test
+    ref: harness/unit_provider_index.py
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: delist sets status "delisted"; resume sets status "active" with no prior-status guard. pause can also overwrite delisted.
+  preconditions: Owner calls delist, then resume (or pause).
+  impact: A listing the operator believes is retired can become bookable again. This is a state-machine and operator-safety hazard, not a direct fund loss.
+  reproduction: 'Planned unit_adversarial: delist, resume, acquire; expected refusal if delist is terminal, actual success.'
+  proposed_fix: R-011
+  lean_backlog:
+  - THM-DELIST
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-015
+  title: Terms.pricePerSlot is not binding on unit prices
+  severity: P2
+  class: integrity
+  status: suspected
+  confidence: medium
+  components:
+  - Terms
+  - ListingContract
+  arms:
+  - ListingContract@"ensureUnit"
+  - ListingContract@"acquire"
+  hazards:
+  - HZ-015
+  invariants:
+  - INV-7
+  evidence_level: E1
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/14_listing_contract.rho:855
+  - kind: source
+    ref: contracts/src/deploy/14_listing_contract.rho:245
+  description: Terms carries pricePerSlot and the terms hash covers it, but ensureUnit accepts a separate per-unit pricePerSlot and acquire computes rent from the unit price. Nothing enforces equality with the terms price.
+  preconditions: A provider creates a unit whose price differs from the listing terms price.
+  impact: A client that displays Terms.pricePerSlot can show a price different from the amount actually escrowed. This is a price-integrity hazard, not a contract arithmetic bug.
+  reproduction: Static trace; planned unit_listing case with terms price 10 and unit price 20, then quote.
+  proposed_fix: R-012
+  lean_backlog:
+  - THM-RENT
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-016
+  title: Bond refusals collapse to a deploy error at the booking boundary
+  severity: P2
+  class: error-handling
+  status: fixed
+  confidence: high
+  components:
+  - BookingContract
+  - Bond
+  arms:
+  - BookingContract@"settle"
+  - Bond@"pay"
+  hazards:
+  - HZ-016
+  invariants: []
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/22_booking_contract.rho:143
+  - kind: source
+    ref: spec/behavior-delta.md:14
+  - kind: test
+    ref: harness/unit_bond_refusals.py
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: bcSettleWith maps any Bond.pay reply other than (true, Nil) to 1/0. Bond "closed", "not holder" and "amount" are therefore deploy errors, not booking-level refusals. behavior-delta records the intended mapping as not implemented.
+  preconditions: A Bond is already paid, the settle token is wrong, or the bucket sum/expected total mismatches.
+  impact: Clients see a failed deploy instead of a designed refusal; recovery messaging and audit evidence are weaker. The booking state cell is serialized, so this is mostly defensive.
+  reproduction: Static trace 22:143-156; planned fault fixture with a refusing Bond.
+  proposed_fix: R-013
+  lean_backlog:
+  - THM-BOND
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-017
+  title: Remedy.noShow is dead code and cancelByProvider bypasses Remedy.cancel
+  severity: P3
+  class: code-hygiene
+  status: fixed
+  confidence: high
+  components:
+  - Remedy
+  - BookingContract
+  arms:
+  - Remedy@"noShow"
+  - BookingContract@"claimNoShow"
+  - BookingContract@"cancelByProvider"
+  hazards:
+  - HZ-017
+  invariants: []
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/04_remedy.rho:83
+  - kind: source
+    ref: contracts/src/deploy/22_booking_contract.rho:447
+  - kind: source
+    ref: contracts/src/deploy/22_booking_contract.rho:211
+  - kind: test
+    ref: harness/unit_no_show_contest.py
+  - kind: test
+    ref: harness/conservation.py
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: claimNoShow routes through Remedy.fee, not Remedy.noShow. cancelByProvider pays a full refund directly and never uses Remedy.cancel(actor="provider"). Two full-refund implementations exist; one path is untested.
+  preconditions: A no-show or provider-cancellation settlement path is exercised.
+  impact: A change to Remedy.noShow or the provider branch of Remedy.cancel has no effect on the deployed payout path, and vice versa. This is a maintenance and proof-tie hazard.
+  reproduction: Static trace; grep call sites.
+  proposed_fix: R-020
+  lean_backlog:
+  - THM-NOSHOW
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-018
+  title: Inventory and documentation drift around components and old Unit.reset
+  severity: P3
+  class: inventory/docs
+  status: fixed
+  confidence: high
+  components:
+  - docs
+  - contracts/components.json
+  arms: []
+  hazards:
+  - HZ-018
+  invariants: []
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/components.json
+  - kind: source
+    ref: docs/concepts/authority-and-refusal.md
+  - kind: source
+    ref: docs/reference/verification.md
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: components.json lists 21 components, while some documentation and summaries state 23. authority-and-refusal still describes a Unit.reset token path that no longer exists; the listing reset is the current arm.
+  preconditions: A reader or tool uses the stale inventory.
+  impact: Audit and review effort is spent on the wrong surface; coverage counts may be overstated. No runtime effect.
+  reproduction: Compare contracts/components.json with the stated counts and grep for Unit.reset.
+  proposed_fix: R-020
+  lean_backlog: []
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-019
+  title: Flow manifest overclaims proved-model and is incomplete
+  severity: P1
+  class: formal/claims
+  status: fixed
+  confidence: high
+  components:
+  - spec/flows
+  - spec/lean
+  - tools
+  arms:
+  - ListingContract@"acquire"
+  - ListingContract@"confirm"
+  - ListingContract@"release"
+  - Bond@"pay"
+  - Remedy@"fee"
+  - Remedy@"cancel"
+  - Remedy@"noShow"
+  - Remedy@"depositSplit"
+  - BookingContract@"accept"
+  hazards:
+  - HZ-019
+  invariants:
+  - INV-7
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: spec/flows/core.yaml:24
+  - kind: source
+    ref: tools/check_flows.py:47
+  - kind: source
+    ref: tools/check_lean.py:63
+  - kind: source
+    ref: spec/lean/RShare/Model/System.lean:43
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: At baseline 63 source theorems were found and 38 were named in Audit.lean. After the L0/L1/no-show pass all 72 source theorems are named; the flow manifest has 35 rules over 31 arms and check-flows --strict reports zero warnings. System.disjoint_cells_commute and provider_pause_not_structural were removed; rentOf_eq_sum remains open and invariant 7 is still only partially modelled.
+  preconditions: A reader or CI relies on the flow manifest as a proof-coverage gate.
+  impact: The formal record overstates what is machine-checked and omits arms. This is a claims-integrity finding, not a contract exploit.
+  reproduction: make formal-check passes; inspect core.yaml lean targets and Audit.lean coverage.
+  proposed_fix: R-015
+  lean_backlog:
+  - THM-MANIFEST
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-020
+  title: Behavioural coverage omits many mutating arms and all fault injection
+  severity: P2
+  class: test-coverage
+  status: confirmed
+  confidence: high
+  components:
+  - harness
+  arms: []
+  hazards:
+  - HZ-020
+  invariants: []
+  evidence_level: E1
+  evidence:
+  - kind: source
+    ref: harness/run_suites.py:21
+  - kind: source
+    ref: harness/unit_lifecycle.py:32
+  - kind: source
+    ref: harness/booking_fixture.py:27
+  description: The 16 suites do not exercise reset, cancelByProvider, guestCheckOut, a successful 2-of-3 arbitrate, Root register/rotate/deprecate/freeze/admin, global setAdmins/setThreshold, listing/provider adminPause, removeListing, Payments admin, Terms hash/fields, Remedy partial/event/late branches, Bond refusal strings, guest-ledger failure paths, duplicate admin keys, asset allowlist, boundary heights or fault injection. Several suites use a stub Bond that accepts every payout.
+  preconditions: A reviewer treats the recorded 16/16 run as broad coverage.
+  impact: The recorded campaign is narrower than the arm inventory. Critical paths can regress while unit-all stays green.
+  reproduction: Compare harness/run_suites.py and suite call sites to audit/registers/arms.yaml.
+  proposed_fix: R-021
+  lean_backlog: []
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04
+- id: F-021
+  title: Terminal settlement leaves booked slots
+  severity: P1
+  class: liveness/state
+  status: fixed
+  confidence: high
+  components:
+  - BookingContract
+  arms:
+  - BookingContract@"settle"
+  - BookingContract@"resolveDeposit"
+  - BookingContract@"closeEvent"
+  hazards:
+  - HZ-040
+  invariants:
+  - INV-2
+  evidence_level: E2
+  evidence:
+  - kind: source
+    ref: contracts/src/deploy/22_booking_contract.rho:143
+  - kind: test
+    ref: harness/unit_settle_release.py
+  - kind: test
+    ref: audit/evidence/2026-11-04-remediation/manifest.json
+  description: bcSettleWith paid the Bond without releasing the booking slots, so checkedOut, resolveDeposit and closeEvent paths left the slot booked after the service ended.
+  preconditions: A booking reaches settle, resolveDeposit or closeEvent with non-empty unitSlots.
+  impact: The slot remains booked and cannot be reused after a normal terminal settlement. Restricting reset makes this a permanent inventory leak.
+  reproduction: harness/unit_settle_release.py on the isolated devnet; slot free after settle, deposit resolution and closeEvent.
+  proposed_fix: R-022
+  lean_backlog: []
+  reviewer: pending
+  verified_at: dee7cff/2026-11-04

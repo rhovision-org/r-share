@@ -1,0 +1,46 @@
+{
+  "node": "http://localhost:41403",
+  "generated_at": "2026-11-04T16:31:55Z",
+  "results": [
+    {
+      "suite": "audit_reset",
+      "script": "unit_audit_reset.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 29.567,
+      "output": "unit-audit-reset (F-001)\n  ok first booking\n  ok slot booked before reset\n  ok reset\n  ok slot free after reset\n  ok second booking on the freed slot\n  ok first booking still confirmed\n  ok second booking exists\nREPRODUCED F-001: reset freed a booked slot; a second booking acquired it\n"
+    },
+    {
+      "suite": "audit_no_show",
+      "script": "unit_audit_no_show.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 29.961,
+      "output": "unit-audit-no-show (F-004)\n  ok book\n  ok claimNoShow after the window\n  ok booking terminal\n  ok guest dispute after noShow\nREPRODUCED F-004: provider claimed no-show without check-in; guest dispute refused\n"
+    },
+    {
+      "suite": "audit_event",
+      "script": "unit_audit_event.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 3.985,
+      "output": "unit-audit-event (F-005)\n  ok redeem then settle before event end\nREPRODUCED F-005: settle from redeemed succeeded before checkOutHeight\n"
+    },
+    {
+      "suite": "audit_admin_keys",
+      "script": "unit_audit_admin_keys.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 4.21,
+      "output": "unit-audit-admin-keys (F-006)\n  AdminGuard.verify -> (True, True)\n  ok duplicate-key threshold\nREPRODUCED F-006: one signature satisfied a duplicated-key threshold of 2\n"
+    },
+    {
+      "suite": "audit_pause",
+      "script": "unit_audit_pause.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 25.928,
+      "output": "unit-audit-pause (F-007)\n  ok global pause\n  ok GuestLedger book while paused\n  ok direct acquire while globally paused\nREPRODUCED F-007: direct acquire succeeded while GuestLedger.book refused\n  ok global resume\n"
+    }
+  ]
+}

@@ -1,8 +1,90 @@
 //! SDK errors and refusal classification.
 
+use std::fmt;
+
 use rcash_chain::ChainError;
 
 use rshare_core::RshareError;
+
+/// Why a projection record could not be decoded.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DecodeKind {
+    /// The record is missing a field the contract always writes.
+    Missing,
+    /// A field is present but is not the expected Rholang type.
+    WrongType,
+    /// A field has the right type but violates the domain bounds.
+    OutOfRange,
+    /// A tagged value carries a tag this client does not know.
+    UnknownTag,
+    /// The record declares a schema version this client does not support.
+    UnsupportedSchema,
+}
+
+impl fmt::Display for DecodeKind {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Missing => "missing",
+            Self::WrongType => "wrong type",
+            Self::OutOfRange => "out of range",
+            Self::UnknownTag => "unknown tag",
+            Self::UnsupportedSchema => "unsupported schema",
+        })
+    }
+}
+
+/// A structured projection-decode failure.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DecodeError {
+    /// The record being decoded, for example `provider info`.
+    pub context: String,
+    /// The field (or nested field path) that failed.
+    pub field: String,
+    /// The failure category.
+    pub kind: DecodeKind,
+}
+
+impl DecodeError {
+    pub fn new(context: impl Into<String>, field: impl Into<String>, kind: DecodeKind) -> Self {
+        Self {
+            context: context.into(),
+            field: field.into(),
+            kind,
+        }
+    }
+
+    pub fn missing(context: impl Into<String>, field: impl Into<String>) -> Self {
+        Self::new(context, field, DecodeKind::Missing)
+    }
+
+    pub fn wrong_type(context: impl Into<String>, field: impl Into<String>) -> Self {
+        Self::new(context, field, DecodeKind::WrongType)
+    }
+
+    pub fn out_of_range(context: impl Into<String>, field: impl Into<String>) -> Self {
+        Self::new(context, field, DecodeKind::OutOfRange)
+    }
+
+    pub fn unknown_tag(context: impl Into<String>, field: impl Into<String>) -> Self {
+        Self::new(context, field, DecodeKind::UnknownTag)
+    }
+
+    pub fn unsupported_schema(context: impl Into<String>, field: impl Into<String>) -> Self {
+        Self::new(context, field, DecodeKind::UnsupportedSchema)
+    }
+}
+
+impl fmt::Display for DecodeError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "{}: field `{}` is {}",
+            self.context, self.field, self.kind
+        )
+    }
+}
+
+impl std::error::Error for DecodeError {}
 
 /// The published refusal vocabulary, grouped for the UI.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -40,6 +122,8 @@ pub enum RefusalCode {
     TooEarly,
     TooLate,
     BelowThreshold,
+    Reservation,
+    AdminKey,
     Other(String),
 }
 
@@ -51,7 +135,7 @@ impl RefusalCode {
             "closed" => Self::Closed,
             "replay" => Self::Replay,
             "pending" => Self::Pending,
-            "slot held" => Self::SlotHeld,
+            "slot held" | "slot booked" => Self::SlotHeld,
             "slot lost" => Self::SlotLost,
             "unknown slot" => Self::UnknownSlot,
             "unknown unit" | "duplicate unit" => Self::UnknownUnit,
@@ -68,6 +152,9 @@ impl RefusalCode {
             "price" => Self::Price,
             "bps" => Self::Bps,
             "threshold" => Self::Threshold,
+            "duplicate key" | "key" => Self::AdminKey,
+            "reservation" => Self::Reservation,
+            "listing" => Self::UnknownListing,
             "amount" => Self::Amount,
             "kind" => Self::Kind,
             "asset" => Self::Asset,
@@ -95,7 +182,9 @@ pub enum SdkError {
     #[error(transparent)]
     Core(#[from] RshareError),
     #[error("decode error: {0}")]
-    Decode(String),
+    Decode(#[from] DecodeError),
+    #[error("random source failed: {0}")]
+    Entropy(String),
     #[error("refused: {reason}")]
     Refused { reason: String, code: RefusalCode },
     #[error("deploy failed: {error}")]
@@ -116,6 +205,11 @@ impl SdkError {
         let reason = reason.into();
         let code = RefusalCode::classify(&reason);
         Self::Refused { reason, code }
+    }
+
+    /// Build a structured decode error.
+    pub fn decode(context: impl Into<String>, field: impl Into<String>, kind: DecodeKind) -> Self {
+        Self::Decode(DecodeError::new(context, field, kind))
     }
 }
 

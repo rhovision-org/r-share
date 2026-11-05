@@ -1,0 +1,818 @@
+schema: rshare.hazop-nodes/v1
+nodes:
+- id: N01
+  name: Install / ShareRoot
+  components:
+  - ShareRoot
+  design_intent: Only the installer registers components until freeze; governance can rotate, deprecate and freeze.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N02
+  name: AdminGuard / ShareAdmin
+  components:
+  - AdminGuard
+  - ShareAdmin
+  design_intent: Two-of-three signatures over a canonical domain-separated payload; nonce replay protection; threshold integrity.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N03
+  name: Terms
+  components:
+  - Terms
+  design_intent: Twenty-field schema, validation, canonical hash and projections; accepted terms satisfy policy invariants.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N04
+  name: Remedy
+  components:
+  - Remedy
+  design_intent: Pure fee, cancellation, no-show and deposit-split arithmetic; buckets conserve rent + deposit.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N05
+  name: Payments
+  components:
+  - Payments
+  design_intent: r-cash root, account, issuer, deposit facet and platform owner; fail closed; asset allowlist.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N06
+  name: ProviderBook / ProviderContract
+  components:
+  - ProviderBook
+  - ProviderContract
+  design_intent: One provider per owner; owner authority; pause and listing index.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N07
+  name: Listing creation
+  components:
+  - ListingFactory
+  - ListingContractFactory
+  - ListingContract
+  design_intent: Provider ownership, terms hash and inherited admin set at creation.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N08
+  name: UnitFactory / schedules
+  components:
+  - UnitFactory
+  - Terms
+  design_intent: Slot specs, lead, duration, contiguity and held-record scanning.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N09
+  name: Allocator
+  components:
+  - ListingContract
+  design_intent: One listing cell owns all slots; acquire is all-or-none; confirm/release are token-gated; reset is safe.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N10
+  name: GuestBook / GuestLedger
+  components:
+  - GuestBook
+  - GuestLedger
+  - GuestLedgerFactory
+  design_intent: Replay-safe booking, global pause gate, account funding, Bond and booking spawn.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N11
+  name: Bond
+  components:
+  - Bond
+  - BondFactory
+  design_intent: Per-booking escrow; single-use pay; exact bucket conservation.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N12
+  name: BookingContractFactory
+  components:
+  - BookingContractFactory
+  design_intent: Authenticated booking creation from a real GuestLedger reservation.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N13
+  name: Booking requested/confirmed
+  components:
+  - BookingContract
+  design_intent: Accept, reject, cancel, cancelByProvider, expire, claimNoShow and redeem.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N14
+  name: Booking in-service
+  components:
+  - BookingContract
+  design_intent: Check-in/out, guest checkout and deposit review window.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N15
+  name: Settlement and claims
+  components:
+  - BookingContract
+  - Remedy
+  - Bond
+  design_intent: Settle, claimDeposit, resolveDeposit, dispute, arbitrate and resolveDispute.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N16
+  name: Event ticket
+  components:
+  - BookingContract
+  design_intent: Redeem, transferTicket and closeEvent; event-only timing and holder rules.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N17
+  name: Pause/delist/admin actions
+  components:
+  - ShareAdmin
+  - ProviderContract
+  - ListingContract
+  design_intent: Global, provider, listing and unit pause scope; delist and admin actions.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N18
+  name: Reads and projections
+  components:
+  - All components
+  design_intent: info/status/ticket/ops/probe never leak tokens or internal cells.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N19
+  name: Platform boundary
+  components:
+  - Clock
+  - deployerId
+  - registry
+  - node
+  design_intent: Block height, deployer identity, registry lookup, 50-block lifespan and deploy atomicity.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index
+- id: N20
+  name: Upgrade/rotation/migration
+  components:
+  - ShareRoot
+  - all stateful components
+  design_intent: Component rotation, setAdmins, schema/ABI versioning and state migration.
+  guide_words:
+  - NO/NOT
+  - MORE
+  - LESS
+  - AS WELL AS
+  - PART OF
+  - REVERSE
+  - OTHER THAN
+  - EARLY
+  - LATE
+  - BEFORE
+  - AFTER
+  - REPEAT
+  - CONCURRENT
+  - UNAUTHORIZED
+  - STALE
+  - LOST
+  - DUPLICATE
+  - UNKNOWN
+  - UNAVAILABLE
+  parameters:
+  - amount
+  - authority
+  - signature count
+  - nonce/opId
+  - state/status
+  - unit
+  - slot
+  - booking
+  - asset
+  - deadline/height
+  - cell
+  - release token
+  - admin key set
+  - provider index

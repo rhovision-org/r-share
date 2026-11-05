@@ -8,9 +8,12 @@ use std::collections::BTreeMap;
 use rcash_chain::rho_expr::RhoValue;
 use rshare_core::render::quote_string;
 use rshare_core::slots::render_unit_slots;
-use rshare_core::{ComponentKey, RegistryUri, ResourceKind, SlotSpec, Terms, UnitSlotRequest};
+use rshare_core::{
+    Amount, ComponentKey, Nonce, OwnerId, RegistryUri, ResourceKind, SlotSpec, Terms,
+    UnitSlotRequest,
+};
 
-use crate::error::{Result, SdkError};
+use crate::error::{DecodeKind, Result, SdkError};
 use crate::models::{
     slot_state, AccountView, BondInfo, BookingView, ClaimView, GuestOp, ListingView,
     ProviderListingEntry, ProviderView, QuoteSummary, TicketView, UnitView,
@@ -60,7 +63,7 @@ impl Client {
         let receipt = wire::deploy_receipt(&self.inner, &term).await?;
         let reply = receipt
             .reply
-            .ok_or_else(|| SdkError::Decode("signed call returned no value".into()))?;
+            .ok_or_else(|| SdkError::decode("signed call", "reply", DecodeKind::Missing))?;
         let values = wire::decode_reply(&reply)?;
         let meta = ReadMeta {
             at_height: receipt.block_number,
@@ -77,7 +80,7 @@ impl Client {
         let (value, meta) = self.read_raw_uri(&component.uri, "fields", &[]).await?;
         let fields = value
             .as_list()
-            .ok_or_else(|| SdkError::Decode("fields is not a list".into()))?
+            .ok_or_else(|| SdkError::decode("terms fields", "fields", DecodeKind::WrongType))?
             .iter()
             .filter_map(RhoValue::as_str)
             .map(str::to_string)
@@ -144,7 +147,9 @@ impl Client {
         let (values, meta) = self.read_uri(uri, "listings", &[]).await?;
         let map = first(&values, "provider listings")?
             .as_map()
-            .ok_or_else(|| SdkError::Decode("listings is not a map".into()))?;
+            .ok_or_else(|| {
+                SdkError::decode("provider listings", "listings", DecodeKind::WrongType)
+            })?;
         let listings = map
             .iter()
             .map(|(id, entry)| Ok((id.clone(), ProviderListingEntry::from_rho(entry)?)))
@@ -176,7 +181,7 @@ impl Client {
         let (values, meta) = self.read_uri(&component.uri, "providerOf", &args).await?;
         let uri = first(&values, "providerOf")?
             .as_str()
-            .ok_or_else(|| SdkError::Decode("provider uri is not a string".into()))?
+            .ok_or_else(|| SdkError::decode("providerOf", "uri", DecodeKind::WrongType))?
             .to_string();
         Ok(Read { value: uri, meta })
     }
@@ -209,7 +214,7 @@ impl Client {
         let (values, meta) = self.read_uri(uri, "units", &[]).await?;
         let map = first(&values, "units")?
             .as_map()
-            .ok_or_else(|| SdkError::Decode("units is not a map".into()))?;
+            .ok_or_else(|| SdkError::decode("listing units", "units", DecodeKind::WrongType))?;
         let units = map
             .iter()
             .map(|(id, unit)| Ok((id.clone(), UnitView::from_rho(unit)?)))
@@ -235,9 +240,9 @@ impl Client {
     ) -> Result<Read<BTreeMap<String, SlotSpec>>> {
         let args = vec![quote_string(unit_id)?];
         let (values, meta) = self.read_uri(uri, "schedule", &args).await?;
-        let map = first(&values, "schedule")?
-            .as_map()
-            .ok_or_else(|| SdkError::Decode("schedule is not a map".into()))?;
+        let map = first(&values, "schedule")?.as_map().ok_or_else(|| {
+            SdkError::decode("listing schedule", "schedule", DecodeKind::WrongType)
+        })?;
         let schedule = map
             .iter()
             .map(|(id, spec)| Ok((id.clone(), crate::models::slot_spec(spec)?)))
@@ -258,16 +263,16 @@ impl Client {
         let (values, meta) = self.read_uri(uri, "probe", &[rendered]).await?;
         let map = first(&values, "probe")?
             .as_map()
-            .ok_or_else(|| SdkError::Decode("probe is not a map".into()))?;
+            .ok_or_else(|| SdkError::decode("listing probe", "probe", DecodeKind::WrongType))?;
         let mut states = BTreeMap::new();
         for (unit_id, unit_slots) in map {
-            let unit_slots = unit_slots
-                .as_map()
-                .ok_or_else(|| SdkError::Decode(format!("probe unit {unit_id} is not a map")))?;
+            let unit_slots = unit_slots.as_map().ok_or_else(|| {
+                SdkError::decode("listing probe", unit_id.as_str(), DecodeKind::WrongType)
+            })?;
             let unit = unit_slots
                 .iter()
-                .map(|(slot_id, state)| (slot_id.clone(), slot_state(state)))
-                .collect();
+                .map(|(slot_id, state)| Ok((slot_id.clone(), slot_state(state)?)))
+                .collect::<Result<BTreeMap<_, _>>>()?;
             states.insert(unit_id.clone(), unit);
         }
         Ok(Read {
@@ -304,7 +309,7 @@ impl Client {
         let (values, meta) = self.read_uri(uri, "status", &[]).await?;
         let status = first(&values, "status")?
             .as_str()
-            .ok_or_else(|| SdkError::Decode("status is not a string".into()))?
+            .ok_or_else(|| SdkError::decode("booking status", "status", DecodeKind::WrongType))?
             .to_string();
         Ok(Read {
             value: status,
@@ -329,7 +334,7 @@ impl Client {
         let (values, meta) = self.read_uri(uri, "ops", &[]).await?;
         let map = first(&values, "ops")?
             .as_map()
-            .ok_or_else(|| SdkError::Decode("ops is not a map".into()))?;
+            .ok_or_else(|| SdkError::decode("booking ops", "ops", DecodeKind::WrongType))?;
         let ops = map
             .iter()
             .map(|(id, value)| (id.clone(), value.to_json()))
@@ -351,7 +356,7 @@ impl Client {
         let (values, meta) = self.read_uri(uri, "balance", &[]).await?;
         let amount = first(&values, "bond balance")?
             .as_int()
-            .ok_or_else(|| SdkError::Decode("bond balance is not an integer".into()))?;
+            .ok_or_else(|| SdkError::decode("bond balance", "balance", DecodeKind::WrongType))?;
         Ok(Read {
             value: amount,
             meta,
@@ -362,11 +367,12 @@ impl Client {
     pub async fn share_admin_keys(&self) -> Result<Read<(Vec<String>, i64)>> {
         let component = self.resolve(ComponentKey::ShareAdmin).await?;
         let (values, meta) = self.read_uri(&component.uri, "keys", &[]).await?;
-        let admins = crate::models::admin_list(first(&values, "admin keys")?);
+        let admins =
+            crate::models::admin_list("admin keys", "admins", first(&values, "admin keys")?)?;
         let threshold = values
             .get(1)
             .and_then(RhoValue::as_int)
-            .ok_or_else(|| SdkError::Decode("admin threshold is not an integer".into()))?;
+            .ok_or_else(|| SdkError::decode("admin keys", "threshold", DecodeKind::WrongType))?;
         Ok(Read {
             value: (admins, threshold),
             meta,
@@ -379,9 +385,36 @@ impl Client {
         let (values, meta) = self.read_uri(&component.uri, "isPaused", &[]).await?;
         let paused = first(&values, "paused")?
             .as_bool()
-            .ok_or_else(|| SdkError::Decode("paused is not a boolean".into()))?;
+            .ok_or_else(|| SdkError::decode("admin pause", "paused", DecodeKind::WrongType))?;
         Ok(Read {
             value: paused,
+            meta,
+        })
+    }
+
+    /// The current global admin nonce. Mutating actions must sign `nonce.next()`.
+    pub async fn share_admin_nonce(&self) -> Result<Read<Nonce>> {
+        let component = self.resolve(ComponentKey::ShareAdmin).await?;
+        let (values, meta) = self.read_uri(&component.uri, "nonce", &[]).await?;
+        let raw = first(&values, "admin nonce")?
+            .as_int()
+            .ok_or_else(|| SdkError::decode("admin nonce", "nonce", DecodeKind::WrongType))?;
+        Ok(Read {
+            value: Nonce::new(raw)?,
+            meta,
+        })
+    }
+
+    /// The current governance nonce.
+    pub async fn share_root_nonce(&self) -> Result<Read<Nonce>> {
+        let (values, meta) = self
+            .read_uri(self.manifest.root_uri(), "nonce", &[])
+            .await?;
+        let raw = first(&values, "root nonce")?
+            .as_int()
+            .ok_or_else(|| SdkError::decode("root nonce", "nonce", DecodeKind::WrongType))?;
+        Ok(Read {
+            value: Nonce::new(raw)?,
             meta,
         })
     }
@@ -402,7 +435,7 @@ impl Client {
         let (values, meta) = self.read_uri(&component.uri, "platformOwner", &[]).await?;
         let owner = first(&values, "platform owner")?
             .as_str()
-            .ok_or_else(|| SdkError::Decode("platform owner is not a string".into()))?
+            .ok_or_else(|| SdkError::decode("payments", "platformOwner", DecodeKind::WrongType))?
             .to_string();
         Ok(Read { value: owner, meta })
     }
@@ -411,8 +444,11 @@ impl Client {
     pub async fn native_rev_balance(&self, address: &str) -> Result<Read<i64>> {
         let term = wire::native_rev_balance_term(address)?;
         let (value, meta) = wire::explore_value(&self.inner, &term).await?;
+        let balance = value.as_int().ok_or_else(|| {
+            SdkError::decode("native REV balance", "balance", DecodeKind::WrongType)
+        })?;
         Ok(Read {
-            value: value.as_int().unwrap_or_default(),
+            value: balance,
             meta,
         })
     }
@@ -440,16 +476,19 @@ impl Client {
         let receipt = wire::deploy_receipt(&self.inner, &term).await?;
         let reply = receipt
             .reply
-            .ok_or_else(|| SdkError::Decode("account balance returned no value".into()))?;
+            .ok_or_else(|| SdkError::decode("account balance", "reply", DecodeKind::Missing))?;
         let values = wire::decode_reply(&reply)?;
         let owner_id = first(&values, "account owner")?
             .as_str()
-            .ok_or_else(|| SdkError::Decode("account owner is not a string".into()))?
-            .to_string();
-        let rev_base_units = values
-            .get(1)
-            .and_then(RhoValue::as_int)
-            .ok_or_else(|| SdkError::Decode("account balance is not an integer".into()))?;
+            .ok_or_else(|| SdkError::decode("account balance", "ownerId", DecodeKind::WrongType))?;
+        let owner_id = OwnerId::new(owner_id)
+            .map_err(|_| SdkError::decode("account balance", "ownerId", DecodeKind::OutOfRange))?;
+        let rev_base_units = values.get(1).and_then(RhoValue::as_int).ok_or_else(|| {
+            SdkError::decode("account balance", "revBaseUnits", DecodeKind::WrongType)
+        })?;
+        let rev_base_units = Amount::new(rev_base_units).map_err(|_| {
+            SdkError::decode("account balance", "revBaseUnits", DecodeKind::OutOfRange)
+        })?;
         Ok(Read {
             value: AccountView {
                 owner_id,
@@ -472,12 +511,12 @@ impl Client {
             .await?;
         let uri = first(&values, "ledger uri")?
             .as_str()
-            .ok_or_else(|| SdkError::Decode("ledger uri is not a string".into()))?
+            .ok_or_else(|| SdkError::decode("guest ledger", "uri", DecodeKind::WrongType))?
             .to_string();
         let guest_id = values
             .get(1)
             .and_then(RhoValue::as_str)
-            .ok_or_else(|| SdkError::Decode("guest id is not a string".into()))?
+            .ok_or_else(|| SdkError::decode("guest ledger", "guestId", DecodeKind::WrongType))?
             .to_string();
         Ok(Read {
             value: GuestLedgerRef { uri, guest_id },
@@ -495,7 +534,7 @@ impl Client {
             .await?;
         let map = first(&values, "guest ops")?
             .as_map()
-            .ok_or_else(|| SdkError::Decode("guest ops is not a map".into()))?;
+            .ok_or_else(|| SdkError::decode("guest ops", "ops", DecodeKind::WrongType))?;
         let ops = map
             .iter()
             .map(|(id, op)| Ok((id.clone(), GuestOp::from_rho(op)?)))
@@ -507,7 +546,7 @@ impl Client {
 fn first<'a>(values: &'a [RhoValue], label: &str) -> Result<&'a RhoValue> {
     values
         .first()
-        .ok_or_else(|| SdkError::Decode(format!("{label} reply is empty")))
+        .ok_or_else(|| SdkError::decode(label, "reply", DecodeKind::Missing))
 }
 
 fn hash_text(value: &RhoValue) -> Result<String> {
@@ -516,7 +555,7 @@ fn hash_text(value: &RhoValue) -> Result<String> {
         other => other
             .as_str()
             .map(str::to_string)
-            .ok_or_else(|| SdkError::Decode("hash is not a byte array or string".into())),
+            .ok_or_else(|| SdkError::decode("terms hash", "hash", DecodeKind::WrongType)),
     }
 }
 
@@ -524,9 +563,9 @@ impl ClaimView {
     /// A default empty claim, for callers that only have a ticket.
     pub fn empty() -> Self {
         Self {
-            amount: 0,
+            amount: Amount::ZERO,
             evidence_hash: String::new(),
-            at_height: 0,
+            at_height: rshare_core::Height::ZERO,
         }
     }
 }

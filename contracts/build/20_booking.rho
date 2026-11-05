@@ -85,12 +85,15 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                         guestBookState!(s2.set(guestId, ledgerUri)) |
                                         ret!((true, ledgerUri, guestId))
                                       }
-                                      _ => { ret!(lr) }
+                                      _ => { guestBookState!(s2) | ret!(lr) }
                                     }
                                   }
                                 }
                               }
-                              _ => { ret!((false, "ledger factory unavailable")) }
+                              _ => {
+                                guestBookState!(s2) |
+                                ret!((false, "ledger factory unavailable"))
+                              }
                             }
                           }
                         }

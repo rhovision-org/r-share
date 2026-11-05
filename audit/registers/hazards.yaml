@@ -1,0 +1,986 @@
+schema: rshare.hazards/v1
+total: 40
+hazards:
+- id: HZ-001
+  node: N09
+  arm: ListingContract@"reset"
+  guide_word: part_of
+  parameter: slot ownership
+  deviation: a booked or live-held slot is freed and can be acquired by a second booking
+  causes:
+  - reset overwrites any slot record
+  - owner-only authority
+  - no expiry/token/state check
+  consequences:
+    on_chain: two live bookings reference one slot; first booking can still settle
+    operational: inventory loss; probe no longer trustworthy
+    safety: physical asset double allocation for car/robot listings
+  severity: S4
+  likelihood: L2
+  risk: high
+  controls: listing owner auth only; reset is not tested
+  findings:
+  - F-001
+  tests:
+  - T-RESET
+  lean: THM-RESET
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/14_listing_contract.rho:768
+- id: HZ-002
+  node: N10
+  arm: GuestBook@"getOrCreate"
+  guide_word: lost
+  parameter: state cell
+  deviation: guestBookState is consumed and not reposted on factory failure
+  causes:
+  - take then external factory call
+  - refusal branch lacks repost
+  consequences:
+    on_chain: singleton guest index empty; later getOrCreate blocks
+    operational: new guests cannot onboard
+    safety: none
+  severity: S4
+  likelihood: L2
+  risk: high
+  controls: none; no fault-injection test
+  findings:
+  - F-002
+  tests:
+  - T-CELL
+  lean: THM-CELL
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/20_booking.rho:20
+- id: HZ-003
+  node: N10
+  arm: GuestLedger@"book"
+  guide_word: unavailable
+  parameter: Bond factory
+  deviation: bond-factory-unavailable returns without dropping the op or releasing slots
+  causes:
+  - normal refusal branch has no compensation
+  consequences:
+    on_chain: opId stays pending; slots held until expiry
+    operational: same intent cannot be retried
+    safety: none
+  severity: S3
+  likelihood: L2
+  risk: high
+  controls: acquire-failure path does drop; this branch does not
+  findings:
+  - F-003
+  tests:
+  - T-FAULT
+  lean: THM-LEDGER
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/23_guest_ledger.rho:248
+- id: HZ-004
+  node: N13
+  arm: BookingContract@"claimNoShow"
+  guide_word: other_than
+  parameter: delivery evidence
+  deviation: provider captures rent without checking in or delivering
+  causes:
+  - provider controls checkIn
+  - claimNoShow terminal
+  - guest cannot dispute from confirmed
+  consequences:
+    on_chain: rent/fee paid to provider
+    operational: guest complaint has no on-chain path
+    safety: none
+  severity: S3
+  likelihood: L3
+  risk: high
+  controls: no-show grace window only
+  findings:
+  - F-004
+  tests:
+  - T-ADVERSARIAL
+  lean: THM-NOSHOW
+  disposition: mitigate
+  owner: contracts/policy
+  evidence:
+  - contracts/src/deploy/22_booking_contract.rho:931
+- id: HZ-005
+  node: N15
+  arm: BookingContract@"settle"
+  guide_word: early
+  parameter: event end
+  deviation: settle from redeemed succeeds before checkOutHeight
+  causes:
+  - settle applies deposit-release check only to checkedOut
+  - closeEvent has a separate check
+  consequences:
+    on_chain: escrow released before event
+    operational: provider can be paid then fail to deliver
+    safety: none
+  severity: S3
+  likelihood: L2
+  risk: high
+  controls: closeEvent check exists but settle bypasses it
+  findings:
+  - F-005
+  tests:
+  - T-EVENT
+  lean: THM-EVENT
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/22_booking_contract.rho:624
+- id: HZ-006
+  node: N02
+  arm: AdminGuard@"verify"
+  guide_word: duplicate
+  parameter: admin key set
+  deviation: duplicate keys count separately; one signature can satisfy threshold 2
+  causes:
+  - guardCount iterates list entries
+  - setAdmins does not enforce Nodup
+  - threshold can be 1
+  consequences:
+    on_chain: one key controls a nominal 2-of-3
+    operational: governance takeover
+    safety: none
+  severity: S4
+  likelihood: L2
+  risk: high
+  controls: threshold <= list length only
+  findings:
+  - F-006
+  tests:
+  - T-ADMIN-KEYS
+  lean: THM-ADMIN
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/02_admin.rho:31
+- id: HZ-007
+  node: N17
+  arm: ListingContract@"acquire"
+  guide_word: unauthorized
+  parameter: pause scope
+  deviation: global or provider pause does not stop direct acquire
+  causes:
+  - global gate is only in GuestLedger
+  - acquire checks listing/unit status only
+  consequences:
+    on_chain: new holds during emergency pause
+    operational: operator cannot stop inventory allocation
+    safety: physical asset can be allocated during incident
+  severity: S3
+  likelihood: L2
+  risk: high
+  controls: listing/unit pause still works
+  findings:
+  - F-007
+  tests:
+  - T-PAUSE
+  lean: THM-PAUSE
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/14_listing_contract.rho:644
+- id: HZ-008
+  node: N05
+  arm: Payments@"issuer"
+  guide_word: other_than
+  parameter: asset
+  deviation: an asset outside the stored allowlist is accepted if r-cash resolves it
+  causes:
+  - assets list is never read
+  consequences:
+    on_chain: settlement in an unexpected asset
+    operational: allowlist policy is not enforced
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: r-cash AssetResolver only
+  findings:
+  - F-008
+  tests:
+  - T-ASSET
+  lean: THM-ASSET
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/40_payments.rho:117
+- id: HZ-009
+  node: N12
+  arm: BookingContractFactory@"create"
+  guide_word: other_than
+  parameter: booking origin
+  deviation: any guest can create a booking with arbitrary data
+  causes:
+  - only guestId is checked
+  - factory is publicly registered
+  consequences:
+    on_chain: fake bookings with arbitrary provider/rent/deposit/admins
+    operational: provider views polluted; misleading share links
+    safety: none
+  severity: S3
+  likelihood: L3
+  risk: high
+  controls: none
+  findings:
+  - F-009
+  tests:
+  - T-ADVERSARIAL
+  lean: THM-FACTORY
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/22_booking_contract.rho:37
+- id: HZ-010
+  node: N18
+  arm: docs
+  guide_word: other_than
+  parameter: claim
+  deviation: docs describe terminality, reset, pause and invariant 7 differently from source
+  causes:
+  - docs drift
+  consequences:
+    on_chain: none
+    operational: operator/reviewer error
+    safety: none
+  severity: S2
+  likelihood: L3
+  risk: medium
+  controls: docs-check does not check semantic claims
+  findings:
+  - F-010
+  tests: []
+  lean: THM-RENT
+  disposition: mitigate
+  owner: docs
+  evidence:
+  - docs/reference/status-vocabulary.md:16
+- id: HZ-011
+  node: N09
+  arm: ListingContract@"acquire"
+  guide_word: concurrent
+  parameter: state cell
+  deviation: listingState is held across UnitFactory.slotScan, not a single commit
+  causes:
+  - take then external await then put
+  consequences:
+    on_chain: other listing arms block; stale-write class if pattern copied
+    operational: doctrine and Lean commit abstraction overstate atomicity
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: deploy atomicity and cell emptiness
+  findings:
+  - F-011
+  tests:
+  - T-CELL
+  lean: THM-AWAIT
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/14_listing_contract.rho:644
+- id: HZ-012
+  node: N06
+  arm: ProviderContract@"removeListing"
+  guide_word: stale
+  parameter: provider index
+  deviation: index says removed while listing is active
+  causes:
+  - copy is updated, listing state is not
+  consequences:
+    on_chain: listing remains bookable
+    operational: client hides a live listing or shows a stale one
+    safety: none
+  severity: S2
+  likelihood: L3
+  risk: medium
+  controls: status-vocabulary says listing status is authoritative
+  findings:
+  - F-012
+  tests:
+  - T-LISTING
+  lean: null
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/10_provider.rho:216
+- id: HZ-013
+  node: N03
+  arm: Remedy@"cancel"
+  guide_word: less
+  parameter: refund window
+  deviation: cutoff before slot start produces a negative boundary and a late-refund result
+  causes:
+  - Terms.validate does not relate windows to start/duration
+  - startHeight - window can be negative
+  consequences:
+    on_chain: guest refund lower than policy appears
+    operational: support dispute
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: numeric bounds only
+  findings:
+  - F-013
+  tests:
+  - T-BOUNDARIES
+  lean: THM-TERMS
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/03_terms.rho:73
+- id: HZ-014
+  node: N17
+  arm: ListingContract@"resume"
+  guide_word: after
+  parameter: delist state
+  deviation: resume reactivates a delisted listing
+  causes:
+  - no prior-status guard
+  consequences:
+    on_chain: listing becomes bookable again
+    operational: operator believes it is retired
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: owner auth only
+  findings:
+  - F-014
+  tests:
+  - T-ADVERSARIAL
+  lean: THM-DELIST
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/14_listing_contract.rho:978
+- id: HZ-015
+  node: N03
+  arm: ListingContract@"ensureUnit"
+  guide_word: other_than
+  parameter: price
+  deviation: unit price differs from Terms.pricePerSlot
+  causes:
+  - terms price is not enforced at unit creation
+  - rent uses unit price
+  consequences:
+    on_chain: escrow amount differs from displayed terms price
+    operational: client misquote
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: integer bounds only
+  findings:
+  - F-015
+  tests:
+  - T-BOUNDARIES
+  lean: THM-RENT
+  disposition: mitigate
+  owner: contracts/client
+  evidence:
+  - contracts/src/deploy/14_listing_contract.rho:855
+- id: HZ-016
+  node: N11
+  arm: Bond@"pay"
+  guide_word: other_than
+  parameter: refusal
+  deviation: Bond refusal becomes a deploy error at the booking boundary
+  causes:
+  - bcSettleWith maps non-(true,Nil) to 1/0
+  consequences:
+    on_chain: deploy error instead of designed refusal
+    operational: client cannot distinguish state from error
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: booking cell serializes settlement
+  findings:
+  - F-016
+  tests:
+  - T-FAULT
+  lean: THM-BOND
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/22_booking_contract.rho:143
+- id: HZ-017
+  node: N04
+  arm: Remedy@"noShow"
+  guide_word: not
+  parameter: payout path
+  deviation: noShow arm is never called; provider cancel bypasses Remedy.cancel
+  causes:
+  - duplicate implementations
+  - claimNoShow calls fee
+  consequences:
+    on_chain: two code paths can drift
+    operational: proof/test tie is wrong
+    safety: none
+  severity: S1
+  likelihood: L3
+  risk: low
+  controls: unit_claims happy-path equivalence
+  findings:
+  - F-017
+  tests: []
+  lean: THM-NOSHOW
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/04_remedy.rho:83
+- id: HZ-018
+  node: N18
+  arm: docs
+  guide_word: stale
+  parameter: inventory
+  deviation: component count and old Unit.reset text are stale
+  causes:
+  - docs drift
+  consequences:
+    on_chain: none
+    operational: audit/review on the wrong surface
+    safety: none
+  severity: S1
+  likelihood: L3
+  risk: low
+  controls: docs-check checks links, not counts
+  findings:
+  - F-018
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: docs
+  evidence:
+  - contracts/components.json
+- id: HZ-019
+  node: N18
+  arm: spec/flows
+  guide_word: other_than
+  parameter: proof claim
+  deviation: proved-model rules point at defs/constructors; the flow manifest is incomplete; True := trivial is counted; invariant 7 has no theorem
+  causes:
+  - check_flows checks name existence only
+  - check_lean requires >=20 audit lines
+  consequences:
+    on_chain: none
+    operational: formal coverage overstated
+    safety: none
+  severity: S1
+  likelihood: L3
+  risk: medium
+  controls: check_flows warns on def/constructor targets; strict mode is separate
+  findings:
+  - F-019
+  tests:
+  - T-FORMAL
+  lean: THM-MANIFEST
+  disposition: mitigate
+  owner: formal
+  evidence:
+  - spec/flows/core.yaml:24
+- id: HZ-020
+  node: N19
+  arm: harness
+  guide_word: not
+  parameter: coverage
+  deviation: many mutating arms, refusal branches and failure paths are untested
+  causes:
+  - 16 suites focus on happy paths
+  - stub Bond accepts all payouts
+  consequences:
+    on_chain: regressions can pass unit-all
+    operational: recorded 16/16 overstates coverage
+    safety: none
+  severity: S2
+  likelihood: L3
+  risk: high
+  controls: static gates and one recorded devnet run
+  findings:
+  - F-020
+  tests:
+  - T-COVERAGE
+  lean: null
+  disposition: mitigate
+  owner: test
+  evidence:
+  - harness/run_suites.py:21
+- id: HZ-021
+  node: N01
+  arm: ShareRoot@"register"
+  guide_word: before
+  parameter: freeze
+  deviation: installer installs a malicious component before freeze
+  causes:
+  - installer key compromise
+  - freeze is optional until called
+  consequences:
+    on_chain: all later resolutions can be malicious
+    operational: complete loss of trust
+    safety: physical consequences possible
+  severity: S4
+  likelihood: L1
+  risk: high
+  controls: freeze after install; trust assumption
+  findings: []
+  tests: []
+  lean: null
+  disposition: accept
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/00_root.rho:81
+- id: HZ-022
+  node: N20
+  arm: ShareRoot@"rotate"
+  guide_word: other_than
+  parameter: component version
+  deviation: rotate installs a URI with a lower or invalid version, or retires root
+  causes:
+  - newVersion is not validated
+  - deprecate accepts any key
+  consequences:
+    on_chain: component resolution fails or downgrades
+    operational: platform outage
+    safety: none
+  severity: S3
+  likelihood: L1
+  risk: high
+  controls: 2-of-3 gate
+  findings: []
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/00_root.rho:116
+- id: HZ-023
+  node: N01
+  arm: ShareRoot@"freeze"
+  guide_word: reverse
+  parameter: freeze
+  deviation: freeze is irreversible and cannot be undone if the installer is lost
+  causes:
+  - no unfreeze arm
+  consequences:
+    on_chain: component registration permanently closed
+    operational: recovery requires redeploy
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: admin governance
+  findings: []
+  tests: []
+  lean: null
+  disposition: accept
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/00_root.rho:193
+- id: HZ-024
+  node: N02
+  arm: AdminGuard@"verify"
+  guide_word: repeat
+  parameter: nonce
+  deviation: a signed admin action is replayed
+  causes:
+  - nonce is per object
+  - global nonce has no read arm
+  consequences:
+    on_chain: replay refused by nonce check
+    operational: client must use height+margin
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: nonce <= stored refuses; tests cover replay
+  findings: []
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/02_admin.rho:93
+- id: HZ-025
+  node: N02
+  arm: Codec@"adminPayload"
+  guide_word: other_than
+  parameter: payload
+  deviation: comma-joined args are ambiguous or a different implementation hashes a different payload
+  causes:
+  - args are joined without length prefix
+  - AdminGuard and inline verifyAdmin differ
+  consequences:
+    on_chain: signatures can fail or a payload can collide
+    operational: admin action unavailable
+    safety: none
+  severity: S3
+  likelihood: L1
+  risk: medium
+  controls: domain separator and fixed arg shapes
+  findings: []
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/01_kernel.rho:53
+- id: HZ-026
+  node: N05
+  arm: Payments@"issuer"
+  guide_word: unavailable
+  parameter: r-cash
+  deviation: r-cash root or component lookup never replies
+  causes:
+  - unmatched for/wait on registry lookup
+  consequences:
+    on_chain: arm blocks; deploy may time out
+    operational: settlement unavailable
+    safety: none
+  severity: S3
+  likelihood: L2
+  risk: high
+  controls: phlo limit and deploy rollback
+  findings: []
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/40_payments.rho:19
+- id: HZ-027
+  node: N05
+  arm: BondFactory@"createFromAccount"
+  guide_word: less
+  parameter: funds
+  deviation: account has insufficient funds or withdrawal returns a partial payment
+  causes:
+  - withdraw refusal path returns; measured mismatch aborts
+  consequences:
+    on_chain: no booking; slots released on refusal
+    operational: guest sees a refusal
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: measured amount check and 1/0 rollback
+  findings: []
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/15_bond.rho:148
+- id: HZ-028
+  node: N05
+  arm: Payments@"depositFacet"
+  guide_word: missing
+  parameter: platform account
+  deviation: platform account does not exist at settlement
+  causes:
+  - install ensures platform account; delisting can remove it
+  consequences:
+    on_chain: payout to platform fails; deploy rolls back
+    operational: settlement stuck
+    safety: none
+  severity: S3
+  likelihood: L1
+  risk: medium
+  controls: installer ensures account
+  findings: []
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/40_payments.rho:105
+- id: HZ-029
+  node: N11
+  arm: Bond@"pay"
+  guide_word: repeat
+  parameter: payout
+  deviation: a Bond pays twice
+  causes:
+  - paid flag and single cell
+  - settle token is private
+  consequences:
+    on_chain: double payout
+    operational: insolvency
+    safety: none
+  severity: S4
+  likelihood: L1
+  risk: high
+  controls: paid flag; booking cell serializes
+  findings: []
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/15_bond.rho:102
+- id: HZ-030
+  node: N15
+  arm: BookingContract@"resolveDispute"
+  guide_word: less
+  parameter: arbitration
+  deviation: default resolution ignores a provider damage claim
+  causes:
+  - default splitBps 0
+  - dispute window can be zero
+  consequences:
+    on_chain: provider receives no deposit damage
+    operational: provider may avoid claims
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: arbiter can act before window
+  findings: []
+  tests: []
+  lean: null
+  disposition: accept
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/22_booking_contract.rho:855
+- id: HZ-031
+  node: N16
+  arm: BookingContract@"transferTicket"
+  guide_word: late
+  parameter: transfer cutoff
+  deviation: ticket can transfer after the event starts or cannot transfer at all
+  causes:
+  - cutoff is start-relative but not bounded by duration
+  consequences:
+    on_chain: holder projection changes after admission
+    operational: access-control confusion
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: provider redeem is separate
+  findings: []
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/22_booking_contract.rho:1072
+- id: HZ-032
+  node: N16
+  arm: BookingContract@"redeem"
+  guide_word: other_than
+  parameter: holder
+  deviation: provider redeems without checking the holder or event window
+  causes:
+  - redeem checks status only
+  consequences:
+    on_chain: ticket state is advisory
+    operational: provider controls admission
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: off-chain ticket presentation
+  findings: []
+  tests: []
+  lean: null
+  disposition: accept
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/22_booking_contract.rho:981
+- id: HZ-033
+  node: N19
+  arm: GuestLedger@"book"
+  guide_word: unavailable
+  parameter: registry
+  deviation: an unmatched for/wait on a missing component hangs the book pipeline
+  causes:
+  - rl! to missing URI never replies
+  - for patterns do not handle failure
+  consequences:
+    on_chain: deploy times out; state may roll back
+    operational: booking unavailable
+    safety: none
+  severity: S3
+  likelihood: L2
+  risk: high
+  controls: phlo limit
+  findings: []
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/23_guest_ledger.rho:71
+- id: HZ-034
+  node: N09
+  arm: ListingContract@"info"
+  guide_word: lost
+  parameter: state cell
+  deviation: a failed arm leaves listingState empty
+  causes:
+  - take on a failure branch without repost
+  consequences:
+    on_chain: all listing arms block
+    operational: listing dead until redeploy
+    safety: none
+  severity: S4
+  likelihood: L1
+  risk: high
+  controls: review and tests
+  findings: []
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/14_listing_contract.rho:571
+- id: HZ-035
+  node: N18
+  arm: ListingContract@"probe"
+  guide_word: as_well_as
+  parameter: projection
+  deviation: probe/info/unit leak a release token or raw cell
+  causes:
+  - projection redaction is manual
+  consequences:
+    on_chain: stolen token can release slots
+    operational: inventory theft
+    safety: none
+  severity: S4
+  likelihood: L1
+  risk: high
+  controls: check_allocator and unit_allocator privacy test
+  findings: []
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/14_listing_contract.rho:763
+- id: HZ-036
+  node: N20
+  arm: ShareAdmin@"admin"
+  guide_word: lost
+  parameter: admin key
+  deviation: admin keys are lost or compromised and cannot be rotated safely
+  causes:
+  - threshold 1 allowed
+  - no timelock
+  consequences:
+    on_chain: governance takeover or permanent loss
+    operational: platform outage
+    safety: none
+  severity: S4
+  likelihood: L2
+  risk: high
+  controls: 2-of-3 and setAdmins
+  findings: []
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/02_admin.rho:93
+- id: HZ-037
+  node: N07
+  arm: ListingFactory@"create"
+  guide_word: stale
+  parameter: terms hash
+  deviation: a listing is created with stale or mismatched terms hash
+  causes:
+  - hash is computed at creation; no update arm
+  consequences:
+    on_chain: client quote/terms mismatch
+    operational: booking refusal or wrong price display
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: Terms.hash and termsHash stored
+  findings: []
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/14_listing_contract.rho:36
+- id: HZ-038
+  node: N08
+  arm: UnitFactory@"slotScan"
+  guide_word: duplicate
+  parameter: slot
+  deviation: duplicate slot IDs or overlapping slots are accepted
+  causes:
+  - schedule validation checks seen and contiguity
+  consequences:
+    on_chain: double-counted capacity
+    operational: wrong quote
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: Terms.scheduleOk and unitSlotScan
+  findings: []
+  tests: []
+  lean: null
+  disposition: mitigate
+  owner: contracts/ops
+  evidence:
+  - contracts/src/deploy/13_unit.rho:60
+- id: HZ-039
+  node: N14
+  arm: BookingContract@"checkOut"
+  guide_word: early
+  parameter: deposit review window
+  deviation: provider starts the deposit-review clock immediately after check-in, before the service interval ends
+  causes:
+  - checkOut has no now >= checkOutHeight guard
+  - provider controls check-in and check-out
+  consequences:
+    on_chain: deposit settlement can occur before the service interval ends
+    operational: guest must dispute or accept an early review
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: checkedIn gate; guest dispute from checkedOut
+  findings: []
+  tests: []
+  lean: null
+  disposition: accept
+  owner: contracts/policy
+  evidence:
+  - contracts/src/deploy/22_booking_contract.rho:534
+- id: HZ-040
+  node: N15
+  arm: BookingContract@"settle"
+  guide_word: lost
+  parameter: slot state
+  deviation: terminal settlement pays the Bond but leaves the slot booked
+  causes:
+  - bcSettleWith did not release the booking slots
+  consequences:
+    on_chain: slot remains booked after service end
+    operational: inventory cannot be reused; reset restriction makes it permanent
+    safety: none
+  severity: S2
+  likelihood: L3
+  risk: medium
+  controls: cancel/reject/expire/no-show release explicitly; settle paths did not
+  findings:
+  - F-021
+  tests:
+  - T-SETTLE
+  lean: null
+  disposition: mitigate
+  owner: contracts
+  evidence:
+  - contracts/src/deploy/22_booking_contract.rho:143

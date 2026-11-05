@@ -324,7 +324,15 @@ contract authIsOwner(dId, @ownerId, ret) = {
               }
             }
           }
-          _ => { ret!((false, "bond factory unavailable")) }
+          _ => {
+            new relCh in {
+              ledgerRelease!(listingUri, unitSlots, *releaseToken, *relCh) |
+              for (@_ <- relCh) {
+                GuestLedgerDrop!(*ledgerState, opId) |
+                ret!((false, "bond factory unavailable"))
+              }
+            }
+          }
         }
       }
     }

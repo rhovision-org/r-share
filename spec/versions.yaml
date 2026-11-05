@@ -1,0 +1,52 @@
+# Deployment version map for the audit/remediation work.
+# The current remediation is a fresh v2 install; v1 instances keep v1 semantics.
+
+schema: rshare.versions/v1
+
+baseline:
+  label: v1
+  commit: dee7cff448c30bd84890af408eb2fc4d6012494c
+  semantics: original audit baseline
+  state: v1 state cells
+  status: frozen/legacy; not remediated
+
+remediation:
+  label: v2
+  install: fresh isolated devnet from the modified source, new Root, normal component keys
+  semantics: P0/P1 remediation
+  state:
+    bookingState: 2
+    listingState: 1              # no layout change; reset/pause semantics changed
+    adminState: 1                # validation changed; no layout change
+    other_state_cells: 1
+  abi:
+    BookingContract.info: planned
+    ListingContract.info: planned
+    ShareAdmin.nonce: additive read arm in v2 (no layout change)
+    ShareRoot.nonce: additive read arm in v2 (no layout change)
+  evidence: audit/evidence/2026-11-04-remediation/
+  status: devnet-remediated; not production
+
+compatibility:
+  v1:
+    instances: immutable; old listings, bookings, ledgers and provider records
+    claim: not remediated
+  v2:
+    instances: new listings, bookings, ledgers and provider records
+    claim: P0/P1 fixed, covered by the remediation suites
+  migration: clean v2 install; no in-place state migration in this wave
+  rollback: keep the v1 manifest and Root; switch clients back before v2 state is written;
+            after v2 writes state, use a snapshot restore
+
+changed_components:
+  - ShareRoot
+  - ShareAdmin
+  - AdminGuard
+  - Payments
+  - ProviderContract
+  - ListingContract
+  - BookingContractFactory
+  - BookingContract
+  - GuestBook
+  - GuestLedgerFactory
+  - GuestLedger

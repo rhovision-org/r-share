@@ -42,8 +42,8 @@ impl Manifest {
     }
 
     /// Serialize the manifest back to JSON.
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(self).expect("manifest serializes")
+    pub fn to_json(&self) -> Result<String> {
+        serde_json::to_string(self).map_err(RshareError::from)
     }
 
     /// The Root URI.

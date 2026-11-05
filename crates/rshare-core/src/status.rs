@@ -73,6 +73,9 @@ status_enum!(BookingStatus {
     Cancelled => "cancelled",
     Expired => "expired",
     NoShow => "noShow",
+    NoShowClaimed => "noShowClaimed",
+    NoShowDisputed => "noShowDisputed",
+    NoShowRefunded => "noShowRefunded",
     Disputed => "disputed",
 });
 
@@ -82,11 +85,11 @@ impl BookingStatus {
         matches!(
             self,
             Self::Settled
-                | Self::Redeemed
                 | Self::Rejected
                 | Self::Cancelled
                 | Self::Expired
                 | Self::NoShow
+                | Self::NoShowRefunded
         )
     }
 }
@@ -157,6 +160,10 @@ mod tests {
     fn terminality_matches_the_lifecycle() {
         assert!(BookingStatus::Settled.is_terminal());
         assert!(BookingStatus::Cancelled.is_terminal());
+        assert!(BookingStatus::NoShowRefunded.is_terminal());
+        assert!(!BookingStatus::Redeemed.is_terminal());
+        assert!(!BookingStatus::NoShowClaimed.is_terminal());
+        assert!(!BookingStatus::NoShowDisputed.is_terminal());
         assert!(!BookingStatus::CheckedOut.is_terminal());
         assert!(!BookingStatus::Disputed.is_terminal());
         assert!(!BookingStatus::Requested.is_terminal());

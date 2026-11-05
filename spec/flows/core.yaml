@@ -10,11 +10,11 @@ source_globs:
   - contracts/src/deploy/22_booking_contract.rho
   - contracts/src/deploy/04_remedy.rho
 invariants:
-  S1: {statement: "acquisition is one reservation append", lean: RShare.Model.Allocator.acquire, lean_status: proved-model}
-  S2: {statement: "no slot has two owners", lean: RShare.Model.Allocator.acquire_no_double_owner, lean_status: proved-model}
-  S3: {statement: "a live hold refuses the whole set", lean: RShare.Model.Allocator.acquire_refuses_occupied, lean_status: proved-model}
-  S7: {statement: "the hold is bounded", lean: RShare.Model.Allocator.acquire_bounded, lean_status: proved-model}
-  S9: {statement: "a terminal booking has no outgoing step", lean: RShare.Model.Booking.terminal_no_step, lean_status: proved-model}
+  S1: {statement: "acquisition is one reservation append", lean: RShare.Allocator.acquire_none_or_reservation, lean_status: proved-model}
+  S2: {statement: "no slot has two owners", lean: RShare.Allocator.acquire_no_double_owner, lean_status: proved-model}
+  S3: {statement: "a live hold refuses the whole set", lean: RShare.Allocator.acquire_refuses_occupied, lean_status: proved-model}
+  S7: {statement: "the hold is bounded", lean: RShare.Allocator.acquire_bounded, lean_status: proved-model}
+  S9: {statement: "a terminal booking has no outgoing step", lean: RShare.Booking.terminal_no_step, lean_status: proved-model}
 rules:
   - {id: C-commit, kind: cell, lean: RShare.commit_all_or_none, lean_status: proved-model}
   - {id: C-peek-put, kind: cell, lean: RShare.peek_then_put_rejected, lean_status: proved-model}
@@ -24,65 +24,67 @@ rules:
   - id: L-acquire
     arm: 'ListingContract@"acquire"'
     source: contracts/src/deploy/14_listing_contract.rho
-    lean: RShare.Model.Allocator.acquire
+    lean: RShare.Allocator.acquire_no_double_owner
     lean_status: proved-model
     invariants: [S1, S2, S3, S7]
   - id: L-confirm
     arm: 'ListingContract@"confirm"'
     source: contracts/src/deploy/14_listing_contract.rho
-    lean: RShare.Model.Allocator.confirm
+    lean: RShare.Allocator.confirm_requires_token
     lean_status: proved-model
     invariants: [S1, S2]
   - id: L-release
     arm: 'ListingContract@"release"'
     source: contracts/src/deploy/14_listing_contract.rho
-    lean: RShare.Model.Allocator.release
+    lean: RShare.Allocator.release_clears_token
     lean_status: proved-model
     invariants: [S2]
   - id: L-probe
     arm: 'ListingContract@"probe"'
     source: contracts/src/deploy/14_listing_contract.rho
-    lean: RShare.Model.Allocator.public
+    lean: RShare.Allocator.publicView_no_token
     lean_status: proved-model
   - id: L-quote
     arm: 'ListingContract@"quote"'
     source: contracts/src/deploy/14_listing_contract.rho
-    lean: RShare.Model.Allocator.checkAcquire
+    lean: RShare.Allocator.checkAcquire_free
     lean_status: proved-model
   - id: L-ensure-unit
     arm: 'ListingContract@"ensureUnit"'
     source: contracts/src/deploy/14_listing_contract.rho
-    lean: RShare.Model.Allocator.ensureUnit
+    lean: RShare.Allocator.ensureUnit_head
     lean_status: proved-model
   - id: L-status
     arm: 'ListingContract@"pause"'
     source: contracts/src/deploy/14_listing_contract.rho
-    lean: RShare.Model.Allocator.setStatus
+    lean: RShare.Allocator.setStatus_applied
     lean_status: proved-model
   - {id: L-reset, arm: 'ListingContract@"reset"', source: contracts/src/deploy/14_listing_contract.rho, lean_status: owed}
   - {id: L-pause-unit, arm: 'ListingContract@"pauseUnit"', source: contracts/src/deploy/14_listing_contract.rho, lean_status: owed}
   - {id: L-admin, arm: 'ListingContract@"adminPause"', source: contracts/src/deploy/14_listing_contract.rho, lean_status: owed}
 
-  - {id: B-accept, arm: 'BookingContract@"accept"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Model.Booking.Step.accept, lean_status: proved-model}
-  - {id: B-reject, arm: 'BookingContract@"reject"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Model.Booking.Step.reject, lean_status: proved-model}
-  - {id: B-cancel, arm: 'BookingContract@"cancel"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Model.Booking.Step.cancelRequested, lean_status: proved-model}
-  - {id: B-checkin, arm: 'BookingContract@"checkIn"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Model.Booking.Step.checkIn, lean_status: proved-model}
-  - {id: B-checkout, arm: 'BookingContract@"checkOut"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Model.Booking.Step.checkOut, lean_status: proved-model}
-  - {id: B-settle, arm: 'BookingContract@"settle"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Model.Booking.Step.settle, lean_status: proved-model}
-  - {id: B-dispute, arm: 'BookingContract@"dispute"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Model.Booking.Step.disputeIn, lean_status: proved-model}
-  - {id: B-arbitrate, arm: 'BookingContract@"arbitrate"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Model.Booking.Step.resolve, lean_status: proved-model}
-  - {id: B-resolve-dispute, arm: 'BookingContract@"resolveDispute"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Model.Booking.Step.resolve, lean_status: proved-model}
-  - {id: B-expire, arm: 'BookingContract@"expire"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Model.Booking.Step.expire, lean_status: proved-model}
-  - {id: B-nosHow, arm: 'BookingContract@"claimNoShow"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Model.Booking.Step.noShow, lean_status: proved-model}
+  - {id: B-accept, arm: 'BookingContract@"accept"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Booking.accept_only_from_requested, lean_status: proved-model}
+  - {id: B-reject, arm: 'BookingContract@"reject"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Booking.reject_only_from_requested, lean_status: proved-model}
+  - {id: B-cancel, arm: 'BookingContract@"cancel"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Booking.cancel_only_from_open, lean_status: proved-model}
+  - {id: B-checkin, arm: 'BookingContract@"checkIn"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Booking.checkIn_only_from_confirmed, lean_status: proved-model}
+  - {id: B-checkout, arm: 'BookingContract@"checkOut"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Booking.checkOut_only_from_checkedIn, lean_status: proved-model}
+  - {id: B-settle, arm: 'BookingContract@"settle"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Booking.settle_from_checked_or_redeemed_or_disputed, lean_status: proved-model}
+  - {id: B-dispute, arm: 'BookingContract@"dispute"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Booking.dispute_only_from_checked, lean_status: proved-model}
+  - {id: B-arbitrate, arm: 'BookingContract@"arbitrate"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Booking.resolve_step_only_from_disputed, lean_status: proved-model}
+  - {id: B-resolve-dispute, arm: 'BookingContract@"resolveDispute"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Booking.resolve_step_only_from_disputed, lean_status: proved-model}
+  - {id: B-expire, arm: 'BookingContract@"expire"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Booking.expire_only_from_requested, lean_status: proved-model}
+  - {id: B-nosHow, arm: 'BookingContract@"claimNoShow"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Booking.noShowClaim_only_from_confirmed, lean_status: proved-model}
+  - {id: B-dispute-noShow, arm: 'BookingContract@"disputeNoShow"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Booking.noShowDispute_only_from_claimed, lean_status: proved-model}
+  - {id: B-resolve-noShow, arm: 'BookingContract@"resolveNoShow"', source: contracts/src/deploy/22_booking_contract.rho, lean: RShare.Booking.noShowResolves, lean_status: proved-model}
   - {id: B-claim, arm: 'BookingContract@"claimDeposit"', source: contracts/src/deploy/22_booking_contract.rho, lean_status: owed}
   - {id: B-resolve-deposit, arm: 'BookingContract@"resolveDeposit"', source: contracts/src/deploy/22_booking_contract.rho, lean_status: owed}
   - {id: B-ticket, arm: 'BookingContract@"transferTicket"', source: contracts/src/deploy/22_booking_contract.rho, lean_status: owed}
 
-  - {id: D-pay, arm: 'Bond@"pay"', source: contracts/src/deploy/15_bond.rho, lean: RShare.Model.Bond.pay, lean_status: proved-model}
-  - {id: R-fee, arm: 'Remedy@"fee"', source: contracts/src/deploy/04_remedy.rho, lean: RShare.Model.Remedy.fee, lean_status: proved-model}
-  - {id: R-cancel, arm: 'Remedy@"cancel"', source: contracts/src/deploy/04_remedy.rho, lean: RShare.Model.Remedy.fullRefund, lean_status: proved-model}
-  - {id: R-noshow, arm: 'Remedy@"noShow"', source: contracts/src/deploy/04_remedy.rho, lean: RShare.Model.Remedy.noShow, lean_status: proved-model}
-  - {id: R-split, arm: 'Remedy@"depositSplit"', source: contracts/src/deploy/04_remedy.rho, lean: RShare.Model.Remedy.depositSplit, lean_status: proved-model}
+  - {id: D-pay, arm: 'Bond@"pay"', source: contracts/src/deploy/15_bond.rho, lean: RShare.Bond.pay_once, lean_status: proved-model}
+  - {id: R-fee, arm: 'Remedy@"fee"', source: contracts/src/deploy/04_remedy.rho, lean: RShare.Remedy.fee_le_rent, lean_status: proved-model}
+  - {id: R-cancel, arm: 'Remedy@"cancel"', source: contracts/src/deploy/04_remedy.rho, lean: RShare.Remedy.fullRefund_conserves, lean_status: proved-model}
+  - {id: R-noshow, arm: 'Remedy@"noShow"', source: contracts/src/deploy/04_remedy.rho, lean: RShare.Remedy.noShow_conserves, lean_status: proved-model}
+  - {id: R-split, arm: 'Remedy@"depositSplit"', source: contracts/src/deploy/04_remedy.rho, lean: RShare.Remedy.depositSplit_conserves, lean_status: proved-model}
 
 core_arms:
   - 'ListingContract@"acquire"'

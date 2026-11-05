@@ -3,11 +3,46 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Empty, ErrorBox, Field, Panel, StatusPill, Uri } from "../components/ui";
 import { parseRead, parseWrite } from "../lib/api";
 import * as db from "../lib/db";
+import { boolean, chainInt, int } from "../lib/decode";
+import {
+  adminKeys,
+  adminNonce,
+  adminPayload,
+  bookingView,
+  emptyData,
+  listingView,
+  providerView,
+} from "../lib/decoders";
+import { jsonArgs, message } from "../lib/format";
 import { record } from "../lib/journal";
 import { useWallet } from "../lib/store";
-import type { BookingView, ListingView, ProviderView, Signature } from "../lib/types";
+import type { Signature } from "../lib/types";
 
 type Target = "global" | "listing" | "provider" | "booking";
+
+function isTarget(value: string): value is Target {
+  return value === "global" || value === "listing" || value === "provider" || value === "booking";
+}
+
+function parseNonceInput(text: string): bigint | null {
+  try {
+    return chainInt(text, "nonce");
+  } catch {
+    return null;
+  }
+}
+
+function parseSplit(text: string): number | null {
+  try {
+    return int({ min: 0, max: 10_000 })(text, "splitBps");
+  } catch {
+    return null;
+  }
+}
+
+function isReplay(error: unknown): boolean {
+  return /replay/i.test(message(error));
+}
 
 export default function Admin() {
   const { client, address, profiles, switchProfile, refreshProfiles } = useWallet();
@@ -27,42 +62,58 @@ export default function Admin() {
   const [busy, setBusy] = useState(false);
   const [password, setPassword] = useState("");
   const [switchTo, setSwitchTo] = useState("");
-  const chainHeight = useQuery({
-    queryKey: ["height"],
-    enabled: Boolean(client),
-    queryFn: async () => Number(await client!.height()),
-    refetchInterval: 10_000,
-  });
 
   const keys = useQuery({
     queryKey: ["admin-keys"],
     enabled: Boolean(client),
-    queryFn: async () =>
-      parseRead<{ admins: string[]; threshold: number }>(await client!.admin_keys()).data,
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      return parseRead(await client.admin_keys(), adminKeys).data;
+    },
     staleTime: 10_000,
   });
 
   const paused = useQuery({
     queryKey: ["admin-paused"],
     enabled: Boolean(client),
-    queryFn: async () => parseRead<boolean>(await client!.share_admin_is_paused()).data,
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      return parseRead(await client.share_admin_is_paused(), boolean).data;
+    },
     staleTime: 10_000,
+  });
+
+  const globalNonce = useQuery({
+    queryKey: ["admin-nonce"],
+    enabled: Boolean(client && target === "global"),
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      return parseRead(await client.share_admin_nonce(), adminNonce).data;
+    },
+    staleTime: 5_000,
   });
 
   const targetInfo = useQuery({
     queryKey: ["admin-target", target, uri],
     enabled: Boolean(client && uri && target !== "global"),
     queryFn: async () => {
-      if (target === "listing") return parseRead<ListingView>(await client!.listing_info(uri)).data;
-      if (target === "provider") return parseRead<ProviderView>(await client!.provider_info(uri)).data;
-      return parseRead<BookingView>(await client!.booking_info(uri)).data;
+      if (!client) throw new Error("wallet is locked");
+      if (!uri) throw new Error("no target URI");
+      if (target === "listing") {
+        return parseRead(await client.listing_info(uri), listingView).data;
+      }
+      if (target === "provider") {
+        return parseRead(await client.provider_info(uri), providerView).data;
+      }
+      return parseRead(await client.booking_info(uri), bookingView).data;
     },
     staleTime: 5_000,
   });
 
+  const info = targetInfo.data;
+
   const domain = (() => {
     if (target === "global") return "admin";
-    const info = targetInfo.data;
     if (!info) return "";
     if (target === "listing" && "listingId" in info) return `listing:${info.listingId}`;
     if (target === "provider" && "providerId" in info) return `provider:${info.providerId}`;
@@ -70,44 +121,47 @@ export default function Admin() {
     return "";
   })();
 
-  const defaultNonce = (() => {
-    if (targetInfo.data && "nonce" in targetInfo.data) return String(targetInfo.data.nonce + 1);
-    return "";
-  })();
-  const effectiveNonce = nonce || defaultNonce || String((chainHeight.data ?? 0) + 1000);
+  // Global nonces come from `share_admin_nonce`; object targets carry their own nonce.
+  // Submit `current + 1n`; never fall back to a height or wall clock.
+  const defaultNonce =
+    target === "global" ? (globalNonce.data?.next ?? null) : info ? info.nonce + 1n : null;
+  const typedNonce = nonce.trim();
+  const nonceValue = typedNonce ? parseNonceInput(typedNonce) : defaultNonce;
+  const splitValue = parseSplit(splitBps);
   const payloadAction = target === "booking" ? "split" : action;
   const payloadDomain = target === "booking" ? "arbiter" : domain;
   const args = (() => {
-    if (target === "booking" && targetInfo.data && "bookingId" in targetInfo.data) {
-      return [targetInfo.data.bookingId, Number(splitBps)];
+    if (target === "booking" && info && "bookingId" in info && splitValue !== null) {
+      return [info.bookingId, splitValue];
     }
     return [];
   })();
 
   const build = async () => {
-    if (!client) return;
+    if (!client || nonceValue === null || !payloadDomain) return;
     setBusy(true);
     setError(null);
     try {
-      const read = parseRead<{ payload: string; digest: string }>(
+      const read = parseRead(
         await client.admin_payload(
           payloadDomain,
-          BigInt(effectiveNonce),
+          nonceValue,
           payloadAction,
-          JSON.stringify(args),
+          jsonArgs(args),
         ),
+        adminPayload,
       );
       setPayload(read.data.payload);
       setDigest(read.data.digest);
       setSignatures([]);
-      const id = `${payloadDomain}:${effectiveNonce}:${payloadAction}`;
+      const id = `${payloadDomain}:${nonceValue.toString()}:${payloadAction}`;
       await db.putAdminAction({
         id,
         target,
         uri: target === "global" ? undefined : uri,
-        nonce: Number(effectiveNonce),
+        nonce: nonceValue.toString(),
         action: payloadAction,
-        args: JSON.stringify(args),
+        args: jsonArgs(args),
         payload: read.data.payload,
         digest: read.data.digest,
         signatures: [],
@@ -121,7 +175,7 @@ export default function Admin() {
   };
 
   const sign = async () => {
-    if (!client || !payload) return;
+    if (!client || !payload || nonceValue === null) return;
     setBusy(true);
     setError(null);
     try {
@@ -133,12 +187,12 @@ export default function Admin() {
       const next = [...signatures, { publicKey, signature }];
       setSignatures(next);
       await db.putAdminAction({
-        id: pendingId(payloadDomain, effectiveNonce, payloadAction),
+        id: pendingId(payloadDomain, nonceValue.toString(), payloadAction),
         target,
         uri: target === "global" ? undefined : uri,
-        nonce: Number(effectiveNonce),
+        nonce: nonceValue.toString(),
         action: payloadAction,
-        args: JSON.stringify(args),
+        args: jsonArgs(args),
         payload,
         digest,
         signatures: next,
@@ -152,7 +206,11 @@ export default function Admin() {
   };
 
   const submit = async () => {
-    if (!client) return;
+    if (!client || nonceValue === null) return;
+    if (target === "booking" && splitValue === null) {
+      setError(new Error("Split basis points must be an integer from 0 to 10000."));
+      return;
+    }
     const threshold = keys.data?.threshold ?? 1;
     if (signatures.length < threshold) {
       setError(new Error(`Need ${threshold} signatures; have ${signatures.length}.`));
@@ -162,17 +220,22 @@ export default function Admin() {
     setError(null);
     try {
       const sigs = JSON.stringify(signatures.map((entry) => entry.signature));
-      const n = BigInt(effectiveNonce);
       let raw: string;
       if (target === "global") {
-        raw = await client.admin_submit_share(n, action, "[]", sigs);
+        raw = await client.admin_submit_share(nonceValue, action, "[]", sigs);
       } else if (target === "listing") {
-        raw = await client.admin_submit_listing(uri, n, action, "[]", sigs);
+        raw = await client.admin_submit_listing(uri, nonceValue, action, "[]", sigs);
       } else if (target === "provider") {
-        raw = await client.admin_submit_provider(uri, n, sigs);
+        raw = await client.admin_submit_provider(uri, nonceValue, sigs);
       } else {
         const opId = client.new_op_id("arbitrate", BigInt(Date.now()));
-        raw = await client.arbitrate(uri, n, BigInt(splitBps), sigs, opId);
+        raw = await client.arbitrate(
+          uri,
+          nonceValue,
+          BigInt(splitValue ?? 0),
+          sigs,
+          opId,
+        );
         await record({
           id: opId,
           kind: "admin.arbitrate",
@@ -182,9 +245,9 @@ export default function Admin() {
           summary: `Arbitrate split ${splitBps} bps`,
         });
       }
-      const write = parseWrite<Record<string, never>>(raw);
+      const write = parseWrite(raw, emptyData);
       await record({
-        id: pendingId(payloadDomain, effectiveNonce, payloadAction),
+        id: pendingId(payloadDomain, nonceValue.toString(), payloadAction),
         kind: "admin.submit",
         status: write.deploy.finalized ? "finalized" : "processed",
         deployId: write.deploy.deployId,
@@ -193,11 +256,27 @@ export default function Admin() {
       setSignatures([]);
       setPayload("");
       setDigest("");
+      setNonce("");
       await queryClient.invalidateQueries({ queryKey: ["admin-paused"] });
       await queryClient.invalidateQueries({ queryKey: ["admin-keys"] });
+      await queryClient.invalidateQueries({ queryKey: ["admin-nonce"] });
       await queryClient.invalidateQueries({ queryKey: ["admin-target", target, uri] });
     } catch (caught) {
-      setError(caught);
+      if (isReplay(caught)) {
+        setError(
+          new Error(
+            "Nonce conflict: the chain refused this nonce as a replay. The current nonce has been refreshed; review it and rebuild the payload before signing again.",
+          ),
+        );
+        setNonce("");
+        setPayload("");
+        setDigest("");
+        setSignatures([]);
+        await queryClient.invalidateQueries({ queryKey: ["admin-nonce"] });
+        await queryClient.invalidateQueries({ queryKey: ["admin-target", target, uri] });
+      } else {
+        setError(caught);
+      }
     } finally {
       setBusy(false);
     }
@@ -210,10 +289,14 @@ export default function Admin() {
       setError(new Error("No pending action."));
       return;
     }
-    setTarget(latest.target as Target);
+    if (!isTarget(latest.target)) {
+      setError(new Error(`Unknown pending target: ${latest.target}`));
+      return;
+    }
+    setTarget(latest.target);
     setAction(latest.action);
     setUri(latest.uri ?? "");
-    setNonce(String(latest.nonce));
+    setNonce(latest.nonce);
     setPayload(latest.payload);
     setDigest(latest.digest);
     setSignatures(latest.signatures);
@@ -235,8 +318,9 @@ export default function Admin() {
           <div className="stat"><span className="muted">Global pause</span><strong>{paused.data === undefined ? "…" : String(paused.data)}</strong></div>
           <div className="stat"><span className="muted">Threshold</span><strong>{keys.data?.threshold ?? "…"}</strong></div>
           <div className="stat"><span className="muted">Signatures</span><strong>{signatures.length}</strong></div>
+          <div className="stat"><span className="muted">Next nonce</span><strong>{defaultNonce === null ? "…" : defaultNonce.toString()}</strong></div>
         </div>
-        <ErrorBox error={keys.error ?? paused.error ?? targetInfo.error ?? error} />
+        <ErrorBox error={keys.error ?? paused.error ?? globalNonce.error ?? targetInfo.error ?? error} />
         <div className="row wrap">
           <label className="check"><input type="checkbox" checked={paused.data === true} readOnly /><span>paused</span></label>
           <StatusPill status={paused.data ? "paused" : "active"} />
@@ -250,9 +334,11 @@ export default function Admin() {
             <select
               value={target}
               onChange={(event) => {
-                const next = event.target.value as Target;
+                const next = event.target.value;
+                if (!isTarget(next)) return;
                 setTarget(next);
                 setAction(next === "booking" ? "split" : next === "global" ? "pauseAll" : "pause");
+                setNonce("");
                 setPayload("");
                 setSignatures([]);
               }}
@@ -267,7 +353,14 @@ export default function Admin() {
             {target === "global" ? (
               <input readOnly value="admin" />
             ) : (
-              <input value={uri} onChange={(event) => setUri(event.target.value)} placeholder="rho:id:…" />
+              <input
+                value={uri}
+                onChange={(event) => {
+                  setUri(event.target.value);
+                  setNonce("");
+                }}
+                placeholder="rho:id:…"
+              />
             )}
           </Field>
           <Field label="Action">
@@ -288,8 +381,23 @@ export default function Admin() {
               {target === "booking" && <option value="split">split (arbitrate)</option>}
             </select>
           </Field>
-          <Field label="Nonce" hint={defaultNonce ? `current + 1 = ${defaultNonce}` : "use a height-based nonce"}>
-            <input value={nonce} onChange={(event) => setNonce(event.target.value)} placeholder={defaultNonce} />
+          <Field
+            label="Nonce"
+            hint={
+              defaultNonce === null
+                ? target === "global"
+                  ? "reading the global nonce…"
+                  : uri
+                    ? "reading the target nonce…"
+                    : "enter a target URI to read its nonce"
+                : `current + 1 = ${defaultNonce.toString()}`
+            }
+          >
+            <input
+              value={nonce}
+              onChange={(event) => setNonce(event.target.value)}
+              placeholder={defaultNonce === null ? "" : defaultNonce.toString()}
+            />
           </Field>
           {target === "booking" && (
             <Field label="Split to provider (bps)">
@@ -302,9 +410,19 @@ export default function Admin() {
           <strong className="mono">{payloadDomain || "…"}</strong>
         </div>
         <div className="row wrap">
-          <button disabled={busy || !payloadDomain} onClick={() => void build()}>Build payload</button>
+          <button
+            disabled={
+              busy ||
+              !payloadDomain ||
+              nonceValue === null ||
+              (target === "booking" && splitValue === null)
+            }
+            onClick={() => void build()}
+          >
+            Build payload
+          </button>
           <button className="ghost" disabled={busy || !payload} onClick={() => void sign()}>Sign with current profile</button>
-          <button className="primary" disabled={busy || !payload} onClick={() => void submit()}>Submit</button>
+          <button className="primary" disabled={busy || !payload || nonceValue === null} onClick={() => void submit()}>Submit</button>
         </div>
         {payload && (
           <div className="payload">

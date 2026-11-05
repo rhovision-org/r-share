@@ -1,3 +1,5 @@
+#![allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)]
+
 //! Offline tests for the wire glue and Root resolution.
 
 use std::sync::Arc;

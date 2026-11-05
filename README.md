@@ -35,6 +35,7 @@ off-chain database.
 | `web/` | React + Vite + TypeScript reference client |
 | `tools/` | build inliner, size/allocator/flow lints, node-parser check, docs check |
 | `spec/` | invariants and the milestone acceptance map |
+| `audit/` | audit registers, HAZOP, theorem registry and Rholang improvement plan |
 | `docs/` | the mdBook source; `docs/book/` is generated and ignored |
 | `book.toml` | mdBook configuration |
 
@@ -79,6 +80,16 @@ single-owner, atomic-acquisition, bounded-hold, token-gate and conservation obli
 the model, and `spec/flows/core.yaml` names the theorem for every core arm. The result is
 `proved-model`; it is not a refinement of Rholang. See
 [Status, scope and honest limits](docs/orientation/status-and-scope.md).
+
+A 2026-11-04 audit and P0/P1 remediation lives in `audit/`: 21 findings, 40 HAZOP rows,
+72 Lean theorems all named in the axiom audit, and 22 prioritised Rholang changes. The
+remediated v2 deployment passed 24/24 suites in the recorded campaign on an isolated
+devnet, including reset safety, no-show contest, terminal slot release, admin key soundness,
+pause scope and factory origin. The tree now defines 27 suites; the three added P2 suites
+(provider index, cutoff arithmetic, Bond refusal mapping) await the acceptance run, so they
+are not claimed yet. Remaining P2/P3 findings (terms/unit price binding, governance timelock,
+privacy, migration, coverage) stay open; v1 instances keep v1 semantics, and this does not change the "unaudited" status. See [Audit findings](docs/reference/audit-findings.md) and the [proof
+roadmap](docs/reference/proof-roadmap.md).
 
 ## Quickstart
 

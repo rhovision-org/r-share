@@ -13,7 +13,7 @@ use serde_json::Value;
 use rshare_core::render::quote_string;
 use rshare_core::ComponentKey;
 
-use crate::error::{Result, SdkError};
+use crate::error::{DecodeKind, Result, SdkError};
 use crate::wire;
 use crate::writes::Write;
 use crate::Client;
@@ -113,7 +113,7 @@ impl Client {
     /// account. Returns the resulting account balance.
     pub async fn fund_account_rev(&self, amount: i64) -> Result<Write<i64>> {
         if amount < 1 {
-            return Err(SdkError::Decode("amount must be positive".into()));
+            return Err(SdkError::decode("fund", "amount", DecodeKind::OutOfRange));
         }
         let payments = self.resolve(ComponentKey::Payments).await?;
         let term = FUND_TERM
@@ -123,12 +123,12 @@ impl Client {
         let reply = receipt
             .reply
             .clone()
-            .ok_or_else(|| SdkError::Decode("fund returned no value".into()))?;
+            .ok_or_else(|| SdkError::decode("fund", "reply", DecodeKind::Missing))?;
         let values = wire::decode_reply(&reply)?;
         let balance = values
             .get(1)
             .and_then(RhoValue::as_int)
-            .ok_or_else(|| SdkError::Decode("fund balance is not an integer".into()))?;
+            .ok_or_else(|| SdkError::decode("fund", "balance", DecodeKind::WrongType))?;
         Ok(Write {
             value: balance,
             receipt,
@@ -139,7 +139,11 @@ impl Client {
     /// balance reported by `revRedeem`.
     pub async fn withdraw_rev_to(&self, amount: i64, address: &str) -> Result<Write<i64>> {
         if amount < 1 {
-            return Err(SdkError::Decode("amount must be positive".into()));
+            return Err(SdkError::decode(
+                "withdraw",
+                "amount",
+                DecodeKind::OutOfRange,
+            ));
         }
         let address = quote_string(address)?;
         let payments = self.resolve(ComponentKey::Payments).await?;
@@ -151,12 +155,12 @@ impl Client {
         let reply = receipt
             .reply
             .clone()
-            .ok_or_else(|| SdkError::Decode("withdraw returned no value".into()))?;
+            .ok_or_else(|| SdkError::decode("withdraw", "reply", DecodeKind::Missing))?;
         let values = wire::decode_reply(&reply)?;
         let remaining = values
             .get(1)
             .and_then(RhoValue::as_int)
-            .ok_or_else(|| SdkError::Decode("withdraw result is not an integer".into()))?;
+            .ok_or_else(|| SdkError::decode("withdraw", "balance", DecodeKind::WrongType))?;
         Ok(Write {
             value: remaining,
             receipt,

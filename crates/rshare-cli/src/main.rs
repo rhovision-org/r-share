@@ -12,8 +12,8 @@ use rcash_chain::KeyPair;
 use rshare_core::render::render_json;
 use rshare_core::terms::FIELDS;
 use rshare_core::{
-    ComponentKey, Manifest, OpId, RegistryUri, ResourceKind, RshareError, SlotSpec, Terms,
-    UnitSlotRequest,
+    BasisPoints, ComponentKey, Height, Manifest, Nonce, OpId, RegistryUri, ResourceKind,
+    RshareError, SlotSpec, Terms, UnitSlotRequest,
 };
 use rshare_sdk::{new_op_id, BookingAction, Client, DeployReceipt, ReadMeta, ReadSource, SdkError};
 use serde::{Deserialize, Serialize};
@@ -421,6 +421,14 @@ enum BookingCommand {
         #[arg(long)]
         op: Option<String>,
     },
+    DisputeNoShow {
+        #[arg(long)]
+        uri: String,
+        #[arg(long)]
+        op: Option<String>,
+        #[arg(long)]
+        reason: String,
+    },
     Expire {
         #[arg(long)]
         uri: String,
@@ -428,6 +436,12 @@ enum BookingCommand {
         op: Option<String>,
     },
     ClaimNoShow {
+        #[arg(long)]
+        uri: String,
+        #[arg(long)]
+        op: Option<String>,
+    },
+    ResolveNoShow {
         #[arg(long)]
         uri: String,
         #[arg(long)]
@@ -471,11 +485,16 @@ enum BondCommand {
 enum AdminCommand {
     Keys,
     Paused,
+    Nonce {
+        /// Read the governance nonce instead of the global admin nonce.
+        #[arg(long)]
+        root: bool,
+    },
     Payload {
         #[arg(long)]
         domain: String,
         #[arg(long)]
-        nonce: i64,
+        nonce: Nonce,
         #[arg(long)]
         action: String,
         /// JSON array of arguments. Strings, integers and booleans are rendered.
@@ -488,13 +507,13 @@ enum AdminCommand {
     },
     PauseAll {
         #[arg(long)]
-        nonce: i64,
+        nonce: Nonce,
         #[arg(long = "sig", value_delimiter = ',')]
         sigs: Vec<String>,
     },
     ResumeAll {
         #[arg(long)]
-        nonce: i64,
+        nonce: Nonce,
         #[arg(long = "sig", value_delimiter = ',')]
         sigs: Vec<String>,
     },
@@ -502,7 +521,7 @@ enum AdminCommand {
         #[arg(long)]
         uri: String,
         #[arg(long)]
-        nonce: i64,
+        nonce: Nonce,
         #[arg(long)]
         action: String,
         #[arg(long = "sig", value_delimiter = ',')]
@@ -512,7 +531,7 @@ enum AdminCommand {
         #[arg(long)]
         uri: String,
         #[arg(long)]
-        nonce: i64,
+        nonce: Nonce,
         #[arg(long = "sig", value_delimiter = ',')]
         sigs: Vec<String>,
     },
@@ -520,9 +539,9 @@ enum AdminCommand {
         #[arg(long)]
         booking: String,
         #[arg(long)]
-        nonce: i64,
+        nonce: Nonce,
         #[arg(long)]
-        split_bps: i64,
+        split_bps: BasisPoints,
         #[arg(long)]
         op: Option<String>,
         #[arg(long = "sig", value_delimiter = ',')]
@@ -703,9 +722,9 @@ async fn dispatch(config: &Config, client: &Client, command: Command) -> Result<
         Command::Payments { command } => payments(config, client, command).await,
         Command::Wallet { command } => wallet(config, client, command).await,
         Command::Guest { command } => guest(config, client, command).await,
-        Command::Devnet { .. } | Command::Keystore { .. } => {
-            unreachable!("offline commands are dispatched first")
-        }
+        Command::Devnet { .. } | Command::Keystore { .. } => Err(CliError::Failed(
+            "offline command reached network dispatch".into(),
+        )),
     }
 }
 
@@ -1244,8 +1263,16 @@ async fn booking_action(
             reason_hash,
         } => (uri, BookingAction::Dispute { reason_hash }, op),
         BookingCommand::ResolveDispute { uri, op } => (uri, BookingAction::ResolveDispute, op),
+        BookingCommand::DisputeNoShow { uri, op, reason } => (
+            uri,
+            BookingAction::DisputeNoShow {
+                reason_hash: reason,
+            },
+            op,
+        ),
         BookingCommand::Expire { uri, op } => (uri, BookingAction::Expire, op),
         BookingCommand::ClaimNoShow { uri, op } => (uri, BookingAction::ClaimNoShow, op),
+        BookingCommand::ResolveNoShow { uri, op } => (uri, BookingAction::ResolveNoShow, op),
         BookingCommand::Redeem { uri, op } => (uri, BookingAction::Redeem, op),
         BookingCommand::CloseEvent { uri, op } => (uri, BookingAction::CloseEvent, op),
         BookingCommand::TransferTicket { uri, op, new_guest } => (
@@ -1258,7 +1285,11 @@ async fn booking_action(
         BookingCommand::Info { .. }
         | BookingCommand::Status { .. }
         | BookingCommand::Ticket { .. }
-        | BookingCommand::Ops { .. } => unreachable!("reads are dispatched earlier"),
+        | BookingCommand::Ops { .. } => {
+            return Err(CliError::Failed(
+                "read command reached the booking write path".into(),
+            ))
+        }
     };
     let op = parse_op(op.as_deref())?;
     let write = client
@@ -1299,6 +1330,25 @@ async fn admin(config: &Config, client: &Client, command: AdminCommand) -> Resul
         AdminCommand::Paused => {
             let read = client.share_admin_is_paused().await?;
             emit(config, "admin paused", json!(read.value), Some(&read.meta))
+        }
+        AdminCommand::Nonce { root } => {
+            if root {
+                let read = client.share_root_nonce().await?;
+                emit(
+                    config,
+                    "admin root nonce",
+                    json!({"current": read.value, "next": read.value.next()}),
+                    Some(&read.meta),
+                )
+            } else {
+                let read = client.share_admin_nonce().await?;
+                emit(
+                    config,
+                    "admin nonce",
+                    json!({"current": read.value, "next": read.value.next()}),
+                    Some(&read.meta),
+                )
+            }
         }
         AdminCommand::Payload {
             domain,
@@ -1550,9 +1600,11 @@ async fn fixtures(config: &Config, out: &Path) -> Result<(), CliError> {
         Err(error) => return Err(error.into()),
     };
     let height = provider.height().await?;
-    let start = height + 300;
+    // Fixtures are shared by the CLI journey and the browser campaign; leave enough lead
+    // that the catalogue slot stays actionable through the longest e2e run.
+    let start = height + 3000;
     let end = start + 100;
-    let terms = Terms::default_for(ResourceKind::Robot);
+    let terms = Terms::default_for(ResourceKind::Robot)?;
     let listing_id = format!("listing:client:{}", now_ms());
     let listing = provider
         .create_listing(
@@ -1565,8 +1617,8 @@ async fn fixtures(config: &Config, out: &Path) -> Result<(), CliError> {
     let unit_id = format!("unit:{listing_id}");
     let slots = [SlotSpec {
         slot_id: "s1".into(),
-        start_height: start,
-        end_height: end,
+        start_height: Height::new(start)?,
+        end_height: Height::new(end)?,
     }];
     provider
         .ensure_unit(
@@ -1574,7 +1626,7 @@ async fn fixtures(config: &Config, out: &Path) -> Result<(), CliError> {
             &unit_id,
             &json!({"name": "demo robot"}),
             &slots,
-            terms.price_per_slot,
+            terms.price_per_slot.into(),
         )
         .await?;
     provider
@@ -1590,8 +1642,8 @@ async fn fixtures(config: &Config, out: &Path) -> Result<(), CliError> {
         slot_id: "s1".into(),
         slot_start: start,
         slot_end: end,
-        price: terms.price_per_slot,
-        deposit: terms.deposit,
+        price: terms.price_per_slot.into(),
+        deposit: terms.deposit.into(),
     };
     write_json(out, &fixtures)?;
     let catalogue = json!({
@@ -1642,7 +1694,7 @@ async fn journey(
     let quote = guest.listing_quote(&listing, &requests).await?;
     checks.push(json!({
         "name": "quote",
-        "ok": quote.value.rent == fixtures.price,
+        "ok": quote.value.rent.get() == fixtures.price,
         "rent": quote.value.rent,
     }));
 
@@ -1682,7 +1734,7 @@ async fn journey(
     }));
 
     // A non-instant listing exercises accept and provider cancel.
-    let mut manual = Terms::default_for(ResourceKind::Robot);
+    let mut manual = Terms::default_for(ResourceKind::Robot)?;
     manual.instant_book = false;
     let height = provider.height().await?;
     let manual_listing_id = format!("listing:client-manual:{}", now_ms());
@@ -1697,8 +1749,8 @@ async fn journey(
     let manual_unit = format!("unit:{manual_listing_id}");
     let manual_slots = [SlotSpec {
         slot_id: "s1".into(),
-        start_height: height + 200,
-        end_height: height + 300,
+        start_height: Height::new(height + 200)?,
+        end_height: Height::new(height + 300)?,
     }];
     provider
         .ensure_unit(
@@ -1706,7 +1758,7 @@ async fn journey(
             &manual_unit,
             &json!({"name": "manual robot"}),
             &manual_slots,
-            manual.price_per_slot,
+            manual.price_per_slot.into(),
         )
         .await?;
     provider
@@ -1764,7 +1816,13 @@ async fn journey(
     let admin2 = client_for(config, Some("admin2")).await?;
     ensure_native(&admin1).await?;
     ensure_native(&admin2).await?;
-    let nonce = admin1.height().await? + 1000;
+    // Read the chain nonce and sign the next value. Never guess a nonce.
+    let nonce = admin1
+        .share_admin_nonce()
+        .await?
+        .value
+        .next()
+        .ok_or_else(|| CliError::Failed("admin nonce exhausted".into()))?;
     let payload = admin1
         .admin_payload("admin", nonce, "pauseAll", &[])
         .await?;
@@ -1781,15 +1839,18 @@ async fn journey(
     let paused = admin1
         .admin_submit_share(nonce, "pauseAll", &[], &[sig1, sig2])
         .await;
+    let resume_nonce = nonce
+        .next()
+        .ok_or_else(|| CliError::Failed("admin nonce exhausted".into()))?;
     let resume_payload = admin1
-        .admin_payload("admin", nonce + 1, "resumeAll", &[])
+        .admin_payload("admin", resume_nonce, "resumeAll", &[])
         .await?;
     let resume_sigs = [
         admin1.admin_sign(&resume_payload.value)?,
         admin2.admin_sign(&resume_payload.value)?,
     ];
     let resumed = admin1
-        .admin_submit_share(nonce + 1, "resumeAll", &[], &resume_sigs)
+        .admin_submit_share(resume_nonce, "resumeAll", &[], &resume_sigs)
         .await;
     checks.push(json!({
         "name": "two admin signatures pause and resume",
@@ -1837,7 +1898,7 @@ async fn ensure_account(client: &Client, need: i64) -> Result<(), CliError> {
     let balance = client
         .account_balance()
         .await
-        .map(|read| read.value.rev_base_units)
+        .map(|read| read.value.rev_base_units.get())
         .unwrap_or_default();
     if balance < need {
         client.fund_account_rev(need + 1_000).await?;

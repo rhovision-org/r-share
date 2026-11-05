@@ -1,27 +1,22 @@
-// Small helpers around the wasm JSON boundary.
+// Small helpers around the wasm JSON boundary. Reads and writes are decoded with an
+// explicit decoder; there is no generic assertion over the parsed JSON.
 
+import { parseJson, type Decoder } from "./decode";
+import { readEnvelope, writeEnvelope } from "./decoders";
 import type { ReadEnvelope, WriteEnvelope } from "./types";
 
-export function parseRead<T>(raw: string): ReadEnvelope<T> {
-  const value = JSON.parse(raw) as ReadEnvelope<T>;
-  if (!value.ok) throw new Error("read failed");
-  return value;
+export function parseRead<T>(raw: string, decoder: Decoder<T>): ReadEnvelope<T> {
+  return parseJson(raw, readEnvelope(decoder), "$read");
 }
 
-export function parseWrite<T>(raw: string): WriteEnvelope<T> {
-  const value = JSON.parse(raw) as WriteEnvelope<T>;
-  if (!value.ok) throw new Error("write failed");
-  return value;
+export function parseWrite<T>(raw: string, decoder: Decoder<T>): WriteEnvelope<T> {
+  return parseJson(raw, writeEnvelope(decoder), "$write");
 }
 
 export function parseError(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
   return String(error);
-}
-
-export function jsonArgs(values: unknown[]): string {
-  return JSON.stringify(values);
 }
 
 export function copyToClipboard(text: string): Promise<void> {

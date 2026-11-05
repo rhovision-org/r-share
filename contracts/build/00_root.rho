@@ -7,7 +7,8 @@ new
   dops(`rho:rchain:deployerId:ops`),
   deployId(`rho:rchain:deployId`),
   pkCh, uriCh, ack,
-  guardAnySig, guardArgsAppend, guardArgsToString, guardCount, resolveManySeq, verifyAdmin
+  guardAnySig, guardArgsAppend, guardArgsToString, guardCount, resolveManySeq, verifyAdmin,
+  adminsValid
 in {
 // M-of-N secp256k1 verification over a canonical payload.
 //
@@ -77,7 +78,7 @@ contract guardCount(@digest, @sigs, @i, @count, @keys, @threshold, ret) = {
 } |
 
 contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, ret) = {
-  new hash(`rho:crypto:blake2b256Hash`), strCh, hashCh, okCh in {
+  new hash(`rho:crypto:blake2b256Hash`), strCh, hashCh, okCh, avCh in {
     guardArgsToString!(args, *strCh) |
     for (@argStr <- strCh) {
       match "rshare:admin:v1|" ++ domain ++ "|" ++ nonce.toString()
@@ -85,10 +86,55 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
         payload => {
           hash!(payload.toUtf8Bytes(), *hashCh) |
           for (@digest <- hashCh) {
-            guardCount!(digest, sigs, 0, 0, keys, threshold, *okCh) |
-            for (@ok <- okCh) { ret!((true, ok)) }
+            adminsValid!(keys, threshold, 0, {}, *avCh) |
+            for (@av <- avCh) {
+              match av {
+                (true, Nil) => {
+                  guardCount!(digest, sigs, 0, 0, keys, threshold, *okCh) |
+                  for (@ok <- okCh) { ret!((true, ok)) }
+                }
+                _ => { ret!((true, false)) }
+              }
+            }
           }
         }
+      }
+    }
+  }
+} |
+// Admin-set validation shared by Root, ShareAdmin and the owner-scoped objects.
+// The signed payload shape is not changed; this helper runs after verification.
+// One recursive contract keeps the inlined contract count within the project budget.
+
+contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
+  if (threshold < 2) {
+    ret!((false, "threshold"))
+  } else {
+    if (admins.length() < 2) {
+      ret!((false, "threshold"))
+    } else {
+      if (threshold > admins.length()) {
+        ret!((false, "threshold"))
+      } else {
+      if (i >= admins.length()) {
+        ret!((true, Nil))
+      } else {
+        match admins.nth(i) {
+          a => {
+            new hCh in {
+              hCh!(a.bytesToHex()) |
+              for (@k <- hCh) {
+                if (seen.get(k) != Nil) {
+                  ret!((false, "duplicate key"))
+                } else {
+                  adminsValid!(admins, threshold, i + 1,
+                               seen.set(k, true), *ret)
+                }
+              }
+            }
+          }
+        }
+      }
       }
     }
   }
@@ -121,6 +167,12 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
   contract ShareRoot(@"keys", ret) = {
     for (@s <<- rootState) {
       ret!((true, s.get("entries").keys()))
+    }
+  } |
+
+  contract ShareRoot(@"nonce", ret) = {
+    for (@s <<- rootState) {
+      ret!((true, s.get("govNonce")))
     }
   } |
 
@@ -319,13 +371,19 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
                         newAdmins => {
                           match args.nth(1) {
                             newThreshold => {
-                              if (newThreshold < 1 || newThreshold > newAdmins.length()) {
-                                rootState!(s) | ret!((false, "threshold"))
-                              } else {
-                                rootState!(s.set("admins", newAdmins)
-                                            .set("threshold", newThreshold)
-                                            .set("govNonce", nonce)) |
-                                ret!((true, Nil))
+                              new avCh in {
+                                adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
+                                for (@av <- avCh) {
+                                  match av {
+                                    (true, Nil) => {
+                                      rootState!(s.set("admins", newAdmins)
+                                                  .set("threshold", newThreshold)
+                                                  .set("govNonce", nonce)) |
+                                      ret!((true, Nil))
+                                    }
+                                    _ => { rootState!(s) | ret!(av) }
+                                  }
+                                }
                               }
                             }
                           }
@@ -335,12 +393,18 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
                     "setThreshold" => {
                       match args.nth(0) {
                         newThreshold => {
-                          if (newThreshold < 1 || newThreshold > s.get("admins").length()) {
-                            rootState!(s) | ret!((false, "threshold"))
-                          } else {
-                            rootState!(s.set("threshold", newThreshold)
-                                        .set("govNonce", nonce)) |
-                            ret!((true, Nil))
+                          new avCh in {
+                            adminsValid!(s.get("admins"), newThreshold, 0, {}, *avCh) |
+                            for (@av <- avCh) {
+                              match av {
+                                (true, Nil) => {
+                                  rootState!(s.set("threshold", newThreshold)
+                                              .set("govNonce", nonce)) |
+                                  ret!((true, Nil))
+                                }
+                                _ => { rootState!(s) | ret!(av) }
+                              }
+                            }
                           }
                         }
                       }

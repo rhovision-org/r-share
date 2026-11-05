@@ -1,0 +1,1156 @@
+schema: rshare.theorems/v1
+total: 72
+audited: 72
+theorems:
+- id: THM-001
+  name: set_same
+  module: RShare/Linear/Cell.lean
+  line: 38
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `set_same`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-002
+  name: set_other
+  module: RShare/Linear/Cell.lean
+  line: 42
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `set_other`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-003
+  name: peek_then_put_rejected
+  module: RShare/Linear/Cell.lean
+  line: 87
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `peek_then_put_rejected`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-004
+  name: put_without_take_rejected
+  module: RShare/Linear/Cell.lean
+  line: 95
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `put_without_take_rejected`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-005
+  name: take_without_put_not_wf
+  module: RShare/Linear/Cell.lean
+  line: 101
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `take_without_put_not_wf`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-006
+  name: nested_call_rejected
+  module: RShare/Linear/Cell.lean
+  line: 110
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `nested_call_rejected`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-007
+  name: take_put_commit
+  module: RShare/Linear/Cell.lean
+  line: 115
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `take_put_commit`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-008
+  name: wf_quiescent
+  module: RShare/Linear/Cell.lean
+  line: 124
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `wf_quiescent`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-009
+  name: commit_keeps_held
+  module: RShare/Linear/Cell.lean
+  line: 130
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `commit_keeps_held`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-010
+  name: commit_success
+  module: RShare/Linear/Cell.lean
+  line: 146
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `commit_success`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-011
+  name: commit_all_or_none
+  module: RShare/Linear/Cell.lean
+  line: 165
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `commit_all_or_none`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-012
+  name: commit_requires_single
+  module: RShare/Linear/Cell.lean
+  line: 181
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `commit_requires_single`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-013
+  name: h1_pure
+  module: RShare/Linear/Protocol.lean
+  line: 31
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `h1_pure`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-014
+  name: h2a_caller_token
+  module: RShare/Linear/Protocol.lean
+  line: 35
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `h2a_caller_token`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-015
+  name: h2b_delegated
+  module: RShare/Linear/Protocol.lean
+  line: 42
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `h2b_delegated`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-016
+  name: p2_await_then_commit
+  module: RShare/Linear/Protocol.lean
+  line: 51
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `p2_await_then_commit`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-017
+  name: commit_counts
+  module: RShare/Linear/Protocol.lean
+  line: 57
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `commit_counts`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-018
+  name: summaryOf_rent
+  module: RShare/Model/Allocator.lean
+  line: 186
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `summaryOf_rent`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-019
+  name: summaryOf_count
+  module: RShare/Model/Allocator.lean
+  line: 190
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `summaryOf_count`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-020
+  name: keysOf_mem
+  module: RShare/Model/Allocator.lean
+  line: 201
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `keysOf_mem`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-021
+  name: reservationOf_keys
+  module: RShare/Model/Allocator.lean
+  line: 212
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `reservationOf_keys`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-022
+  name: acquire_none_or_reservation
+  module: RShare/Model/Allocator.lean
+  line: 219
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `acquire_none_or_reservation`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-023
+  name: acquire_success_reservation
+  module: RShare/Model/Allocator.lean
+  line: 229
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `acquire_success_reservation`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-024
+  name: acquire_marks_requested
+  module: RShare/Model/Allocator.lean
+  line: 240
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `acquire_marks_requested`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-025
+  name: freeAll_true
+  module: RShare/Model/Allocator.lean
+  line: 247
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `freeAll_true`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-026
+  name: checkAcquire_free
+  module: RShare/Model/Allocator.lean
+  line: 258
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `checkAcquire_free`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-027
+  name: acquire_refuses_occupied
+  module: RShare/Model/Allocator.lean
+  line: 270
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `acquire_refuses_occupied`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-028
+  name: confirm_none_or_map
+  module: RShare/Model/Allocator.lean
+  line: 286
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `confirm_none_or_map`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-029
+  name: release_none_or_filter
+  module: RShare/Model/Allocator.lean
+  line: 300
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `release_none_or_filter`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-030
+  name: release_clears_token
+  module: RShare/Model/Allocator.lean
+  line: 310
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `release_clears_token`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-031
+  name: publicView_no_token
+  module: RShare/Model/Allocator.lean
+  line: 324
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `publicView_no_token`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-032
+  name: acquire_is_one_reservation
+  module: RShare/Model/Allocator.lean
+  line: 332
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `acquire_is_one_reservation`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-033
+  name: occupied_false_no_active
+  module: RShare/Model/Allocator.lean
+  line: 345
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `occupied_false_no_active`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-034
+  name: checkAcquire_until
+  module: RShare/Model/Allocator.lean
+  line: 360
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `checkAcquire_until`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-035
+  name: unitsActive_true
+  module: RShare/Model/Allocator.lean
+  line: 367
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `unitsActive_true`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-036
+  name: acquire_bounded
+  module: RShare/Model/Allocator.lean
+  line: 378
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `acquire_bounded`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-037
+  name: acquire_no_double_owner
+  module: RShare/Model/Allocator.lean
+  line: 402
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `acquire_no_double_owner`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-038
+  name: confirm_requires_token
+  module: RShare/Model/Allocator.lean
+  line: 436
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `confirm_requires_token`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-039
+  name: release_keeps_other
+  module: RShare/Model/Allocator.lean
+  line: 451
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `release_keeps_other`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-040
+  name: ensureUnit_head
+  module: RShare/Model/Allocator.lean
+  line: 472
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `ensureUnit_head`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-041
+  name: setStatus_applied
+  module: RShare/Model/Allocator.lean
+  line: 478
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `setStatus_applied`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-042
+  name: pay_once
+  module: RShare/Model/Bond.lean
+  line: 36
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `pay_once`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-043
+  name: pay_requires_token
+  module: RShare/Model/Bond.lean
+  line: 41
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `pay_requires_token`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-044
+  name: pay_requires_expected
+  module: RShare/Model/Bond.lean
+  line: 46
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `pay_requires_expected`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-045
+  name: pay_requires_sum
+  module: RShare/Model/Bond.lean
+  line: 51
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `pay_requires_sum`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-046
+  name: pay_closes
+  module: RShare/Model/Bond.lean
+  line: 56
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `pay_closes`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-047
+  name: pay_conserves
+  module: RShare/Model/Bond.lean
+  line: 72
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `pay_conserves`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-048
+  name: bucket_nonneg
+  module: RShare/Model/Bond.lean
+  line: 88
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `bucket_nonneg`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-049
+  name: terminal_no_step
+  module: RShare/Model/Booking.lean
+  line: 48
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `terminal_no_step`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-050
+  name: terminal_sticky
+  module: RShare/Model/Booking.lean
+  line: 52
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `terminal_sticky`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-051
+  name: settle_once
+  module: RShare/Model/Booking.lean
+  line: 58
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `settle_once`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-052
+  name: dispute_only_from_checked
+  module: RShare/Model/Booking.lean
+  line: 62
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `dispute_only_from_checked`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-053
+  name: cancel_only_from_open
+  module: RShare/Model/Booking.lean
+  line: 68
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `cancel_only_from_open`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-054
+  name: accept_only_from_requested
+  module: RShare/Model/Booking.lean
+  line: 74
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `accept_only_from_requested`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-055
+  name: expire_only_from_requested
+  module: RShare/Model/Booking.lean
+  line: 79
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `expire_only_from_requested`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-056
+  name: reject_only_from_requested
+  module: RShare/Model/Booking.lean
+  line: 84
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `reject_only_from_requested`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-057
+  name: checkIn_only_from_confirmed
+  module: RShare/Model/Booking.lean
+  line: 89
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `checkIn_only_from_confirmed`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-058
+  name: checkOut_only_from_checkedIn
+  module: RShare/Model/Booking.lean
+  line: 94
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `checkOut_only_from_checkedIn`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-059
+  name: settle_from_checked_or_redeemed_or_disputed
+  module: RShare/Model/Booking.lean
+  line: 100
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `settle_from_checked_or_redeemed_or_disputed`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-060
+  name: resolve_step_only_from_disputed
+  module: RShare/Model/Booking.lean
+  line: 108
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `resolve_step_only_from_disputed`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-061
+  name: noShowClaim_only_from_confirmed
+  module: RShare/Model/Booking.lean
+  line: 113
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `noShowClaim_only_from_confirmed`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-062
+  name: noShowDispute_only_from_claimed
+  module: RShare/Model/Booking.lean
+  line: 118
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `noShowDispute_only_from_claimed`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-063
+  name: noShowResolves
+  module: RShare/Model/Booking.lean
+  line: 123
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `noShowResolves`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-064
+  name: progress
+  module: RShare/Model/Booking.lean
+  line: 133
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `progress`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-065
+  name: reserve_fresh
+  module: RShare/Model/Ledger.lean
+  line: 40
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `reserve_fresh`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-066
+  name: reserve_duplicate_refused
+  module: RShare/Model/Ledger.lean
+  line: 47
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `reserve_duplicate_refused`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-067
+  name: finish_terminal
+  module: RShare/Model/Ledger.lean
+  line: 52
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `finish_terminal`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-068
+  name: fullRefund_conserves
+  module: RShare/Model/Remedy.lean
+  line: 42
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `fullRefund_conserves`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-069
+  name: fee_le_rent
+  module: RShare/Model/Remedy.lean
+  line: 46
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `fee_le_rent`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-070
+  name: feeSettle_conserves
+  module: RShare/Model/Remedy.lean
+  line: 52
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `feeSettle_conserves`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-071
+  name: noShow_conserves
+  module: RShare/Model/Remedy.lean
+  line: 59
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `noShow_conserves`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-072
+  name: depositSplit_conserves
+  module: RShare/Model/Remedy.lean
+  line: 63
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked model theorem `depositSplit_conserves`; see the Lean declaration.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean

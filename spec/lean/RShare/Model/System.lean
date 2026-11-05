@@ -37,17 +37,13 @@ def system_settle_once := @Bond.pay_once
 /-- Every booking status has a path to a terminal status. -/
 def system_terminal_progress := @Booking.progress
 
-/-- Two operations on disjoint allocations commute; this is the composition shape the
-allocator's one-cell commit relies on. The statement is a schema: the actual cells are
-distinct `listingState` cells, so no proof obligation remains beyond the local theorems. -/
-theorem disjoint_cells_commute : True := trivial
-
 /-- The explicit boundary of the model. -/
 structure Boundary where
   providerActiveCheckedByLedger : Bool
   callerHoldBoundedByMaxHold : Bool
   clockIsBlockHeight : Bool
   namesUnforgeable : Bool
+  acquireHoldsListingCellAcrossAwait : Bool
   noRholangRefinement : Bool
 
 def boundary : Boundary :=
@@ -55,11 +51,8 @@ def boundary : Boundary :=
     callerHoldBoundedByMaxHold := true
     clockIsBlockHeight := true
     namesUnforgeable := true
+    acquireHoldsListingCellAcrossAwait := true
     noRholangRefinement := true }
-
-/-- Provider pause is a ledger gate, not an allocator field: a direct caller can acquire
-while the provider is paused. The damage is limited by the hold bound. -/
-theorem provider_pause_not_structural : boundary.providerActiveCheckedByLedger = true := rfl
 
 /-- A caller can hold free slots without a booking; the hold is bounded by the unit's
 `maxHoldBlocks`, so the grief is temporary. -/

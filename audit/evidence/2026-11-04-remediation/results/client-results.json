@@ -1,0 +1,51 @@
+{
+  "bookingUri": "rho:id:774zic73o9aohnraffm1dj1g55h8539prdc98opyfgn4c5pyggwo",
+  "checks": [
+    {
+      "name": "quote",
+      "ok": true,
+      "rent": 100
+    },
+    {
+      "bookingUri": "rho:id:774zic73o9aohnraffm1dj1g55h8539prdc98opyfgn4c5pyggwo",
+      "name": "book",
+      "ok": true,
+      "status": "confirmed"
+    },
+    {
+      "error": "Err(Refused { reason: \"slot held\", code: SlotHeld })",
+      "name": "held slot refuses a second booking",
+      "ok": true
+    },
+    {
+      "bookingUri": "rho:id:774zic73o9aohnraffm1dj1g55h8539prdc98opyfgn4c5pyggwo",
+      "name": "replay returns the same booking",
+      "ok": true
+    },
+    {
+      "error": "Err(Refused { reason: \"terms\", code: Terms })",
+      "name": "wrong terms hash refuses",
+      "ok": true
+    },
+    {
+      "confirmed": "confirmed",
+      "final": "cancelled",
+      "name": "manual listing: requested -> accepted -> cancelled",
+      "ok": true,
+      "requested": "requested"
+    },
+    {
+      "error": "Err(Refused { reason: \"below threshold\", code: BelowThreshold })",
+      "name": "one admin signature is below threshold",
+      "ok": true
+    },
+    {
+      "name": "two admin signatures pause and resume",
+      "ok": true,
+      "pause": "Ok(Write { value: (), receipt: DeployReceipt { deploy_id: \"3045022100d0ebd9ab7ff64890c39652d3dc809a7c387d1482efccf6450bd25de2db4cb0eb02206ce4e358f6f9929b1e22b80125458817f65c6d3b87a80545b1860c78e5f4e6b3\", finalized: true, block_hash: Some(\"3d1902a65ba58333c3671666d8ff750f372b220ed445bfd60e58a170b68043e5\"), block_number: 4842, term_bytes: 683, status_text: \"processedWithSuccess\", reply: Some(Tuple([Bool(true)])) } })",
+      "resume": "Ok(Write { value: (), receipt: DeployReceipt { deploy_id: \"3045022100dd52ebb38ea64732f7d22586c7237a571823610d5977692178ba32ad311c51f502206d998cba67484392699a52e87e9726b5ba82a3d9afa2ea3ead5f1ba35648bb45\", finalized: true, block_hash: Some(\"3065b8bbb8fb073c4a4f08bf7c41e7e56595a33919081a05ad89bc6fee02198a\"), block_number: 4846, term_bytes: 682, status_text: \"processedWithSuccess\", reply: Some(Tuple([Bool(true)])) } })"
+    }
+  ],
+  "node": "http://localhost:41403",
+  "ok": true
+}

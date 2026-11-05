@@ -12,11 +12,33 @@ import json
 import time
 from pathlib import Path
 
-from assertions import one, root_uri
+from assertions import one, root_call, root_uri
 
 import deploy as node
 
 PING = 'new deployId(`rho:rchain:deployId`) in { deployId!(1) }'
+
+def _nonce_reply(reply, label: str) -> int:
+    if (
+        isinstance(reply, tuple)
+        and len(reply) >= 2
+        and reply[0] is True
+        and isinstance(reply[1], int)
+        and reply[1] >= 0
+    ):
+        return reply[1]
+    raise AssertionError(f"{label} nonce: {reply!r}")
+
+
+def admin_nonce_read() -> int:
+    """The current global admin nonce, read from ShareAdmin("nonce")."""
+    admin = resolve("component:admin")
+    return _nonce_reply(invoke(admin, "nonce"), "admin")
+
+
+def root_nonce_read() -> int:
+    """The current governance nonce, read from ShareRoot("nonce")."""
+    return _nonce_reply(one(root_call("nonce")), "root")
 
 
 def keys() -> dict:

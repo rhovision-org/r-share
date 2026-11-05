@@ -3,14 +3,14 @@ import { useWallet } from "../lib/store";
 import { shortId } from "../lib/format";
 import Unlock from "./Unlock";
 
-const TABS = [
+const TABS: ReadonlyArray<readonly [string, string]> = [
   ["/", "Explore"],
   ["/provider", "Provider"],
   ["/me", "My bookings"],
   ["/admin", "Admin"],
   ["/history", "History"],
   ["/settings", "Settings"],
-] as const;
+];
 
 export default function Layout() {
   const { status, address, node, error, lock } = useWallet();

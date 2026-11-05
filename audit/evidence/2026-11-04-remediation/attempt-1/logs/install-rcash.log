@@ -1,0 +1,40 @@
+51_pool: attempt 1 failed: deploy produced no JSON (rc=3): rcash: the node rejected the deploy: "Parsing error: Error in parsing term: \nparse depth exceeded"
+
+51_pool: attempt 2 failed: deploy produced no JSON (rc=3): rcash: the node rejected the deploy: "Parsing error: Error in parsing term: \nparse depth exceeded"
+
+51_pool: attempt 3 failed: deploy produced no JSON (rc=3): rcash: the node rejected the deploy: "Parsing error: Error in parsing term: \nparse depth exceeded"
+
+node: degraded=None acceptsDeploys=None tip=fcc3b7ec8822…
+00_root: 6258 bytes
+00_root: ['rho:id:spqnkfw6iw5ubsgrgbdcbzep3k6yqet6orc9tj6hqsnsz8r3ek7o']
+03_admin_guard: 1768 bytes
+03_admin_guard: ['rho:id:xst3mom9guwizfpix3pszsgzbgan9gacbocquee6hyshwsps6cpo']
+01_kernel: 1746 bytes
+01_kernel: ['rho:id:fcnuiy9nzz4kqbu4bfxcjcftd8nq9hkr4buoa7bcnahc7o451fiy', 'rho:id:manmyj43cwa1swzsh8xyhjat89aonoqspjy54qizshs5ie8qr8jo', 'rho:id:57ehomdoy4bax9t5ecnofbo5czhof7sazsp97rhtnm9ir8eycfby']
+02_bounds: 6478 bytes
+02_bounds: ['rho:id:prr7py6jqq7933ey6zjcyr4fbpamq7df346zh1136gq9rb6debno']
+04_governor: 6307 bytes
+04_governor: ['rho:id:bnsjipg49p7wyrd7uax9offfiiemmfnw1pk69rm5b3na7hqsii9y']
+05_amm_math: 2025 bytes
+05_amm_math: ['rho:id:4ubq4neex6hk73tdoj3g7dkmo77xg3nnczue5pimjicbqd8hoe8y']
+06_collateral_math: 1365 bytes
+06_collateral_math: ['rho:id:88in7mhkrze9m97aci8fs6g4dr8uqaabby4dppb4f9rxmhgy7ooo']
+07_oracle_math: 2697 bytes
+07_oracle_math: ['rho:id:fw95h7e8wrbhurigj7m8fufqyh4c6tomzsr1udgyohjd5xuhihey']
+08_claim_code: 568 bytes
+08_claim_code: ['rho:id:hui1xrgu5hxfoseyq6he9xhzr65npz84k556oyuwcr64q3q64j9y']
+12_oracle_registry: 7112 bytes
+12_oracle_registry: ['rho:id:5cgihb8b6yhxb8c8fr5jm961sw3jtfhcm1qdnygj3w6cmucqjyzo']
+13_oracle_hub: 2892 bytes
+13_oracle_hub: ['rho:id:o4itxr9nw8sb5t4ceauxahydem59j6415fzms49r3qxnznhd16do']
+32_currency_registry: 8456 bytes
+32_currency_registry: ['rho:id:xhxwkqx3joxf9bj7i6ami3nw8n4m1hhp8yijtq5tindwt68ntgso', 'rho:id:wbkdidxfkx8bst85iiwm8iwddc7gnsignpcumw6ttn35bg8ij3ko']
+14_asset_resolver: 2376 bytes
+14_asset_resolver: ['rho:id:6mo9asshcz69nbextduij6gfithk1aci6fhrrjkh4nz39fkqhyro']
+40_transfer: 5520 bytes
+40_transfer: ['rho:id:4kjw9wnoq396u3pxeju1hdkwdawrt7ymwswy4tswjqdgwdmxxfky']
+51_pool: 17373 bytes
+51_pool: 17373 bytes
+51_pool: 17373 bytes
+REFUSED step=51_pool detail=deploy produced no JSON (rc=3): rcash: the node rejected the deploy: "Parsing error: Error in parsing term: \nparse depth exceeded"
+

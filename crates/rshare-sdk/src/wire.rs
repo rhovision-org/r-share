@@ -10,7 +10,7 @@ use rcash_sdk::Client as RcashClient;
 use rshare_core::render::{check_project_size, quote_string};
 use rshare_core::{ComponentKey, RegistryUri};
 
-use crate::error::{Result, SdkError};
+use crate::error::{DecodeKind, Result, SdkError};
 
 /// Where a value came from.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -129,7 +129,7 @@ pub async fn explore_value(client: &RcashClient, term: &str) -> Result<(RhoValue
     let first = response
         .expr
         .first()
-        .ok_or_else(|| SdkError::Decode("explore-deploy returned no value".into()))?;
+        .ok_or_else(|| SdkError::decode("explore-deploy", "reply", DecodeKind::Missing))?;
     let value = RhoValue::decode(first)?;
     Ok((
         value,

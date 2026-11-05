@@ -1,6 +1,7 @@
 // IndexedDB storage for encrypted keystores, the local activity journal and pending
 // multisig actions. No plaintext secret, mnemonic or password is ever written here.
 
+import { pendingAdminAction } from "./decoders";
 import type { JournalEntry, PendingAdminAction } from "./types";
 
 const DB_NAME = "rshare";
@@ -80,8 +81,12 @@ export function putAdminAction(action: PendingAdminAction): Promise<unknown> {
   return transaction("admin-actions", "readwrite", (store) => store.put(action));
 }
 
-export function listAdminActions(): Promise<PendingAdminAction[]> {
-  return transaction("admin-actions", "readonly", (store) => store.getAll());
+export async function listAdminActions(): Promise<PendingAdminAction[]> {
+  const rows = await transaction<unknown[]>("admin-actions", "readonly", (store) =>
+    store.getAll(),
+  );
+  // Normalize old records (numeric nonce) through the same decoder used for new ones.
+  return rows.map((row, index) => pendingAdminAction(row, `$.adminActions[${index}]`));
 }
 
 export function deleteAdminAction(id: string): Promise<unknown> {

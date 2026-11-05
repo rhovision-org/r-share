@@ -1,0 +1,14 @@
+RSHARE_NODE=http://localhost:41403 RSHARE_ADMIN=http://localhost:41405 \
+RSHARE_CONTAINER=rshare-audit-bootstrap RCASH_DIR=/tmp/rcash-audit \
+.venv/bin/python harness/run_suites.py --suites cell_liveness,factory_auth
+--- cell_liveness: pass (0) ---
+unit-cell-liveness
+  ok GuestBook factory refusal
+  ok GuestBook remains live
+  ok Bond factory unavailable
+  ok no pending op after Bond failure
+  ok slot released after Bond failure
+--- factory_auth: pass (0) ---
+unit-factory-auth
+  ok direct factory without reservation
+run_suites: wrote deployments/suite-results.json

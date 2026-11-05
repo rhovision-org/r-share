@@ -76,7 +76,7 @@ class Market:
     def __init__(self, name: str, *, kind: str = "robot",
                  provider: str = "business", guest: str = "sender",
                  platform: str = "deployer", price: int = 100,
-                 deposit: int = 50, slot_lead: int = 15,
+                 deposit: int = 50, slot_lead: int = 40,
                  slot_ids: list[str] | None = None, **term_overrides):
         self.name = name
         self.token = f"{int(time.time() * 1000)}-{os.getpid()}"

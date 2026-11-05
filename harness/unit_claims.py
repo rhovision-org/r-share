@@ -104,7 +104,7 @@ def main() -> int:
 
         no_show = one(booking_term(
             bond, owner, True, no_show_call(), kind=kind,
-            cancellation={"noShowBlocks": 0},
+            cancellation={"noShowBlocks": 0, "disputeWindowBlocks": 10},
             check_in=0,
         ))
         expect_ok(f"{kind} noShow", no_show)

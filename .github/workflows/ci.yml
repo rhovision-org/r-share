@@ -18,6 +18,7 @@ jobs:
           python-version: "3.12"
       - run: make venv
       - run: make spec-check
+      - run: make audit-check
 
   formal:
     runs-on: ubuntu-latest
@@ -156,6 +157,8 @@ jobs:
         run: make keys install
       - name: Run behavioural suites
         run: make unit-all
+      - name: Run audit reproductions
+        run: make audit-dynamic
       - uses: taiki-e/install-action@wasm-pack
       - uses: actions/setup-node@v4
         with:

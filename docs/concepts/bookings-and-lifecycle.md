@@ -13,8 +13,12 @@ requested --accept--> confirmed --checkIn--> checkedIn --checkOut--> checkedOut 
     |                     |                       |                          |
     +--reject             +--cancel               +--dispute                 +--dispute
     +--expire             +--cancelByProvider                                 +--claimDeposit
-                          +--claimNoShow
-                          +--redeem  (events) --> redeemed --settle--> settled
+                          +--claimNoShow --> noShowClaimed --resolveNoShow--> noShow
+                                                   |
+                                                   +--disputeNoShow--> noShowDisputed
+                                                                           |
+                                                                           +--resolveNoShow--> noShowRefunded
+                          +--redeem  (events) --> redeemed --settle/closeEvent--> settled
 ```
 
 Figure: booking transitions. A terminal state is permanent; a replay returns the stored
@@ -37,8 +41,10 @@ result.
 | `dispute` | guest or provider | status `disputed` |
 | `arbitrate` | 2-of-3 admins | splits the deposit, status `settled` |
 | `expire` | anyone | after `holdUntilHeight`, full refund, status `expired` |
-| `claimNoShow` | provider | after the grace window, rent + fee, deposit refunded |
-| `redeem` | provider | events only, marks the ticket used, status `redeemed` |
+| `claimNoShow` | provider | after the grace window, enters `noShowClaimed`; no payout yet |
+| `disputeNoShow` | guest | inside the contest window, enters `noShowDisputed` |
+| `resolveNoShow` | anyone | after the contest window: provider rent if uncontested, or full guest refund if contested |
+| `redeem` | provider | events only, marks the ticket used, status `redeemed`; settlement still waits for the event end |
 | `closeEvent` | anyone | events only, after the event, settles |
 | `transferTicket` | guest | events only, before cutoff and with no deposit |
 | `setAdmins` | current 2-of-3 | rotates the arbiter set |

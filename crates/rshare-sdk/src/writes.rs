@@ -14,7 +14,7 @@ use rshare_core::{
     ComponentKey, OpId, RegistryUri, ResourceKind, SlotSpec, Terms, UnitSlotRequest,
 };
 
-use crate::error::{Result, SdkError};
+use crate::error::{DecodeKind, Result, SdkError};
 use crate::models::{BookingView, ListingView};
 use crate::wire::{self, DeployReceipt, Read};
 use crate::Client;
@@ -51,8 +51,10 @@ pub enum BookingAction {
     ResolveDeposit,
     Dispute { reason_hash: String },
     ResolveDispute,
+    DisputeNoShow { reason_hash: String },
     Expire,
     ClaimNoShow,
+    ResolveNoShow,
     Redeem,
     CloseEvent,
     TransferTicket { new_guest_id: String },
@@ -88,8 +90,13 @@ impl BookingAction {
                 ("dispute", vec![owner(), op, quote_string(reason_hash)?])
             }
             Self::ResolveDispute => ("resolveDispute", vec![op]),
+            Self::DisputeNoShow { reason_hash } => (
+                "disputeNoShow",
+                vec![owner(), op, quote_string(reason_hash)?],
+            ),
             Self::Expire => ("expire", vec![op]),
             Self::ClaimNoShow => ("claimNoShow", vec![owner(), op]),
+            Self::ResolveNoShow => ("resolveNoShow", vec![op]),
             Self::Redeem => ("redeem", vec![owner(), op]),
             Self::CloseEvent => ("closeEvent", vec![op]),
             Self::TransferTicket { new_guest_id } => (
@@ -127,7 +134,7 @@ impl Client {
         let reply = receipt
             .reply
             .clone()
-            .ok_or_else(|| SdkError::Decode(format!("{arm} returned no value")))?;
+            .ok_or_else(|| SdkError::decode(arm, "reply", DecodeKind::Missing))?;
         let values = wire::decode_reply(&reply)?;
         Ok((values, receipt))
     }
@@ -395,7 +402,7 @@ fn text_at(values: &[RhoValue], index: usize, label: &str) -> Result<String> {
         .get(index)
         .and_then(RhoValue::as_str)
         .map(str::to_string)
-        .ok_or_else(|| SdkError::Decode(format!("{label} is missing or not a string")))
+        .ok_or_else(|| SdkError::decode(label, "reply", DecodeKind::WrongType))
 }
 
 /// Render a list of hex public keys as a Rholang byte-array list.

@@ -182,6 +182,14 @@ def public (r : Reservation) : PublicReservation :=
 def publicView (st : AllocState) : List PublicReservation :=
   st.reservations.map public
 
+/-- The summary rent is exactly `rentOf`; invariant 7 starts here. -/
+theorem summaryOf_rent (st : AllocState) (req : AcquireRequest) :
+    (summaryOf st req).rent = rentOf st req := rfl
+
+/-- The summary slot count is exactly the flattened requested-key count. -/
+theorem summaryOf_count (st : AllocState) (req : AcquireRequest) :
+    (summaryOf st req).count = countOf req := rfl
+
 end Allocator
 end RShare
 

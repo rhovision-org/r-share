@@ -4,6 +4,8 @@ import { message } from "../lib/format";
 
 type Mode = "unlock" | "create" | "import";
 
+const MODES: readonly Mode[] = ["unlock", "create", "import"];
+
 export default function Unlock() {
   const {
     status,
@@ -80,7 +82,7 @@ export default function Unlock() {
           <span className="muted">The key stays in WASM; only an encrypted keystore is stored.</span>
         </div>
         <div className="segmented">
-          {(["unlock", "create", "import"] as Mode[]).map((value) => (
+          {MODES.map((value) => (
             <button
               key={value}
               className={mode === value ? "active" : ""}

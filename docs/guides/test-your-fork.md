@@ -79,7 +79,7 @@ make unit-all
 ## 5. The race gate
 
 Races are not tested here; they are removed by the representation. The listing allocator
-writes every requested slot in one commit, and `spec/lean/RShare/Model/Allocator.lean`
+writes every requested slot in one take/await/put, and `spec/lean/RShare/Model/Allocator.lean`
 proves single ownership and all-or-none acquisition. `unit_allocator` checks the deployed
 transition table: one held slot refuses the whole set, a wrong token moves nothing, and an
 expired hold can be reclaimed. Two same-slot books still exercise the refusal path, but the

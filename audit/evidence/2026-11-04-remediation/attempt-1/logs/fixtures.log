@@ -1,0 +1,19 @@
+make[1]: Entering directory '/home/patrick/RShare'
+cargo run -q -p rshare-cli -- devnet fixtures
+{
+  "catalogue": "deployments/catalogue.json",
+  "fixtures": {
+    "deposit": 50,
+    "guest_key": "sender",
+    "listing_uri": "rho:id:uru8ykc7rtsk5sszqm8np6ubrf9nbqzbh9suxpaicwe91x8sb97y",
+    "price": 100,
+    "provider_key": "business",
+    "provider_uri": "rho:id:u5cx84s1q59dstwfxwx1adx9bfnur849oixmdotodbhr9fmocaay",
+    "slot_end": 3364,
+    "slot_id": "s1",
+    "slot_start": 3264,
+    "unit_id": "unit:listing:client:1793833847507"
+  },
+  "path": ".devnet/client-fixtures.json"
+}
+make[1]: Leaving directory '/home/patrick/RShare'

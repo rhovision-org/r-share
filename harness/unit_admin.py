@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 
+import actors
 from assertions import expect, expect_ok, expect_refusal, one
 from market_fixture import started
 from preflight import require_devnet
@@ -57,7 +58,7 @@ def main() -> int:
     if len(keys_reply[1]) != 3 or keys_reply[2] != 2:
         raise AssertionError(f"admin set: {keys_reply!r}")
 
-    nonce = block_height() + 1000
+    nonce = actors.admin_nonce_read() + 1
     below = one(call_uri(
         admin, "admin", f'{nonce}, "pauseAll", [], '
         + sign(keys, ["admin1"],
@@ -78,7 +79,7 @@ def main() -> int:
 
     current = ["admin2", "admin3", "key12"]
     current_lit = admin_literal(keys, current)
-    nonce = block_height() + 2000
+    nonce = actors.admin_nonce_read() + 1
     admins_text = ",".join(keys[name]["public"] for name in current)
     args = f'["{admins_text}", 2]'
     digest_payload = payload(codec, domain, nonce, "setAdmins", args)

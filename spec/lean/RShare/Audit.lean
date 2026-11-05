@@ -8,6 +8,8 @@ import RShare.Model.System
 `Classical.choice` and `Quot.sound`. `sorryAx` is never accepted.
 -/
 
+#print axioms RShare.Allocator.summaryOf_rent
+#print axioms RShare.Allocator.summaryOf_count
 #print axioms RShare.Allocator.keysOf_mem
 #print axioms RShare.Allocator.acquire_none_or_reservation
 #print axioms RShare.Allocator.acquire_success_reservation
@@ -51,3 +53,37 @@ import RShare.Model.System
 #print axioms RShare.System.alloc_transition_is_one_commit
 #print axioms RShare.System.system_settle_once
 #print axioms RShare.System.system_terminal_progress
+
+-- Added by the audit: previously unaudited source theorems.
+#print axioms RShare.Store.set_same
+#print axioms RShare.Store.set_other
+#print axioms RShare.wf_quiescent
+#print axioms RShare.commit_success
+#print axioms RShare.h1_pure
+#print axioms RShare.commit_counts
+#print axioms RShare.Allocator.reservationOf_keys
+#print axioms RShare.Allocator.occupied_false_no_active
+#print axioms RShare.Allocator.checkAcquire_until
+#print axioms RShare.Allocator.unitsActive_true
+#print axioms RShare.Allocator.ensureUnit_head
+#print axioms RShare.Allocator.setStatus_applied
+#print axioms RShare.Bond.pay_requires_token
+#print axioms RShare.Bond.pay_requires_expected
+#print axioms RShare.Bond.pay_requires_sum
+#print axioms RShare.Bond.bucket_nonneg
+#print axioms RShare.Booking.cancel_only_from_open
+#print axioms RShare.Booking.accept_only_from_requested
+#print axioms RShare.Booking.expire_only_from_requested
+#print axioms RShare.Booking.reject_only_from_requested
+#print axioms RShare.Booking.checkIn_only_from_confirmed
+#print axioms RShare.Booking.checkOut_only_from_checkedIn
+#print axioms RShare.Booking.settle_from_checked_or_redeemed_or_disputed
+#print axioms RShare.Booking.resolve_step_only_from_disputed
+#print axioms RShare.Booking.noShowClaim_only_from_confirmed
+#print axioms RShare.Booking.noShowDispute_only_from_claimed
+#print axioms RShare.Booking.noShowResolves
+#print axioms RShare.Ledger.reserve_fresh
+#print axioms RShare.Ledger.reserve_duplicate_refused
+#print axioms RShare.Ledger.finish_terminal
+#print axioms RShare.Remedy.fee_le_rent
+#print axioms RShare.Remedy.noShow_conserves

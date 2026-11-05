@@ -10,7 +10,7 @@ as `Nil` is optional or absent.
 | Field | Meaning |
 |---|---|
 | `assetId` | r-cash asset id; `"REV"` initially |
-| `pricePerSlot` | rent per slot, minor units |
+| `pricePerSlot` | listing reference price, minor units; each unit's `pricePerSlot` is authoritative for rent |
 | `deposit` | refundable security deposit |
 | `minSlots`, `maxSlots` | slot count bounds per booking |
 | `maxUnits` | units per booking (a RaaS session may use two) |
@@ -61,7 +61,7 @@ The record carries no slot capability. Use
 ```
 
 The per-listing allocator owns every slot in one cell. `acquire` writes all requested
-slots in one commit; `confirm` and `release` are token-gated. `ListingContract("probe")`
+slots in one take/await/put; `confirm` and `release` are token-gated. `ListingContract("probe")`
 returns the state with the release token redacted:
 `["free", gen]`, `["held", bookingId, untilHeight]`, or `["booked", bookingId]`.
 
@@ -77,9 +77,10 @@ returns the state with the release token redacted:
  "admins", "threshold",
  "status": "requested" | "confirmed" | "checkedIn" | "checkedOut" |
            "redeemed" | "settled" | "rejected" | "cancelled" |
-           "expired" | "noShow" | "disputed",
+           "expired" | "noShow" | "noShowClaimed" | "noShowDisputed" |
+           "noShowRefunded" | "disputed",
  "checkInAtHeight", "checkOutAtHeight", "depositReleaseHeight",
- "disputeAtHeight", "rejectReason",
+ "disputeAtHeight", "noShowClaimAtHeight", "schemaVersion", "rejectReason",
  "ticket": {"holderId", "redeemed", "redeemedAtHeight", "transferCutoffHeight"},
  "claim": {"amount", "evidenceHash", "atHeight"},
  "ops": {opId -> result}, "nonce"}

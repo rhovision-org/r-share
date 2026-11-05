@@ -40,6 +40,32 @@ new Bond, rs(`rho:registry:insertArbitrary`), ch,
     return uri
 
 
+def fake_listing(owner: str, kind: str, listing_id: str = "listing:test") -> str:
+    """A test-only listing that satisfies the production factory's origin check.
+
+    It is not registered as a component. The lifecycle/claims/events fixtures use it so
+    the production BookingContractFactory can keep its real verifyHold/info gate.
+    """
+    term = f"""
+new FakeListing, rs(`rho:registry:insertArbitrary`), ch,
+    deployId(`rho:rchain:deployId`) in {{
+  contract FakeListing(@"verifyHold", @bookingId, @unitSlots, releaseToken, ret) = {{
+    ret!((true, Nil))
+  }} |
+  contract FakeListing(@"info", ret) = {{
+    ret!((true, {{"providerId": "{owner}", "listingId": "{listing_id}",
+                   "kind": "{kind}", "status": "active"}}))
+  }} |
+  rs!(bundle+{{*FakeListing}}, *ch) |
+  for (@uri <- ch) {{ deployId!(uri) }}
+}}
+"""
+    uri = one(term)
+    if not isinstance(uri, str) or not uri.startswith("rho:id:"):
+        raise AssertionError(f"fake listing URI: {uri!r}")
+    return uri
+
+
 def booking_term(
     bond_uri: str,
     owner: str,
@@ -61,7 +87,7 @@ def booking_term(
         "guestId": owner,
         "providerId": owner,
         "listingId": "listing:test",
-        "listingUri": "",
+        "listingUri": fake_listing(owner, kind),
         "kind": kind,
         "status": "confirmed" if instant_book else "requested",
         "unitSlots": [],

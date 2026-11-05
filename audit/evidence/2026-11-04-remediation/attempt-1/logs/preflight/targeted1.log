@@ -1,0 +1,60 @@
+--- pause: pass (0) ---
+unit-pause
+  ok global pause
+  ok isPaused after pause
+  ok global resume
+  ok isPaused after resume
+  ok provider register
+  ok provider pause
+  ok provider inactive
+  ok provider resume
+  ok provider active
+  ok listing create
+  ok unit create
+  ok listing activate
+  ok unit pause
+  ok unit info
+  ok unit status
+  ok unit resume
+  ok unit resumed
+--- admin: pass (0) ---
+unit-admin
+  ok admin keys
+  ok ShareAdmin below threshold
+  ok ShareAdmin replay
+  booking domain booking:11112mRBwp3PPqaL7EidamWriPSmWm6ptbocNMVdxzs2nmhAdcWHUP:admin-payload:1793832825168-197894:book:1
+  ok rotation
+  ok rotation admins
+  ok rotation threshold
+  ok rotation nonce
+  ok booking replay
+  ok booking below threshold
+  ok invalid threshold
+  ok wrong payload
+  ok old-key signatures
+  ok new-key rotation
+  ok restored admins
+  ok listing rotation
+  ok listing admins
+  ok listing threshold
+  ok listing restore
+  ok provider rotation
+  ok provider admins
+  ok provider threshold
+  ok provider restore
+--- admin_keys: pass (0) ---
+unit-admin-keys
+  ok duplicate keys cannot satisfy threshold
+  ok distinct 2-of-3
+  ok threshold 1 refused
+  ok ShareAdmin setThreshold 1
+--- pause_scope: pass (0) ---
+unit-pause-scope
+  ok global pause
+  ok GuestLedger book while paused
+  ok direct acquire while paused
+  ok global resume
+  ok provider pause
+  ok direct acquire while provider paused
+  ok provider resume
+run_suites: wrote deployments/suite-results.json

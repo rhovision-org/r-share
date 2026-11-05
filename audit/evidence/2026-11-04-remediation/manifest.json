@@ -1,0 +1,67 @@
+{
+  "run_id": "2026-11-04-remediation",
+  "date": "2026-11-04",
+  "commit": "dee7cff448c30bd84890af408eb2fc4d6012494c",
+  "branch": "main",
+  "dirty": true,
+  "node": "isolated rshare-audit devnet, http://localhost:41403",
+  "rholo_commit": "e2d073dcd02f1e560ccb84749937138a1e184b0b",
+  "rcash_commit": "49b441dea4f5561992387ed670ab263fcd5dd164",
+  "lean_version": "4.12.0",
+  "rust": "1.95.0",
+  "nodejs": "22.22.2",
+  "commands": [
+    "make build",
+    "make measure",
+    "make parse-check",
+    "make unit-all (24 suites)",
+    "make lean-check",
+    "make check-flows --strict",
+    "make check",
+    "CLI devnet journey",
+    "Playwright guest/provider/admin e2e",
+    "make client-check"
+  ],
+  "results": {
+    "unit_all": "24/24 pass",
+    "lean": "76 axiom audits, 72 source theorems",
+    "flows": "35 rules, 31 arms, 0 warnings",
+    "check": "exit 0; 76 axiom audits, 72 theorems, 35 flow rules, 0 strict warnings, 21 findings, 117 arms",
+    "client_journey": "6/6 checks pass",
+    "web_e2e": "3/3 Playwright journeys pass",
+    "client_check": "exit 0; Rust lint/tests, wasm check/smoke, web typecheck/test/build",
+    "audit_dynamic": "cell_liveness and factory_auth pass"
+  },
+  "inputs_sha256": {
+    "contracts/src/deploy/14_listing_contract.rho": "39c93035879ee6cbde3d82c62c991c9c2ae22f59a2ab229a6e477219bf3818a0",
+    "contracts/src/deploy/20_booking.rho": "34cc21da9fefe1b5b31ccf31b812fa5204d3b3071836f223f479f4f73209bfe7",
+    "contracts/src/deploy/22_booking_contract.rho": "5664bc6276470bdbdc3769e3aee8835012edc6228602a1e71c4c7af102206496",
+    "contracts/src/deploy/23_guest_ledger.rho": "cbec21b1a2e12da8289b8aaadd3c592ff64c82b2de2aa22acd45e2e9f4ff3706",
+    "contracts/src/deploy/02_admin.rho": "a0d6d60f3bc9ef21e22c1c834df94200bfb8aed74e39c3bd1c17b0b50fee5ecc",
+    "contracts/src/deploy/00_root.rho": "b6efd6a7d806d7f175126b5f24d5508379aa832e2b5b96b113deea5e9b58ed39",
+    "contracts/src/deploy/10_provider.rho": "f5398726f619259101fdea21018e9747bd7f3c7f125b5087b898326052f14259",
+    "contracts/src/lib/AdminSet.rho": "033bfe17ceca4f36dc157b2b8ddb8d1b916226419a7ecf9b4ece8c2a911cd17c",
+    "spec/flows/core.yaml": "d801e1659d0dc33826adbf80c919ae351549eb587ef84ec6c8a6da0f90d5cb33"
+  },
+  "artifacts": [
+    "audit/evidence/2026-11-04-remediation/logs/unit-all.log",
+    "audit/evidence/2026-11-04-remediation/results/suite-results.json",
+    "audit/evidence/2026-11-04-remediation/results/measure.json",
+    "audit/evidence/2026-11-04-remediation/logs/check.log",
+    "audit/evidence/2026-11-04-remediation/logs/web-e2e.log",
+    "audit/evidence/2026-11-04-remediation/results/client-results.json",
+    "audit/evidence/2026-11-04-remediation/logs/client-check.log",
+    "audit/evidence/2026-11-04-remediation/logs/audit-dynamic.log"
+  ],
+  "outputs_sha256": {
+    "audit/evidence/2026-11-04-remediation/logs/unit-all.log": "d83d683e8864e3e507e614713cfcf470055cca48ac61c18305734b46bfa8526a",
+    "audit/evidence/2026-11-04-remediation/results/suite-results.json": "fb850b52982d0a7ef8d0a3e5f0aad0c9786adafb5123e690a3e543a3ca3752cf",
+    "audit/evidence/2026-11-04-remediation/results/measure.json": "9c1b4c3ef74b11c89a9e530f75f45f4a294f8ae13e69c46154d37368a25c0e7d",
+    "audit/evidence/2026-11-04-remediation/logs/check.log": "cc1c4eddce9bfcfa17aec3a4846b046ae063191f841c09082aced3e651c45af6",
+    "audit/evidence/2026-11-04-remediation/logs/web-e2e.log": "84ce470f3f76c1b4d965dec4542c95034d0910e3ed849b72088ef33b810ed44d",
+    "audit/evidence/2026-11-04-remediation/results/client-results.json": "c98c93d013cc1cefbfffa4277a9ca93d5b65871cae566d3979790f6b38275de9",
+    "audit/evidence/2026-11-04-remediation/logs/client-check.log": "81e42c95b63c2f8bb1b2740050d9a6b01c01e27161e0449377d1a6f088954b77",
+    "audit/evidence/2026-11-04-remediation/logs/audit-dynamic.log": "371ff617f2b9e08fc046b4f841a832f5a1fb708f425a9bea55a9fb1abf1f85e1"
+  },
+  "notes": "Isolated v2 install on rshare-audit; rgen-bootstrap untouched. 24/24 suites pass. Contract source and audit registers are dirty at capture. The isolated rshare-audit devnet was stopped after evidence capture."
+}

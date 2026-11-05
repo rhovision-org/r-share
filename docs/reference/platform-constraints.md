@@ -12,7 +12,7 @@ contracts and the build.
 | Deploy term cap | 64 KiB inclusive | a term larger than 64 KiB is refused |
 | Project hard budget | 56 KiB | leaves 8 KiB headroom for install rendering |
 | Parser depth | 128 grammar levels | a deeply nested term is refused before evaluation |
-| Contract count budget | 32 distinct names per term | a soft catalogue limit |
+| Contract count budget | 36 distinct names per term | a soft catalogue limit |
 
 `make measure-check` enforces the byte, depth and contract-count budgets.
 `make parse-check` enforces the node parser's depth and syntax.
@@ -52,10 +52,12 @@ contracts and the build.
 
 ## The 64 KiB budget in practice
 
-The largest term is `22_booking_contract.rho` at 23,284 B. The per-file targets are 24 KiB
-for `22`, 28 KiB for `14_listing_contract.rho` (the allocator) and 12 KiB for
+The largest term is `22_booking_contract.rho` at about 26.8 KiB. The per-file targets are
+32 KiB for `22`, 28 KiB for `14_listing_contract.rho` (the allocator) and 12 KiB for
 `23_guest_ledger.rho`; `make measure-check` enforces them alongside the 56 KiB project
-budget. The budget leaves room for a fork's additions. If a fork pushes a term over 56 KiB, split the
+budget. The 22 KiB raise covers the no-show contest arms, the factory origin check and the
+shared admin validation; if the term passes 30 KiB, split the factory rather than raise the
+cap again. The budget leaves room for a fork's additions. If a fork pushes a term over 56 KiB, split the
 factory from the instance. r-share keeps the listing factory and the allocator in one term;
 the ledger and booking factories are separate deploy files. It splits by deploy file when
 depth or size requires it (terms, remedy, bond, booking).

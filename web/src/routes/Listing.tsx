@@ -13,18 +13,19 @@ import {
   Uri,
 } from "../components/ui";
 import { parseRead, parseWrite, shareUrl } from "../lib/api";
+import { chainInt } from "../lib/decode";
+import {
+  bookingCreation,
+  listingView,
+  probeStates,
+  providerView,
+  quoteSummary,
+} from "../lib/decoders";
 import { formatUnits } from "../lib/format";
 import { record } from "../lib/journal";
 import { useWallet } from "../lib/store";
 import { TERM_FIELDS } from "../lib/termsDefaults";
-import type {
-  ListingView,
-  ProviderView,
-  QuoteSummary,
-  ReadMeta,
-  SlotState,
-  UnitSlotRequest,
-} from "../lib/types";
+import type { ListingView, QuoteSummary, ReadMeta, SlotState, UnitSlotRequest } from "../lib/types";
 
 export default function Listing() {
   const { uri } = useParams<{ uri: string }>();
@@ -38,8 +39,11 @@ export default function Listing() {
   const info = useQuery({
     queryKey: ["listing", uri],
     enabled: Boolean(client && uri),
-    queryFn: async () =>
-      parseRead<ListingView>(await client!.listing_info(uri!)),
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      if (!uri) throw new Error("no listing URI");
+      return parseRead(await client.listing_info(uri), listingView);
+    },
     staleTime: 5_000,
   });
 
@@ -48,15 +52,22 @@ export default function Listing() {
   const provider = useQuery({
     queryKey: ["provider", listing?.providerUri],
     enabled: Boolean(client && listing),
-    queryFn: async () =>
-      parseRead<ProviderView>(await client!.provider_info(listing!.providerUri)),
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      const providerUri = listing?.providerUri;
+      if (!providerUri) throw new Error("no provider URI");
+      return parseRead(await client.provider_info(providerUri), providerView);
+    },
     staleTime: 5_000,
   });
 
   const height = useQuery({
     queryKey: ["height"],
     enabled: Boolean(client),
-    queryFn: async () => Number(await client!.height()),
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      return chainInt(await client.height(), "$.height");
+    },
     refetchInterval: 5_000,
   });
 
@@ -72,10 +83,14 @@ export default function Listing() {
   const probe = useQuery({
     queryKey: ["probe", uri, listing?.termsHash],
     enabled: Boolean(client && listing && allRequests.length > 0),
-    queryFn: async () =>
-      parseRead<Record<string, Record<string, SlotState>>>(
-        await client!.probe(uri!, JSON.stringify(allRequests)),
-      ),
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      if (!uri) throw new Error("no listing URI");
+      return parseRead(
+        await client.probe(uri, JSON.stringify(allRequests)),
+        probeStates,
+      );
+    },
     staleTime: 3_000,
     refetchInterval: 10_000,
   });
@@ -95,7 +110,7 @@ export default function Listing() {
       return;
     }
     const next = { ...selected, [unitId]: [...current, slotId] };
-    if (Object.keys(next).filter((key) => next[key]!.length > 0).length > listing.terms.maxUnits) {
+    if (Object.keys(next).filter((key) => (next[key] ?? []).length > 0).length > listing.terms.maxUnits) {
       setError(new Error(`At most ${listing.terms.maxUnits} units per booking.`));
       return;
     }
@@ -108,7 +123,7 @@ export default function Listing() {
     setError(null);
     try {
       const requests = unitSlotRequests(selected);
-      const read = parseRead<QuoteSummary>(await client.quote(uri, JSON.stringify(requests)));
+      const read = parseRead(await client.quote(uri, JSON.stringify(requests)), quoteSummary);
       setQuote({ value: read.data, meta: read.read });
     } catch (caught) {
       setError(caught);
@@ -129,12 +144,7 @@ export default function Listing() {
       const requests = unitSlotRequests(selected);
       const opId = client.new_op_id("book", BigInt(Date.now()));
       const raw = await client.book(uri, JSON.stringify(requests), opId, listing.termsHash);
-      const write = parseWrite<{
-        bookingId: string;
-        bookingUri: string;
-        ledgerUri: string;
-        guestId: string;
-      }>(raw);
+      const write = parseWrite(raw, bookingCreation);
       await record({
         id: opId,
         kind: "book",
@@ -194,7 +204,7 @@ export default function Listing() {
               </div>
               <div>
                 <Field label="Finalized height">
-                  <input readOnly value={height.data ?? "…"} />
+                  <input readOnly value={height.data === undefined ? "…" : height.data.toString()} />
                 </Field>
               </div>
             </div>
@@ -225,10 +235,16 @@ export default function Listing() {
                   </div>
                   <div className="slots">
                     {Object.values(unit.schedule)
-                      .sort((a, b) => a.startHeight - b.startHeight)
+                      .sort((a, b) =>
+                        a.startHeight < b.startHeight
+                          ? -1
+                          : a.startHeight > b.startHeight
+                            ? 1
+                            : 0,
+                      )
                       .map((slot) => {
                         const state = probe.data?.data[unit.unitId]?.[slot.slotId];
-                        const current = height.data ?? 0;
+                        const current = height.data ?? 0n;
                         const open = isOpen(state, current);
                         const checked = (selected[unit.unitId] ?? []).includes(slot.slotId);
                         return (
@@ -244,7 +260,7 @@ export default function Listing() {
                             />
                             <span className="mono">{slot.slotId}</span>
                             <small>
-                              {slot.startHeight}–{slot.endHeight}
+                              {slot.startHeight.toString()}–{slot.endHeight.toString()}
                             </small>
                             <small>{describe(state, current)}</small>
                           </label>
@@ -284,8 +300,8 @@ export default function Listing() {
                   <div className="stat"><span className="muted">Rent</span><Money value={quote.value.rent} /></div>
                   <div className="stat"><span className="muted">Deposit</span><Money value={listing.terms.deposit} /></div>
                   <div className="stat"><span className="muted">Total</span><Money value={quote.value.rent + listing.terms.deposit} /></div>
-                  <div className="stat"><span className="muted">Check-in</span><strong>{quote.value.checkIn}</strong></div>
-                  <div className="stat"><span className="muted">Check-out</span><strong>{quote.value.checkOut}</strong></div>
+                  <div className="stat"><span className="muted">Check-in</span><strong>{quote.value.checkIn.toString()}</strong></div>
+                  <div className="stat"><span className="muted">Check-out</span><strong>{quote.value.checkOut.toString()}</strong></div>
                   <div className="stat"><span className="muted">Slots</span><strong>{quote.value.count}</strong></div>
                 </div>
                 <button className="primary" disabled={busy} onClick={book}>
@@ -313,18 +329,20 @@ function unitSlotRequests(selected: Record<string, string[]>): UnitSlotRequest[]
     .map(([unitId, slots]) => ({ unitId, slots }));
 }
 
-function isOpen(state: SlotState | undefined, height: number): boolean {
+function isOpen(state: SlotState | undefined, height: bigint): boolean {
   if (!state) return false;
   if (state[0] === "free") return true;
   if (state[0] === "held") return state[2] <= height;
   return false;
 }
 
-function describe(state: SlotState | undefined, height: number): string {
+function describe(state: SlotState | undefined, height: bigint): string {
   if (!state) return "unknown";
   if (state[0] === "free") return "free";
   if (state[0] === "held") {
-    return state[2] <= height ? `reclaimable (held to ${state[2]})` : `held to ${state[2]}`;
+    return state[2] <= height
+      ? `reclaimable (held to ${state[2].toString()})`
+      : `held to ${state[2].toString()}`;
   }
   if (state[0] === "booked") return "booked";
   return "invalid record";
@@ -336,8 +354,8 @@ function TermsTable({ listing }: { listing: ListingView }) {
       <div className="grid three">
         <div className="stat"><span className="muted">Kind</span><strong>{listing.kind}</strong></div>
         <div className="stat"><span className="muted">Asset</span><strong>{listing.terms.assetId}</strong></div>
-        <div className="stat"><span className="muted">Price</span><Money value={listing.terms.pricePerSlot} /></div>
-        {TERM_FIELDS.filter((field) => !field.money).map((field) => (
+        <div className="stat"><span className="muted">Terms price (reference)</span><Money value={listing.terms.pricePerSlot} /></div>
+        {TERM_FIELDS.filter((field) => field.kind !== "money").map((field) => (
           <div className="stat" key={field.key}>
             <span className="muted">{field.label}</span>
             <strong>{String(listing.terms[field.key])}</strong>

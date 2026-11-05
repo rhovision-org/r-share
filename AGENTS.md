@@ -72,6 +72,9 @@ make rcash-bootstrap # install the r-cash components r-share needs
 make keys install    # copy the keys and install r-share
 make unit-all        # all 16 behavioural suites
 make formal-check    # Lean build, axiom audit, vectors and flow manifest
+make check-flows-strict # L0 proof-quality gate; currently 0 warnings
+make audit-check     # audit registers, arm inventory and traceability
+make audit-dynamic   # expected-failure audit reproductions on a devnet
 make client-test     # Rust SDK, core and keystore tests
 make client-lint     # fmt and clippy on the client crates
 make client-wasm     # wasm32 check
@@ -88,9 +91,25 @@ npm --prefix web run dev / test / test:e2e
   a new booking arm, the primitive is wrong.
 - Never add a shared mutable counter or a mutable availability cache.
 - Every new arm needs a refusal test and an idempotency test.
+- Every new public arm must appear in `audit/registers/arms.yaml`; `make audit-check`
+  fails on inventory drift.
 - Every cornerstone arm names a Lean declaration in `spec/flows/core.yaml`; a new
-  mutating arm without one is `owed`, not proved.
+  mutating arm without one is `owed`, not proved. `make check-flows-strict` rejects a
+  `proved-model` target that is a definition or constructor.
 - Every value-moving path needs a balance-conservation assertion.
+- `reset` may clear only a free slot or an expired hold. A live hold or booked slot is
+  refused. Terminal settlement releases the booking's slots before the Bond pays.
+- A no-show claim enters `noShowClaimed` and pays nothing. The guest may contest inside the
+  `disputeWindowBlocks` window; uncontested claims pay the provider after it, contested
+  claims default to a full guest refund through `resolveNoShow`.
+- Admin sets require at least two distinct keys and threshold at least 2. Duplicate keys,
+  threshold 1 and threshold greater than the key count are refused.
+- Direct `acquire` is gated by global pause and provider status. `ListingFactory.create`
+  refuses a paused provider.
+- `BookingContractFactory.create` requires a listing `verifyHold` reservation and matching
+  provider, listing and kind. Do not weaken this for a test; use a test-only fake listing.
+- Do not claim an audit finding is fixed unless the change and its regression test are
+  in the tree and recorded in `audit/registers/findings.yaml`.
 
 ## Documentation
 

@@ -57,14 +57,14 @@ make devnet-up       # r-cash devnet on the rholo node, then wait for health
 make rcash-keys      # generate and faucet the r-cash keys
 make rcash-bootstrap # install the r-cash components r-share needs
 make keys install    # copy the keys and install r-share
-make unit-all        # all 16 behavioural suites
+make unit-all        # all 27 behavioural suites
 ```
 
 `make devnet` delegates to r-cash's Makefile with `RHOLO_DIR` pointing at the node checkout.
 Override `RCASH_DIR` and `RHOLO_DIR` if your layout differs. The installer writes
 `deployments/devnet.json`; the devnet keys live in `.devnet/` and are gitignored.
 
-All 16 suites are implemented. `make unit-all` runs them and writes
+All 27 suites are implemented. `make unit-all` runs them and writes
 `deployments/suite-results.json`; an unhealthy devnet reports `not run`, never a pass.
 
 ## Fork checklist

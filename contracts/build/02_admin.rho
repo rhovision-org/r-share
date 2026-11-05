@@ -8,8 +8,46 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c1, c2,
-  guardAnySig, guardCount
+  guardAnySig, guardCount, adminsValid
 in {
+// Admin-set validation shared by Root, ShareAdmin and the owner-scoped objects.
+// The signed payload shape is not changed; this helper runs after verification.
+// One recursive contract keeps the inlined contract count within the project budget.
+
+contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
+  if (threshold < 2) {
+    ret!((false, "threshold"))
+  } else {
+    if (admins.length() < 2) {
+      ret!((false, "threshold"))
+    } else {
+      if (threshold > admins.length()) {
+        ret!((false, "threshold"))
+      } else {
+      if (i >= admins.length()) {
+        ret!((true, Nil))
+      } else {
+        match admins.nth(i) {
+          a => {
+            new hCh in {
+              hCh!(a.bytesToHex()) |
+              for (@k <- hCh) {
+                if (seen.get(k) != Nil) {
+                  ret!((false, "duplicate key"))
+                } else {
+                  adminsValid!(admins, threshold, i + 1,
+                               seen.set(k, true), *ret)
+                }
+              }
+            }
+          }
+        }
+      }
+      }
+    }
+  }
+} |
+
   contract guardAnySig(@digest, @sigs, @j, @key, ret) = {
     if (j >= sigs.length()) {
       ret!(false)
@@ -62,10 +100,21 @@ in {
                 for (@payload <- pCh) {
                   hash!(payload.toUtf8Bytes(), *hCh) |
                   for (@digest <- hCh) {
-                    guardCount!(digest, sigs, 0, 0, admins, threshold, *okCh) |
-                    for (@ok <- okCh) {
-                      if (ok) { ret!((true, true)) }
-                      else { ret!((false, "below threshold")) }
+                    new avCh in {
+                      adminsValid!(admins, threshold, 0, {}, *avCh) |
+                      for (@av <- avCh) {
+                        match av {
+                          (true, Nil) => {
+                            guardCount!(digest, sigs, 0, 0, admins, threshold,
+                                        *okCh) |
+                            for (@ok <- okCh) {
+                              if (ok) { ret!((true, true)) }
+                              else { ret!((false, "below threshold")) }
+                            }
+                          }
+                          _ => { ret!((false, "below threshold")) }
+                        }
+                      }
                     }
                   }
                 }
@@ -87,6 +136,12 @@ in {
   contract ShareAdmin(@"isPaused", ret) = {
     for (@s <<- adminState) {
       ret!((true, s.get("pausedAll")))
+    }
+  } |
+
+  contract ShareAdmin(@"nonce", ret) = {
+    for (@s <<- adminState) {
+      ret!((true, s.get("nonce")))
     }
   } |
 
@@ -118,13 +173,21 @@ in {
                         newAdmins => {
                           match args.nth(1) {
                             newThreshold => {
-                              if (newThreshold < 1 || newThreshold > newAdmins.length()) {
-                                adminState!(s) | ret!((false, "threshold"))
-                              } else {
-                                adminState!(s.set("admins", newAdmins)
-                                             .set("threshold", newThreshold)
-                                             .set("nonce", nonce)) |
-                                ret!((true, Nil))
+                              new avCh in {
+                                adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
+                                for (@av <- avCh) {
+                                  match av {
+                                    (true, Nil) => {
+                                      adminState!(s.set("admins", newAdmins)
+                                                   .set("threshold", newThreshold)
+                                                   .set("nonce", nonce)) |
+                                      ret!((true, Nil))
+                                    }
+                                    _ => {
+                                      adminState!(s) | ret!(av)
+                                    }
+                                  }
+                                }
                               }
                             }
                           }
@@ -134,12 +197,18 @@ in {
                     "setThreshold" => {
                       match args.nth(0) {
                         newThreshold => {
-                          if (newThreshold < 1 || newThreshold > s.get("admins").length()) {
-                            adminState!(s) | ret!((false, "threshold"))
-                          } else {
-                            adminState!(s.set("threshold", newThreshold)
-                                         .set("nonce", nonce)) |
-                            ret!((true, Nil))
+                          new avCh in {
+                            adminsValid!(s.get("admins"), newThreshold, 0, {}, *avCh) |
+                            for (@av <- avCh) {
+                              match av {
+                                (true, Nil) => {
+                                  adminState!(s.set("threshold", newThreshold)
+                                               .set("nonce", nonce)) |
+                                  ret!((true, Nil))
+                                }
+                                _ => { adminState!(s) | ret!(av) }
+                              }
+                            }
                           }
                         }
                       }

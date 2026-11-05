@@ -31,3 +31,7 @@ M10:
   wasm: web/tests/wasm-smoke.mjs
   web: [typecheck, test, build]
   devnet: [client-fixtures, client-journey, web-e2e]
+M11:
+  audit: [check-audit, check-arm-inventory, audit-trace-check]
+  devnet: [reset_safety, settle_release, no_show_contest, event_timing,
+           admin_keys, pause_scope, cell_liveness, factory_auth]

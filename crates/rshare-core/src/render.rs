@@ -15,8 +15,8 @@ pub fn quote_string(value: &str) -> Result<String> {
 }
 
 /// Render an integer.
-pub fn render_i64(value: i64) -> String {
-    value.to_string()
+pub fn render_i64(value: impl Into<i64>) -> String {
+    value.into().to_string()
 }
 
 /// Render a boolean.

@@ -8,6 +8,7 @@ new
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
   adminGuard, adminsText, authIsOwner, authOwner, providerAdmins, providerPayments,
+  adminsValid,
   resolveComponent
 in {
 contract resolveComponent(@key, ret) = {
@@ -93,6 +94,43 @@ contract adminsText(@admins, @i, @acc, ret2) = {
             adminsText!(admins, i + 1, next, *ret2)
           }
         }
+      }
+    }
+  }
+} |
+// Admin-set validation shared by Root, ShareAdmin and the owner-scoped objects.
+// The signed payload shape is not changed; this helper runs after verification.
+// One recursive contract keeps the inlined contract count within the project budget.
+
+contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
+  if (threshold < 2) {
+    ret!((false, "threshold"))
+  } else {
+    if (admins.length() < 2) {
+      ret!((false, "threshold"))
+    } else {
+      if (threshold > admins.length()) {
+        ret!((false, "threshold"))
+      } else {
+      if (i >= admins.length()) {
+        ret!((true, Nil))
+      } else {
+        match admins.nth(i) {
+          a => {
+            new hCh in {
+              hCh!(a.bytesToHex()) |
+              for (@k <- hCh) {
+                if (seen.get(k) != Nil) {
+                  ret!((false, "duplicate key"))
+                } else {
+                  adminsValid!(admins, threshold, i + 1,
+                               seen.set(k, true), *ret)
+                }
+              }
+            }
+          }
+        }
+      }
       }
     }
   }
@@ -308,12 +346,29 @@ contract adminsText(@admins, @i, @acc, ret2) = {
                                                 providerState!(st) | ret2!((false, "unknown listing"))
                                               }
                                               entry => {
-                                                providerState!(
-                                                  st.set("listings",
-                                                         st.get("listings").set(
-                                                           listingId,
-                                                           entry.set("status", "removed")))) |
-                                                ret2!((true, Nil))
+                                                new lCh, delCh in {
+                                                  rl!(entry.get("uri"), *lCh) |
+                                                  for (Listing <- lCh) {
+                                                    Listing!("delist", *dId2,
+                                                             *delCh) |
+                                                    for (@r <- delCh) {
+                                                      match r {
+                                                        (true, Nil) => {
+                                                          providerState!(
+                                                            st.set("listings",
+                                                              st.get("listings").set(
+                                                                listingId,
+                                                                entry.set("status", "removed")))) |
+                                                          ret2!((true, Nil))
+                                                        }
+                                                        _ => {
+                                                          providerState!(st) |
+                                                          ret2!(r)
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
                                               }
                                             }
                                           }
@@ -380,16 +435,23 @@ contract adminsText(@admins, @i, @acc, ret2) = {
                                                 providerState!(st) |
                                                 ret2!((false, "below threshold"))
                                               } else {
-                                                if (newThreshold < 1
-                                                    || newThreshold > newAdmins.length()) {
-                                                  providerState!(st) |
-                                                  ret2!((false, "threshold"))
-                                                } else {
-                                                  providerState!(
-                                                    st.set("admins", newAdmins)
-                                                      .set("threshold", newThreshold)
-                                                      .set("nonce", nonce)) |
-                                                  ret2!((true, Nil))
+                                                new avCh in {
+                                                  adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
+                                                  for (@av <- avCh) {
+                                                    match av {
+                                                      (true, Nil) => {
+                                                        providerState!(
+                                                          st.set("admins", newAdmins)
+                                                            .set("threshold", newThreshold)
+                                                            .set("nonce", nonce)) |
+                                                        ret2!((true, Nil))
+                                                      }
+                                                      _ => {
+                                                        providerState!(st) |
+                                                        ret2!(av)
+                                                      }
+                                                    }
+                                                  }
                                                 }
                                               }
                                             }

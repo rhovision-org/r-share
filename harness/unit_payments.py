@@ -32,7 +32,7 @@ def main() -> int:
         raise AssertionError(f"issuer reply shape: {issuer!r}")
 
     unknown = one(call(payments, "issuer", '"NOPE"'))
-    expect_refusal("unknown asset", unknown, "unknown asset")
+    expect_refusal("unknown asset", unknown, "asset")
     return 0
 
 

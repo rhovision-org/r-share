@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { formatUnits, parseUnits } from "../lib/format";
+import { isResourceKind } from "../lib/decoders";
 import { defaultTerms, KINDS, TERM_FIELDS } from "../lib/termsDefaults";
-import type { ResourceKind, Terms } from "../lib/types";
+import type { Terms } from "../lib/types";
 import { Field } from "./ui";
 
 export default function TermsForm({
@@ -20,9 +21,10 @@ export default function TermsForm({
         <Field label="Resource kind">
           <select
             value={value.kind}
-            onChange={(event) =>
-              onChange(defaultTerms(event.target.value as ResourceKind))
-            }
+            onChange={(event) => {
+              const next = event.target.value;
+              if (isResourceKind(next)) onChange(defaultTerms(next));
+            }}
           >
             {KINDS.map((kind) => (
               <option key={kind} value={kind}>
@@ -40,55 +42,58 @@ export default function TermsForm({
       </div>
 
       <div className="grid three">
-        {TERM_FIELDS.filter((field) => !field.advanced).map((field) =>
-          field.key === "instantBook" || field.key === "contiguous" ? (
-            <label className="check" key={field.key}>
-              <input
-                type="checkbox"
-                checked={Boolean(value[field.key])}
-                onChange={(event) =>
-                  update(field.key, event.target.checked as Terms[typeof field.key])
-                }
-              />
-              <span>{field.label}</span>
-            </label>
-          ) : (
-            <Field key={field.key} label={field.label}>
-              {field.money ? (
-                <MoneyInput
-                  value={Number(value[field.key])}
-                  onChange={(next) => update(field.key, next as Terms[typeof field.key])}
-                />
-              ) : (
+        {TERM_FIELDS.filter((field) => !field.advanced).map((field) => {
+          if (field.kind === "boolean") {
+            return (
+              <label className="check" key={field.key}>
                 <input
-                  type="number"
-                  min={0}
-                  value={Number(value[field.key])}
-                  onChange={(event) =>
-                    update(field.key, Number(event.target.value) as Terms[typeof field.key])
-                  }
+                  type="checkbox"
+                  checked={value[field.key]}
+                  onChange={(event) => update(field.key, event.target.checked)}
                 />
-              )}
+                <span>{field.label}</span>
+              </label>
+            );
+          }
+          if (field.kind === "money") {
+            return (
+              <Field key={field.key} label={field.label}>
+                <MoneyInput
+                  value={value[field.key]}
+                  onChange={(next) => update(field.key, next)}
+                />
+              </Field>
+            );
+          }
+          return (
+            <Field key={field.key} label={field.label}>
+              <input
+                type="number"
+                min={0}
+                value={value[field.key]}
+                onChange={(event) => update(field.key, Number(event.target.value))}
+              />
             </Field>
-          ),
-        )}
+          );
+        })}
       </div>
 
       <details>
         <summary>Advanced policy windows</summary>
         <div className="grid three">
-          {TERM_FIELDS.filter((field) => field.advanced).map((field) => (
-            <Field key={field.key} label={field.label}>
-              <input
-                type="number"
-                min={0}
-                value={Number(value[field.key])}
-                onChange={(event) =>
-                  update(field.key, Number(event.target.value) as Terms[typeof field.key])
-                }
-              />
-            </Field>
-          ))}
+          {TERM_FIELDS.filter((field) => field.advanced).map((field) => {
+            if (field.kind !== "number") return null;
+            return (
+              <Field key={field.key} label={field.label}>
+                <input
+                  type="number"
+                  min={0}
+                  value={value[field.key]}
+                  onChange={(event) => update(field.key, Number(event.target.value))}
+                />
+              </Field>
+            );
+          })}
         </div>
       </details>
     </div>
@@ -99,8 +104,8 @@ function MoneyInput({
   value,
   onChange,
 }: {
-  value: number;
-  onChange: (value: number) => void;
+  value: bigint;
+  onChange: (value: bigint) => void;
 }) {
   const [text, setText] = useState(() => formatUnits(value));
   useEffect(() => setText(formatUnits(value)), [value]);
@@ -111,8 +116,7 @@ function MoneyInput({
       onChange={(event) => {
         setText(event.target.value);
         try {
-          const parsed = Number(parseUnits(event.target.value));
-          if (Number.isSafeInteger(parsed)) onChange(parsed);
+          onChange(parseUnits(event.target.value));
         } catch {
           // Keep the text while it is incomplete; the chain validates the final value.
         }

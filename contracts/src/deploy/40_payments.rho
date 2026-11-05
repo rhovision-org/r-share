@@ -8,7 +8,7 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
-  adminGuard, payResolveUri, payShareResolve,
+  adminGuard, payResolveUri, payShareResolve, payAssetAllowed,
   resolveComponent
 in {
   // @@INLINE:lib/Resolve.rho@@
@@ -114,20 +114,44 @@ in {
     }
   } |
 
+  contract payAssetAllowed(@assets, @i, @assetId, ret) = {
+    if (i >= assets.length()) {
+      ret!(false)
+    } else {
+      match assets.nth(i) {
+        a => {
+          if (a == assetId) { ret!(true) }
+          else { payAssetAllowed!(assets, i + 1, assetId, *ret) }
+        }
+      }
+    }
+  } |
+
   contract Payments(@"issuer", @assetId, ret) = {
-    new uCh in {
-      payResolveUri!("component:asset-resolver", *uCh) |
-      for (@u <- uCh) {
-        match u {
-          (true, uri, _) => {
-            new cCh in {
-              rl!(uri, *cCh) |
-              for (AssetResolver <- cCh) {
-                AssetResolver!("issuer", assetId, *ret)
+    for (@s <<- paymentsState) {
+      new okCh in {
+        payAssetAllowed!(s.get("assets"), 0, assetId, *okCh) |
+        for (@ok <- okCh) {
+          if (ok) {
+            new uCh in {
+              payResolveUri!("component:asset-resolver", *uCh) |
+              for (@u <- uCh) {
+                match u {
+                  (true, uri, _) => {
+                    new cCh in {
+                      rl!(uri, *cCh) |
+                      for (AssetResolver <- cCh) {
+                        AssetResolver!("issuer", assetId, *ret)
+                      }
+                    }
+                  }
+                  _ => { ret!(u) }
+                }
               }
             }
+          } else {
+            ret!((false, "asset"))
           }
-          _ => { ret!(u) }
         }
       }
     }
@@ -174,9 +198,14 @@ in {
                                       "setAssets" => {
                                         match args.nth(0) {
                                           assets => {
-                                            paymentsState!(s.set("assets", assets)
-                                                            .set("nonce", nonce)) |
-                                            ret!((true, Nil))
+                                            if (assets.length() == 0) {
+                                              paymentsState!(s) |
+                                              ret!((false, "asset"))
+                                            } else {
+                                              paymentsState!(s.set("assets", assets)
+                                                              .set("nonce", nonce)) |
+                                              ret!((true, Nil))
+                                            }
                                           }
                                         }
                                       }

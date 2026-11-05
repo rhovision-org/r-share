@@ -23,6 +23,7 @@ ShareRoot("resolveMany", @keys, @minVersion, ret)
   -> (true, {key -> {uri, version}}) | (false, "unknown component" | "retired" | "stale", key)
 ShareRoot("get", @key, ret) -> (true, entry) | (false, "unknown component")
 ShareRoot("keys", ret) -> (true, keys)
+ShareRoot("nonce", ret) -> (true, govNonce)
 ShareRoot("register", @key, @uri, @version, @kind, dId, ret)
   -> (true, Nil) | (false, "frozen" | "not installer" | "bad version" | "duplicate")
 ShareRoot("rotate", @key, @expectedVersion, @newUri, @newVersion, @nonce, @sigs, ret)
@@ -52,6 +53,7 @@ AdminGuard("verify", @domain, @nonce, @action, @args, @sigs, @admins, @threshold
   -> (true, Bool) | (false, "below threshold")
 ShareAdmin("keys", ret) -> (true, admins, threshold)
 ShareAdmin("isPaused", ret) -> (true, Bool)
+ShareAdmin("nonce", ret) -> (true, nonce)
 ShareAdmin("admin", @nonce, @action, @args, @sigs, ret)
   -> (true, Nil) | (false, "replay" | "below threshold" | "threshold" | "unknown action")
 ```
@@ -67,11 +69,15 @@ Payments("accountOf", @ownerId, ret) -> (true, account) | (false, "no account" |
 Payments("depositFacet", @ownerId, @assetId, ret) -> (true, facet)
                                                    | (false, "no account" | "rcash unavailable")
 Payments("issuer", @assetId, ret) -> (true, brand, issuer)
-                                   | (false, "unknown asset" | "rcash unavailable")
+                                   | (false, "asset" | "rcash unavailable")
 Payments("platformOwner", ret) -> (true, ownerId)
 Payments("admin", @nonce, @action, @args, @sigs, ret)
-  -> (true, Nil) | (false, "replay" | "below threshold" | "rcash unavailable" | "unknown action")
+  -> (true, Nil) | (false, "replay" | "below threshold" | "asset" | "rcash unavailable" | "unknown action")
 ```
+
+`Payments.issuer` refuses `"asset"` unless the asset id is in `paymentsState.assets`.
+`setAssets` refuses an empty list and never removes `REV` implicitly; the admin must pass a
+new list.
 
 ## Terms — `03_terms.rho`
 
@@ -127,7 +133,8 @@ ProviderContract("pause", dId, ret) -> (true, Nil) | (false, "not owner" | "alre
 ProviderContract("resume", dId, ret) -> (true, Nil) | (false, "not owner" | "already")
 ProviderContract("registerListing", dId, @listingId, @uri, @kind, @termsHash, ret)
   -> (true, Nil) | (false, "paused" | "listing exists" | "not owner")
-ProviderContract("removeListing", dId, @listingId, ret) -> (true, Nil) | (false, "not owner" | "unknown listing")
+ProviderContract("removeListing", dId, @listingId, ret)
+  -> (true, Nil) | (false, "not owner" | "unknown listing" | listing delist reason)
 ProviderContract("adminPause", @nonce, @sigs, ret) -> (true, Nil) | (false, "replay" | "below threshold")
 ProviderContract("setAdmins", @nonce, @newAdmins, @newThreshold, @sigs, ret)
   -> (true, Nil) | (false, "replay" | "below threshold" | "threshold")
@@ -175,7 +182,7 @@ ListingContract("acquire", @bookingId, @unitSlots, @untilHeight, releaseToken, r
    | (false, "not active" | "units" | "slots" | "duplicate unit" |
              "unknown unit" | "unit paused" | "until" | "unknown slot" |
              "slot held" | "schedule" | "lead" | "duration" | "window" |
-             "unit factory unavailable" | "clock")
+             "paused" | "provider paused" | "unit factory unavailable" | "clock")
 ListingContract("confirm", @unitSlots, releaseToken, ret)
   -> (true, Nil) | (false, "slot lost" | "not holder" | "unknown unit" |
                            "unknown slot" | "clock")
@@ -185,24 +192,35 @@ ListingContract("probe", @unitSlots, ret)
   -> (true, {unitId -> {slotId -> ["free", gen] | ["held", bookingId, until] |
                                      ["booked", bookingId]}})
 ListingContract("reset", dId, @unitId, @slotId, ret)
-  -> (true, Nil) | (false, "not owner" | "unknown unit" | "unknown slot")
+  -> (true, Nil) | (false, "not owner" | "unknown unit" | "unknown slot" |
+                           "slot held" | "slot booked" | "clock")
+ListingContract("verifyHold", @bookingId, @unitSlots, releaseToken, ret)
+  -> (true, Nil) | (false, "slot lost" | "unknown unit" | "unknown slot")
 ListingContract("activate", dId, ret) -> (true, Nil) | (false, "not owner" | "already" | "no units")
-ListingContract("pause", dId, ret) -> (true, Nil) | (false, "not owner")
-ListingContract("resume", dId, ret) -> (true, Nil) | (false, "not owner")
+ListingContract("pause", dId, ret) -> (true, Nil) | (false, "not owner" | "delisted")
+ListingContract("resume", dId, ret) -> (true, Nil) | (false, "not owner" | "delisted")
 ListingContract("delist", dId, ret) -> (true, Nil) | (false, "not owner")
 ListingContract("pauseUnit", dId, @unitId, ret) -> (true, Nil) | (false, "not owner" | "unknown unit")
 ListingContract("resumeUnit", dId, @unitId, ret) -> (true, Nil) | (false, "not owner" | "unknown unit")
 ListingContract("ensureUnit", dId, @unitId, @attrs, @slots, @pricePerSlot, ret)
   -> (true, unitId) | (false, "not active" | "not owner" | "unit exists" |
-                         "unit factory unavailable" | "price" | schedule reason)
+                         "unit factory unavailable" | "price" | "refund window" |
+                         schedule reason)
 ListingContract("adminPause", @nonce, @action, @args, @sigs, ret)
   -> (true, Nil) | (false, "replay" | "below threshold" | "unknown action")
 ListingContract("setAdmins", @nonce, @newAdmins, @newThreshold, @sigs, ret)
   -> (true, Nil) | (false, "replay" | "below threshold" | "threshold")
 ```
 
-`acquire` is one take/commit: every requested slot becomes held, or the state is reposted
-unchanged. `confirm` and `release` are token-gated. The release token is never returned.
+`delisted` is terminal for the listing state: `pause` and `resume` (owner and admin) refuse
+it. `removeListing` calls `delist` first and only marks the provider index removed after the
+listing refuses to stay active; a failed delist reposts the provider index unchanged and
+returns the failure.
+
+`acquire` is one take/await/put: it takes `listingState`, checks the global pause and
+provider gates, awaits `UnitFactory.slotScan`, and reposts every requested slot as held or
+the unchanged state. Other listing arms block while the cell is empty. `confirm` and
+`release` are token-gated. The release token is never returned.
 
 ## Guest — `20_booking.rho` and `23_guest_ledger.rho`
 
@@ -237,7 +255,7 @@ Bond("info", ret) -> (true, {paid, expected, remaining})
 
 ```
 BookingContractFactory("create", dId, @data, releaseToken, @bondUri, settleToken, ret)
-  -> (true, bookingUri) | (false, "not guest" | "bond factory unavailable")
+  -> (true, bookingUri) | (false, "not guest" | "reservation" | "listing")
 ```
 
 The factory is registered as `component:booking-factory`. `GuestLedger` creates the Bond
@@ -264,7 +282,9 @@ BookingContract("dispute", dId, @opId, @reasonHash, ret) -> (true, Nil) | (false
 BookingContract("resolveDispute", @opId, ret) -> (true, Nil) | (false, "closed" | "too early" | "release" | "bps" | "replay")
 BookingContract("arbitrate", @nonce, @splitBps, @sigs, @opId, ret) -> (true, Nil) | (false, "replay" | "below threshold" | "bps" | "closed")
 BookingContract("expire", @opId, ret) -> (true, Nil) | (false, "closed" | "too early" | "replay")
-BookingContract("claimNoShow", dId, @opId, ret) -> (true, Nil) | (false, "not owner" | "closed" | "too early" | "bps" | "replay")
+BookingContract("claimNoShow", dId, @opId, ret) -> (true, Nil) | (false, "not owner" | "closed" | "too early" | "window" | "replay")
+BookingContract("disputeNoShow", dId, @opId, @reasonHash, ret) -> (true, Nil) | (false, "not owner" | "closed" | "too late" | "replay")
+BookingContract("resolveNoShow", @opId, ret) -> (true, Nil) | (false, "closed" | "too early" | "replay")
 BookingContract("redeem", dId, @opId, ret) -> (true, Nil) | (false, "not owner" | "not event" | "closed" | "already" | "replay")
 BookingContract("closeEvent", @opId, ret) -> (true, Nil) | (false, "not event" | "closed" | "too early" | "bps" | "replay")
 BookingContract("transferTicket", dId, @newGuestId, @opId, ret) -> (true, Nil) | (false, "not owner" | "not event" | "closed" | "too late" | "deposit" | "replay")

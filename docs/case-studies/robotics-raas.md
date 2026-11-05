@@ -31,7 +31,7 @@ unitSlots = [
 ]
 ```
 
-The per-listing allocator writes both reservations in one commit: both slots are held or
+The per-listing allocator writes both reservations in one take/await/put: both slots are held or
 neither is. The release token is shared, so a partial session cannot
 be released into a half-booked state.
 

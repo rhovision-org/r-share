@@ -1,0 +1,382 @@
+schema: rshare.improvements/v1
+total: 21
+improvements:
+- id: R-001
+  priority: P0
+  findings:
+  - F-001
+  hazards:
+  - HZ-001
+  change: restrict reset to free or expired-held slots, or make it a 2-of-3 action with a reason; never free booked or live-held tokens
+  type: source/abi
+  breaking: true
+  migration: versioned listing or admin-only reset during transition
+  compatibility_window: v1 listing remains reset-disabled; v2 enables safe reset
+  tests:
+  - T-RESET
+  lean: THM-RESET
+  rollout_stage: wave 1
+  rollback: revert Root pointer before state mutation
+  status: proposed
+- id: R-002
+  priority: P0
+  findings:
+  - F-002
+  hazards:
+  - HZ-002
+  - HZ-034
+  change: repost every consumed state cell on every normal branch; add a cell-fullness liveness suite and static check
+  type: source/test
+  breaking: false
+  migration: none
+  compatibility_window: n/a
+  tests:
+  - T-CELL
+  lean: THM-CELL
+  rollout_stage: wave 1
+  rollback: revert source; no state migration
+  status: proposed
+- id: R-003
+  priority: P0
+  findings:
+  - F-003
+  hazards:
+  - HZ-003
+  change: on every normal refusal after GuestLedgerReserve, release acquired slots and drop the op through one compensation helper
+  type: source/test
+  breaking: false
+  migration: none
+  compatibility_window: n/a
+  tests:
+  - T-FAULT
+  lean: THM-LEDGER
+  rollout_stage: wave 1
+  rollback: revert source; no state migration
+  status: proposed
+- id: R-004
+  priority: P0
+  findings:
+  - F-004
+  hazards:
+  - HZ-004
+  change: 'prevent a provider from capturing rent without delivery: guest-visible check-in attestation, provider bond/delivery breach, or dispute from confirmed within the no-show window; choose the smallest policy-consistent option'
+  type: source/policy
+  breaking: true
+  migration: policy decision first; then versioned booking state/ABI
+  compatibility_window: v1/v2 booking arms coexist during transition
+  tests:
+  - T-ADVERSARIAL
+  lean: THM-NOSHOW
+  rollout_stage: wave 1
+  rollback: revert Root pointer; existing bookings keep v1 semantics
+  status: proposed
+- id: R-005
+  priority: P0
+  findings:
+  - F-005
+  hazards:
+  - HZ-005
+  change: require now >= checkOutHeight for settle from redeemed; add an event-window guard to redeem
+  type: source
+  breaking: false
+  migration: none
+  compatibility_window: n/a
+  tests:
+  - T-EVENT
+  lean: THM-EVENT
+  rollout_stage: wave 1
+  rollback: revert source
+  status: proposed
+- id: R-006
+  priority: P0
+  findings:
+  - F-006
+  hazards:
+  - HZ-006
+  - HZ-036
+  change: reject duplicate admin keys, validate key encoding, enforce a minimum threshold of 2 for Root/ShareAdmin, canonicalise order, and keep threshold <= unique key count on every setAdmins surface
+  type: source/abi
+  breaking: true
+  migration: versioned admin/root components; rotate keys before enabling the new guard
+  compatibility_window: old guard remains for existing objects; new objects use v2
+  tests:
+  - T-ADMIN-KEYS
+  lean: THM-ADMIN
+  rollout_stage: wave 1
+  rollback: revert Root pointer before rotating to v2
+  status: proposed
+- id: R-007
+  priority: P1
+  findings:
+  - F-008
+  hazards:
+  - HZ-008
+  change: make Payments.issuer consult the stored assets list, or remove the inert list and document r-cash as authoritative
+  type: source/docs
+  breaking: false
+  migration: none
+  compatibility_window: n/a
+  tests:
+  - T-ASSET
+  lean: THM-ASSET
+  rollout_stage: wave 2
+  rollback: revert source/docs
+  status: proposed
+- id: R-008
+  priority: P1
+  findings:
+  - F-009
+  hazards:
+  - HZ-009
+  change: restrict BookingContractFactory.create to a GuestLedger-held reservation proof, or make it non-public and pass it only internally
+  type: source/abi
+  breaking: true
+  migration: versioned booking factory; old bookings remain readable
+  compatibility_window: v1/v2 factories coexist
+  tests:
+  - T-ADVERSARIAL
+  lean: THM-FACTORY
+  rollout_stage: wave 2
+  rollback: revert Root pointer before state mutation
+  status: proposed
+- id: R-009
+  priority: P1
+  findings:
+  - F-007
+  hazards:
+  - HZ-007
+  - HZ-033
+  change: gate every new booking path, including direct acquire, or document a deliberately narrow global pause; make provider pause structural or remove the overclaim
+  type: source/policy
+  breaking: true
+  migration: versioned listing arm or documented pause scope
+  compatibility_window: v1/v2 acquire semantics coexist
+  tests:
+  - T-PAUSE
+  lean: THM-PAUSE
+  rollout_stage: wave 2
+  rollback: revert Root pointer
+  status: proposed
+- id: R-010
+  priority: P1
+  findings:
+  - F-013
+  hazards:
+  - HZ-013
+  change: reject or define refund/transfer cutoffs that exceed slot start or duration; define negative-cutoff semantics; add boundary tests
+  type: source/test
+  breaking: false
+  migration: none
+  compatibility_window: n/a
+  tests:
+  - T-BOUNDARIES
+  lean: THM-TERMS
+  rollout_stage: wave 2
+  rollback: revert source
+  status: proposed
+- id: R-011
+  priority: P1
+  findings:
+  - F-014
+  hazards:
+  - HZ-014
+  change: decide whether delisted is terminal; if so, resume must refuse it; make the event dual lifecycle explicit
+  type: source/docs
+  breaking: true
+  migration: versioned listing state/ABI
+  compatibility_window: v1/v2 listing status semantics coexist
+  tests:
+  - T-ADVERSARIAL
+  lean: THM-DELIST
+  rollout_stage: wave 2
+  rollback: revert Root pointer before state mutation
+  status: proposed
+- id: R-012
+  priority: P1
+  findings:
+  - F-015
+  hazards:
+  - HZ-015
+  change: decide whether Terms.pricePerSlot binds unit prices; enforce equality at ensureUnit or remove the field from the booking path
+  type: source/docs
+  breaking: true
+  migration: versioned terms/listing ABI
+  compatibility_window: v1/v2 listings coexist
+  tests:
+  - T-BOUNDARIES
+  lean: THM-RENT
+  rollout_stage: wave 2
+  rollback: revert Root pointer
+  status: proposed
+- id: R-013
+  priority: P1
+  findings:
+  - F-016
+  hazards:
+  - HZ-016
+  change: map Bond closed/not-holder/amount to booking refusals where possible; keep 1/0 only after value moves and document deploy-error semantics
+  type: source/docs
+  breaking: false
+  migration: none
+  compatibility_window: n/a
+  tests:
+  - T-FAULT
+  lean: THM-BOND
+  rollout_stage: wave 2
+  rollback: revert source
+  status: proposed
+- id: R-014
+  priority: P1
+  findings:
+  - F-012
+  hazards:
+  - HZ-012
+  change: removeListing must delist the listing or mark the index copy stale; never present a live listing as removed
+  type: source
+  breaking: false
+  migration: none
+  compatibility_window: n/a
+  tests:
+  - T-LISTING
+  lean: null
+  rollout_stage: wave 2
+  rollback: revert source
+  status: proposed
+- id: R-015
+  priority: P1
+  findings:
+  - F-011
+  - F-019
+  hazards:
+  - HZ-011
+  - HZ-019
+  change: either revalidate listingState after UnitFactory.slotScan or correct the one-commit doctrine and model the actual take/await/put pattern; establish honest proof status
+  type: source/docs/lean
+  breaking: true
+  migration: versioned acquire if restructured
+  compatibility_window: v1/v2 acquire coexist
+  tests:
+  - T-CELL
+  - T-FORMAL
+  lean: THM-AWAIT
+  rollout_stage: wave 2
+  rollback: revert Root pointer
+  status: proposed
+- id: R-016
+  priority: P2
+  findings:
+  - F-006
+  hazards:
+  - HZ-022
+  - HZ-023
+  - HZ-036
+  change: add a timelock or two-step setAdmins/rotate, prohibit retiring component:root, validate newVersion monotonicity, and test freeze/rotate recovery
+  type: source/abi/ops
+  breaking: true
+  migration: versioned Root; governance dry-run
+  compatibility_window: old governance actions remain until v2 cutover
+  tests:
+  - T-ADMIN-KEYS
+  lean: THM-ADMIN
+  rollout_stage: wave 3
+  rollback: revert Root pointer before rotating
+  status: proposed
+- id: R-017
+  priority: P2
+  findings: []
+  hazards:
+  - HZ-035
+  change: review ledgers/ops/info/probe projections for token, capability or unnecessary personal linkage; document public data
+  type: source/docs
+  breaking: false
+  migration: none
+  compatibility_window: n/a
+  tests:
+  - T-CELL
+  lean: null
+  rollout_stage: wave 3
+  rollback: revert source/docs
+  status: proposed
+- id: R-018
+  priority: P2
+  findings: []
+  hazards:
+  - HZ-022
+  change: add schemaVersion to each stateful cell and abiVersion to component info; deploy v2 under new Root versions/keys; support v1/v2 coexistence and migration
+  type: state/deploy
+  breaking: true
+  migration: documented v1->v2 migration and snapshot restore
+  compatibility_window: v1/v2 coexist for one devnet cycle
+  tests:
+  - T-MIGRATION
+  lean: null
+  rollout_stage: wave 3
+  rollback: Root pointer before mutation; snapshot restore after
+  status: proposed
+- id: R-019
+  priority: P2
+  findings:
+  - F-004
+  hazards:
+  - HZ-004
+  change: align the Phase 2 provider bond and providerDeliveryBreach with the no-show finding; design change, not a silent fix
+  type: design
+  breaking: true
+  migration: Phase 2 versioned bond/claim
+  compatibility_window: v1 buyer leg remains; v2 adds provider leg
+  tests:
+  - T-ADVERSARIAL
+  lean: THM-NOSHOW
+  rollout_stage: wave 3
+  rollback: keep v1 booking/bond
+  status: proposed
+- id: R-020
+  priority: P2
+  findings:
+  - F-010
+  - F-017
+  - F-018
+  - F-019
+  - F-020
+  hazards:
+  - HZ-010
+  - HZ-017
+  - HZ-018
+  - HZ-019
+  - HZ-020
+  change: correct terminality, reset, pause, invariant 7, Bond refusal mapping, Remedy dead code, duplicate refund implementations, inventory counts and one-commit wording; expand vectors and coverage claims
+  type: docs/test
+  breaking: false
+  migration: none
+  compatibility_window: n/a
+  tests:
+  - T-COVERAGE
+  - T-FORMAL
+  lean: THM-RENT
+  rollout_stage: wave 3
+  rollback: revert docs/tests
+  status: proposed
+- id: R-021
+  priority: P2
+  findings:
+  - F-020
+  hazards:
+  - HZ-020
+  change: 'expand behavioural coverage: reset, cancelByProvider, guestCheckOut, successful arbitrate, Root governance, adminPause, removeListing, Payments admin, Remedy partial/event/late branches, Bond refusals, fault injection and boundary heights; replace stub Bond where conservation matters'
+  type: test
+  breaking: false
+  migration: none
+  compatibility_window: n/a
+  tests:
+  - T-RESET
+  - T-CELL
+  - T-FAULT
+  - T-ADVERSARIAL
+  - T-EVENT
+  - T-ADMIN-KEYS
+  - T-BOUNDARIES
+  - T-COVERAGE
+  lean: null
+  rollout_stage: wave 3
+  rollback: revert tests
+  status: proposed

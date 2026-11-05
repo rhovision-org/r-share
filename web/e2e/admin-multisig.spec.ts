@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
-import { nodeHeight } from "./helpers";
 
 const PASSWORD = "e2e-admin-password";
 
@@ -24,9 +23,8 @@ test("two admin profiles sign a global pause and resume", async ({ page }) => {
   await page.getByRole("link", { name: "Admin" }).click();
   await expect(page.getByRole("heading", { name: "Admin and arbitration" })).toBeVisible();
 
-  const base = await nodeHeight(page);
-  const pauseNonce = base + 1000;
-  await page.getByLabel("Nonce").fill(String(pauseNonce));
+  // The UI reads `share_admin_nonce` and defaults to current + 1n, so the spec
+  // does not invent a nonce. Rebuilds after a refusal refetch the nonce.
   await page.getByRole("button", { name: "Build payload" }).click();
   await expect(page.getByRole("button", { name: "Sign with current profile" })).toBeEnabled();
   await page.getByRole("button", { name: "Sign with current profile" }).click();
@@ -50,7 +48,6 @@ test("two admin profiles sign a global pause and resume", async ({ page }) => {
   await expect(pauseStat).toContainText("true", { timeout: 120_000 });
 
   await page.getByLabel("Action").selectOption("resumeAll");
-  await page.getByLabel("Nonce").fill(String(pauseNonce + 1));
   await page.getByRole("button", { name: "Build payload" }).click();
   await page.getByRole("button", { name: "Sign with current profile" }).click();
   await profileSelect.selectOption({ label: "111128UKva8io9yqMGYR" });

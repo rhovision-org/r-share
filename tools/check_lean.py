@@ -19,6 +19,11 @@ AUDIT = "RShare/Audit.lean"
 
 FORBIDDEN = re.compile(r"(?<!#)\b(sorry|admit|native_decide)\b|^\s*axiom\s+[A-Za-z_]")
 ALLOWED = {"propext", "Classical.choice", "Quot.sound"}
+THEOREM = re.compile(
+    r"^[ \t]*(?:@\[[^\]]*\][ \t]*)*(?:theorem|lemma)[ \t]+([A-Za-z0-9_]+)",
+    re.M,
+)
+PRINT = re.compile(r"#print axioms\s+([A-Za-z0-9_.]+)")
 
 
 def source_scan() -> list[str]:
@@ -40,6 +45,19 @@ def run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(cmd, cwd=LEAN, text=True, capture_output=True)
 
 
+def theorem_names() -> set[str]:
+    names: set[str] = set()
+    for path in sorted(LEAN.rglob("*.lean")):
+        if ".lake" in path.parts or path.name in {"Audit.lean", "Emit.lean"}:
+            continue
+        names.update(THEOREM.findall(path.read_text()))
+    return names
+
+
+def audit_names() -> set[str]:
+    return set(PRINT.findall((LEAN / AUDIT).read_text()))
+
+
 def main() -> int:
     problems = source_scan()
     for problem in problems:
@@ -59,10 +77,21 @@ def main() -> int:
         print("lean: audit failed", file=sys.stderr)
         return 1
 
-    lines = [line for line in audit.stdout.splitlines() if "depends on axioms" in line]
-    if len(lines) < 20:
-        print(f"lean: audit produced only {len(lines)} axiom lines", file=sys.stderr)
-        return 1
+    source = theorem_names()
+    audited = audit_names()
+    audited_short = {name.rsplit(".", 1)[-1] for name in audited}
+    missing = sorted(source - audited_short)
+    if missing:
+        for name in missing:
+            print(f"lean: theorem not named in {AUDIT}: {name}", file=sys.stderr)
+        problems.append(f"{len(missing)} unaudited theorems")
+
+    lines = [line for line in audit.stdout.splitlines()
+             if "depends on axioms" in line or "does not depend on any axioms" in line]
+    if len(lines) < len(audited):
+        print(f"lean: audit produced {len(lines)} lines for {len(audited)} names",
+              file=sys.stderr)
+        problems.append("incomplete axiom audit")
     for line in lines:
         match = re.search(r"depends on axioms: \[(.*?)\]", line)
         if not match:
@@ -78,7 +107,8 @@ def main() -> int:
 
     if problems:
         return 1
-    print(f"lean: built, {len(lines)} axiom audits, no sorry/admit/axiom/native_decide")
+    print(f"lean: built, {len(lines)} axiom audits, {len(source)} source theorems, "
+          "no sorry/admit/axiom/native_decide")
     return 0
 
 

@@ -24,7 +24,7 @@
 | `RShare/Emit.lean` | deterministic vectors consumed by the suites |
 | `RShare/Audit.lean` | `#print axioms` for every core theorem |
 
-The central result is `RShare.Model.Allocator.acquire_no_double_owner`: after a successful
+The central result is `RShare.Allocator.acquire_no_double_owner`: after a successful
 acquire, every active reservation containing a requested key belongs to the acquiring
 booking. `acquire_none_or_reservation` and `acquire_is_one_reservation` state the structural
 shape: an acquire either refuses and leaves the state unchanged, or appends exactly one
@@ -32,15 +32,17 @@ reservation. There is no reachable partial state.
 
 ## Why races are not representable
 
-The allocator's `acquire`, `confirm` and `release` are single-cell commits. The booking,
-Bond and ledger cells are also single-writer. Two operations on the same cell are ordered by
-the cell; two operations on different cells do not interact. The old multi-slot hold loop is
-deleted: the contract no longer has a state in which unit A is held and unit B is not.
+The allocator's `confirm` and `release` are single-cell commits. `acquire` is a
+take/await/put: it takes `listingState`, checks the pause/provider gates, awaits
+`UnitFactory.slotScan`, and reposts. The booking, Bond and ledger cells are single-writer.
+Two operations on the same cell are ordered by the cell; two operations on different cells
+do not interact. The old multi-slot hold loop is deleted: the contract no longer has a state
+in which unit A is held and unit B is not.
 
-The model does **not** claim the node's Rholang reduction or scheduler. Provider pause is a
-ledger gate before `acquire`, not an allocator field; a direct caller can acquire while the
-provider is paused, bounded by `maxHoldBlocks`. A caller can hold free slots without a
-booking; that grief is bounded by the same limit. These are stated as boundary theorems.
+The model does **not** claim the node's Rholang reduction or scheduler. The deployed
+`acquire` now checks ShareAdmin pause and ProviderContract status; those checks are not
+proved as a refinement of the model. A caller can still hold free slots without a booking;
+that grief is bounded by `maxHoldBlocks`. These are stated as boundary assumptions.
 
 Two further boundaries: the allocator model abstracts the schedule/lead/duration/window
 checks that `UnitFactory.slotScan` performs on the deployed term; those are covered by the
@@ -53,12 +55,26 @@ manifest rather than proved.
 | Label | Meaning |
 |---|---|
 | `proved-model` | Machine-checked about the Lean model; no node tie. |
+| `proved-model-bounded` | Machine-checked over a stated finite bound. |
+| `modeled` | A definition or transition exists; no safety theorem. |
+| `assumption` | An explicit boundary assumption; not proved. |
 | `proved-tied` | Proved and tied to the implementation by a mechanical corpus. None claimed. |
 | `owed` | An arm outside the current cornerstone model. |
 
 `spec/flows/core.yaml` names the Lean declaration for every cornerstone arm and lists the
 core arms that must be `proved-model`. `tools/check_flows.py` rejects a missing arm, a
-missing Lean declaration, an unknown status, or a `proved-tied` without a corpus.
+missing Lean declaration, an unknown status, or a `proved-tied` without a corpus. It warns
+when a `proved-model` target is a definition or constructor; `make check-flows-strict`
+turns those warnings into failures.
+
+## Audit baseline
+
+At the remediation baseline the Lean source has 72 theorems and all 72 are named in the
+axiom audit. The flow manifest now has 35 rules over 31 arms, every `proved-model` target is
+a theorem, and `make check-flows-strict` reports zero warnings. `System.disjoint_cells_commute`
+and `provider_pause_not_structural` were removed; the acquire boundary is an explicit
+assumption. No rule claims `proved-tied`. The theorem registry and proof ladder are in
+`audit/registers/theorems.yaml` and `audit/lean/rigour-ladder.md`.
 
 ## Run it
 
@@ -66,7 +82,8 @@ missing Lean declaration, an unknown status, or a `proved-tied` without a corpus
 make lean-check      # lake build + axiom audit; rejects sorry/admit/axiom/native_decide
 make vectors         # re-emit and compare spec/vectors/core.json
 make check-flows     # source arms, flow rules and Lean names agree
-make formal-check    # all three
+make check-flows-strict # fail on def/constructor proved-model targets
+make formal-check    # build, audit, vectors and flows
 ```
 
 `unit_allocator` exercises the allocator transition table on-chain; `unit_claims` compares

@@ -19,3 +19,6 @@ zeroize.workspace = true
 
 [dev-dependencies]
 rcash-chain.workspace = true
+
+[lints]
+workspace = true

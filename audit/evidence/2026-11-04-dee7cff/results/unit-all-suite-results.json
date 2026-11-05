@@ -1,0 +1,134 @@
+{
+  "node": "http://localhost:41403",
+  "generated_at": "2026-11-04T16:48:21Z",
+  "results": [
+    {
+      "suite": "root",
+      "script": "unit_root.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 3.063,
+      "output": "unit-root\n  ok root keys\n  ok resolve clock\n  ok unknown component\n  ok stale version\n"
+    },
+    {
+      "suite": "payments",
+      "script": "unit_payments.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 3.663,
+      "output": "unit-payments\n  ok payments health\n  ok platform owner\n  ok REV issuer\n  ok unknown asset\n"
+    },
+    {
+      "suite": "lifecycle",
+      "script": "unit_lifecycle.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 9.292,
+      "output": "unit-lifecycle\n  bond rho:id:gacfeo439gkrf56ukfrrh5qs79kyrth8eit5z87597ftmyo9uxxy\n  ok dispute from requested\n  ok arbitrate outside dispute\n  ok dispute -> resolveDispute\n  ok evidence read\n  ok evidence anchors\n"
+    },
+    {
+      "suite": "claims",
+      "script": "unit_claims.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 42.001,
+      "output": "unit-claims\n  ok vector remedy.fee\n  ok vector remedy.depositSplit\n  ok vector remedy.full\n  bond rho:id:n389jw8zswq8w5igzmdrupaistq6bpdqw1a4a6mjsrfbiqoz3j3o\n  ok lodging noFaultCancellation\n  ok lodging noShow\n  ok lodging buyerUseBreach/damage\n  ok event noFaultCancellation\n  ok event noShow\n  ok event buyerUseBreach/damage\n  ok bike noFaultCancellation\n  ok bike noShow\n  ok bike buyerUseBreach/damage\n  ok car noFaultCancellation\n  ok car noShow\n  ok car buyerUseBreach/damage\n  ok robot noFaultCancellation\n  ok robot noShow\n  ok robot buyerUseBreach/damage\n"
+    },
+    {
+      "suite": "pricing",
+      "script": "unit_pricing.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 38.531,
+      "output": "unit-pricing\n  ok unit info\n  ok unit A price\n  ok unit info\n  ok unit B price\n  ok provider\n  ok listing\n  ok unit price zero\n"
+    },
+    {
+      "suite": "guestbook",
+      "script": "unit_guestbook.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 3.297,
+      "output": "unit-guestbook\n  ledger rho:id:9p33y4kcyfctji5pemij14jyeimeior6n1375ms5w1pximxeweyy\n  ok ledger read-back\n  ok stable guest ledger\n"
+    },
+    {
+      "suite": "booking",
+      "script": "unit_booking.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 26.76,
+      "output": "unit-booking\n  height 1268\n  ok provider register\n  provider rho:id:d413gea99f15ceu9wnio9zqm1bwcxpcre5pza6zp5z5gps7dk5io\n  ok listing create\n  listing rho:id:8xhpdimk9y7fr1k96twr99au7wyo35qgig9ntyx79ycy7ntfftay\n  ok unit A create\n  ok unit B create\n  ok listing activate\n  ok guest ledger\n  funded 1002\n  balance 1002\n  ok book\n  booking rho:id:1khdkdbnh6jw81hjh33tbrefkiqqd19a6f698715qm6woge3rjuo\n  ok booking info\n  ok bond info\n  ok escrow debit 80\n  ok cancel\n  ok bond after cancel\n  ok refund and bond closed\n  ok rent, windows and bond total\n"
+    },
+    {
+      "suite": "pause",
+      "script": "unit_pause.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 18.263,
+      "output": "unit-pause\n  ok global pause\n  ok isPaused after pause\n  ok global resume\n  ok isPaused after resume\n  ok provider register\n  ok provider pause\n  ok provider inactive\n  ok provider resume\n  ok provider active\n  ok listing create\n  ok unit create\n  ok listing activate\n  ok unit pause\n  ok unit info\n  ok unit status\n  ok unit resume\n  ok unit resumed\n"
+    },
+    {
+      "suite": "allocator",
+      "script": "unit_allocator.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 164.299,
+      "output": "unit-allocator\n  atomic multi-slot acquire\n  ok multi book\n  ok all-or-none hold, confirm and release\n  one held slot refuses the whole set\n  ok first hold\n  ok partial request\n  ok refused request left the free slot untouched\n  token-only confirm and release\n  ok wrong token confirm\n  ok wrong token release\n  ok holder confirm\n  ok holder release\n  ok wrong token moved nothing\n  pause gates\n  ok listing pause\n  ok book paused listing\n  ok listing resume\n  ok unit pause\n  ok book paused unit\n  ok unit resume\n  ok listing and unit pause refuse acquisition\n  expiry takeover\n  ok takeover book\n  ok old expired\n  ok old terminal\n  ok expired hold reclaimed without a double booking\n  no slot capability leak\n  ok info has no slots\n  ok unit has no slots\n  ok projections and probe redact the token\n  same-slot contention\n  ok first booking\n  ok second booking\n  ok one owner and one refusal\n"
+    },
+    {
+      "suite": "admin",
+      "script": "unit_admin.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 58.711,
+      "output": "unit-admin\n  ok admin keys\n  ok ShareAdmin below threshold\n  ok ShareAdmin replay\n  booking domain booking:11112mRBwp3PPqaL7EidamWriPSmWm6ptbocNMVdxzs2nmhAdcWHUP:admin-payload:1793810545575-2723797:book:1\n  ok rotation\n  ok rotation admins\n  ok rotation threshold\n  ok rotation nonce\n  ok booking replay\n  ok booking below threshold\n  ok invalid threshold\n  ok wrong payload\n  ok old-key signatures\n  ok new-key rotation\n  ok restored admins\n  ok listing rotation\n  ok listing admins\n  ok listing threshold\n  ok listing restore\n  ok provider rotation\n  ok provider admins\n  ok provider threshold\n  ok provider restore\n"
+    },
+    {
+      "suite": "events",
+      "script": "unit_events.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 6.158,
+      "output": "unit-events\n  ok redeem -> closeEvent\n  ok transfer ticket\n  ok ticket moved to the new holder\n"
+    },
+    {
+      "suite": "generality",
+      "script": "unit_generality.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 12.418,
+      "output": "unit-generality\n  ok lodging terms\n  ok event terms\n  ok bike terms\n  ok car terms\n  ok robot terms\n  ok unknown kind\n"
+    },
+    {
+      "suite": "provider",
+      "script": "unit_provider.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 12.253,
+      "output": "unit-provider\n  ok register\n  ok owner id\n  ok register is stable\n  ok info\n  ok status\n  ok update profile\n  ok profile read\n  ok pause\n  ok inactive\n  ok resume\n  ok active again\n  ok check owner\n"
+    },
+    {
+      "suite": "listing",
+      "script": "unit_listing.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 14.881,
+      "output": "unit-listing\n  ok provider register\n  ok listing create\n  ok listing info\n  ok draft status\n  ok ensure unit\n  ok unit registered\n  ok activate\n  ok active status\n  ok pause listing\n  ok paused status\n  ok resume listing\n  ok resumed status\n  ok read terms\n  ok price\n  ok delist\n  ok delisted status\n"
+    },
+    {
+      "suite": "behavior",
+      "script": "unit_behavior.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 9.38,
+      "output": "unit-lifecycle\n  bond rho:id:wzadh5rd8999qmwd1i5n1ugo1o7pa7hdxg7kynar75gpgmkmnj9y\n  ok dispute from requested\n  ok arbitrate outside dispute\n  ok dispute -> resolveDispute\n  ok evidence read\n  ok evidence anchors\nunit-behavior: transcript matches\n"
+    },
+    {
+      "suite": "conservation",
+      "script": "unit_conservation.py",
+      "status": "pass",
+      "returncode": 0,
+      "seconds": 248.278,
+      "output": "unit-conservation (per-scenario closed set)\nconservation\n  scenario cancel_full_refund\n  ok conserved 2400\n  ok bond paid once and closed\n  ok slot free\n  ok no pending ledger op\n  ok guest delta +0\n  ok provider delta +0\n  ok platform delta +0\n  scenario reject_full_refund\n  ok conserved 2400\n  ok bond paid once and closed\n  ok slot free\n  ok no pending ledger op\n  ok guest delta +0\n  ok provider delta +0\n  ok platform delta +0\n  scenario expire_full_refund\n  ok conserved 2400\n  ok bond paid once and closed\n  ok slot free\n  ok no pending ledger op\n  ok guest delta +0\n  ok provider delta +0\n  ok platform delta +0\n  scenario settle_with_fee\n  ok conserved 2400\n  ok bond paid once and closed\n  ok slot booked\n  ok no pending ledger op\n  ok guest delta -100\n  ok provider delta +99\n  ok platform delta +1\n  scenario no_show\n  ok conserved 2400\n  ok bond paid once and closed\n  ok slot free\n  ok no pending ledger op\n  ok guest delta -100\n  ok provider delta +99\n  ok platform delta +1\n  scenario deposit_split\n  ok conserved 2400\n  ok bond paid once and closed\n  ok slot booked\n  ok no pending ledger op\n  ok guest delta -120\n  ok provider delta +119\n  ok platform delta +1\n  scenario replay\n  ok conserved 2400\n  ok bond paid once and closed\n  ok slot free\n  ok no pending ledger op\n  ok same op replayed without value movement\n  ok new op after terminal\n  ok refusal left balances unchanged\nconservation: all scenarios conserved\n"
+    }
+  ]
+}

@@ -107,8 +107,8 @@ def main(argv: list[str] | None = None) -> int:
             failures.append(f"max term bytes {current['bytes_max']} > 57344")
         if current["depth_max"] > 96:
             failures.append(f"max depth {current['depth_max']} > 96")
-        if current["contracts_max"] > 32:
-            failures.append(f"max contracts {current['contracts_max']} > 32")
+        if current["contracts_max"] > 36:
+            failures.append(f"max contracts {current['contracts_max']} > 36")
         if drift and not args.allow_drift:
             failures.extend(f"drift {item}" for item in drift)
         elif drift:

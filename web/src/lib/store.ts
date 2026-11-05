@@ -5,12 +5,11 @@ import { create } from "zustand";
 import { initWasm, Rshare } from "../wasm";
 import * as db from "./db";
 import { message } from "./format";
-import { networkForNode } from "./network";
+import { configuredNode, networkForNode } from "./network";
 
 const NODE_KEY = "rshare.node";
 const MANIFEST_KEY = "rshare.manifest";
-const DEFAULT_NODE =
-  (import.meta.env.VITE_RSHARE_NODE as string | undefined) ?? "http://localhost:40403";
+const DEFAULT_NODE = configuredNode() ?? "http://localhost:40403";
 
 export type WalletStatus = "idle" | "loading" | "locked" | "unlocked" | "error";
 

@@ -1,17 +1,13 @@
 // Exact formatting for protocol base units. No JS floating-point arithmetic on money.
 
+import type { Amount } from "./types";
+
 const BASE = 100_000_000n;
 
 /** Format a base-unit count as a decimal amount. */
-export function formatUnits(value: string | number | bigint, trim = true): string {
-  let raw: bigint;
-  try {
-    raw = BigInt(value);
-  } catch {
-    return String(value);
-  }
-  const negative = raw < 0n;
-  const magnitude = negative ? -raw : raw;
+export function formatUnits(value: Amount, trim = true): string {
+  const negative = value < 0n;
+  const magnitude = negative ? -value : value;
   const whole = magnitude / BASE;
   const fraction = (magnitude % BASE).toString().padStart(8, "0");
   const text = trim ? fraction.replace(/0+$/, "") : fraction;
@@ -32,6 +28,30 @@ export function parseUnits(value: string): bigint {
   return negative ? -scaled : scaled;
 }
 
+/**
+ * Serialize a value for the WASM boundary. A bigint outside the safe range is refused,
+ * not rounded; safe bigints become JSON integers for the Rust `i64` parameters.
+ */
+export function jsonValue(value: unknown): string {
+  return JSON.stringify(value, (_key, item: unknown) => {
+    if (typeof item === "bigint") {
+      if (
+        item > BigInt(Number.MAX_SAFE_INTEGER) ||
+        item < BigInt(Number.MIN_SAFE_INTEGER)
+      ) {
+        throw new Error("integer argument is outside Number.MAX_SAFE_INTEGER");
+      }
+      return Number(item);
+    }
+    return item;
+  });
+}
+
+/** Serialize WASM argument lists. */
+export function jsonArgs(values: unknown[]): string {
+  return jsonValue(values);
+}
+
 /** A short middle-truncated identifier. */
 export function shortId(value: string, keep = 8): string {
   if (value.length <= keep * 2 + 1) return value;
@@ -44,8 +64,8 @@ export function bps(value: number): string {
 }
 
 /** Format a block height as a decimal string. */
-export function height(value: number | string): string {
-  return String(value);
+export function height(value: bigint): string {
+  return value.toString();
 }
 
 export function message(error: unknown): string {

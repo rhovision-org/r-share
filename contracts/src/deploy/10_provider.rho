@@ -8,6 +8,7 @@ new
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
   adminGuard, adminsText, authIsOwner, authOwner, providerAdmins, providerPayments,
+  adminsValid,
   resolveComponent
 in {
   // @@INLINE:lib/Resolve.rho@@
@@ -15,6 +16,7 @@ in {
 
   // @@INLINE:lib/AdminGuard.rho@@
   // @@INLINE:lib/AdminsText.rho@@
+  // @@INLINE:lib/AdminSet.rho@@
 
 
   contract providerPayments(ret) = {
@@ -226,12 +228,29 @@ in {
                                                 providerState!(st) | ret2!((false, "unknown listing"))
                                               }
                                               entry => {
-                                                providerState!(
-                                                  st.set("listings",
-                                                         st.get("listings").set(
-                                                           listingId,
-                                                           entry.set("status", "removed")))) |
-                                                ret2!((true, Nil))
+                                                new lCh, delCh in {
+                                                  rl!(entry.get("uri"), *lCh) |
+                                                  for (Listing <- lCh) {
+                                                    Listing!("delist", *dId2,
+                                                             *delCh) |
+                                                    for (@r <- delCh) {
+                                                      match r {
+                                                        (true, Nil) => {
+                                                          providerState!(
+                                                            st.set("listings",
+                                                              st.get("listings").set(
+                                                                listingId,
+                                                                entry.set("status", "removed")))) |
+                                                          ret2!((true, Nil))
+                                                        }
+                                                        _ => {
+                                                          providerState!(st) |
+                                                          ret2!(r)
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
                                               }
                                             }
                                           }
@@ -298,16 +317,23 @@ in {
                                                 providerState!(st) |
                                                 ret2!((false, "below threshold"))
                                               } else {
-                                                if (newThreshold < 1
-                                                    || newThreshold > newAdmins.length()) {
-                                                  providerState!(st) |
-                                                  ret2!((false, "threshold"))
-                                                } else {
-                                                  providerState!(
-                                                    st.set("admins", newAdmins)
-                                                      .set("threshold", newThreshold)
-                                                      .set("nonce", nonce)) |
-                                                  ret2!((true, Nil))
+                                                new avCh in {
+                                                  adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
+                                                  for (@av <- avCh) {
+                                                    match av {
+                                                      (true, Nil) => {
+                                                        providerState!(
+                                                          st.set("admins", newAdmins)
+                                                            .set("threshold", newThreshold)
+                                                            .set("nonce", nonce)) |
+                                                        ret2!((true, Nil))
+                                                      }
+                                                      _ => {
+                                                        providerState!(st) |
+                                                        ret2!(av)
+                                                      }
+                                                    }
+                                                  }
                                                 }
                                               }
                                             }

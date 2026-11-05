@@ -8,6 +8,7 @@ new
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
   ListingFactory, adminGuard, adminsText, authIsOwner, authOwner, listingNow, listingResolve,
+  listingPaused, listingProviderActive, adminsValid,
   resolveComponent
 in {
   // @@INLINE:lib/Resolve.rho@@
@@ -15,6 +16,7 @@ in {
 
   // @@INLINE:lib/AdminGuard.rho@@
   // @@INLINE:lib/AdminsText.rho@@
+  // @@INLINE:lib/AdminSet.rho@@
 
 
   contract listingResolve(@key, ret) = {
@@ -33,18 +35,44 @@ in {
     }
   } |
 
+  contract listingPaused(ret) = {
+    new aCh in {
+      listingResolve!("component:admin", *aCh) |
+      for (@a <- aCh) {
+        match a {
+          (true, ShareAdmin) => { @ShareAdmin!("isPaused", *ret) }
+          _ => { ret!((false, "paused")) }
+        }
+      }
+    }
+  } |
+
+  contract listingProviderActive(@providerUri, ret) = {
+    if (providerUri == Nil) {
+      ret!((true, true))
+    } else {
+      new cCh in {
+        rl!(providerUri, *cCh) |
+        for (Provider <- cCh) { Provider!("isActive", *ret) }
+      }
+    }
+  } |
+
   contract ListingFactory(@"create", dId, @providerUri, @listingId, @kind,
                           @terms, ret) = {
-    new pCh, oCh, ownCh in {
+    new pCh, oCh, ownCh, actCh in {
       rl!(providerUri, *pCh) |
       for (ProviderContract <- pCh) {
         ProviderContract!("checkOwner", *dId, *oCh) |
         ProviderContract!("owner", *ownCh) |
-        for (@v <- oCh; @own <- ownCh) {
+        ProviderContract!("isActive", *actCh) |
+        for (@v <- oCh; @own <- ownCh; @act <- actCh) {
           match v {
             (true, Nil) => {
               match own {
                 (true, providerId) => {
+                  match act {
+                    (true, true) => {
                   new termsCh, admCh in {
                     listingResolve!("component:terms", *termsCh) |
                     listingResolve!("component:admin", *admCh) |
@@ -110,6 +138,10 @@ in {
                       }
                     }
                   }
+                    }
+                    (true, false) => { ret!((false, "provider paused")) }
+                    _ => { ret!(act) }
+                  }
                 }
                 _ => { ret!(own) }
               }
@@ -135,7 +167,8 @@ in {
                 allocApplySlots, allocApplyUnits, allocConfirmSlots,
                 allocConfirmCheck, allocConfirmApplySlots, allocConfirmApply,
                 allocReleaseSlots, allocReleaseApply, allocProbeSlots,
-                allocProbe in {
+                allocProbe, allocVerifyHoldSlots, allocVerifyHold,
+                listingAcquireGate, unitPolicyOk in {
               listingState!({
                 "listingId": listingId,
                 "providerUri": providerUri,
@@ -568,6 +601,135 @@ in {
                 }
               } |
 
+              contract allocVerifyHoldSlots(@stateMap, @ids, @j,
+                                            @bookingId, releaseToken, ret2) = {
+                if (j >= ids.length()) {
+                  ret2!((true, Nil))
+                } else {
+                  match stateMap.get(ids.nth(j)) {
+                    Nil => { ret2!((false, "unknown slot")) }
+                    state => {
+                      match state {
+                        ["held", b, _, t] => {
+                          if (b == bookingId && t == *releaseToken) {
+                            allocVerifyHoldSlots!(stateMap, ids, j + 1,
+                              bookingId, *releaseToken, *ret2)
+                          } else {
+                            ret2!((false, "slot lost"))
+                          }
+                        }
+                        ["booked", b, t] => {
+                          if (b == bookingId && t == *releaseToken) {
+                            allocVerifyHoldSlots!(stateMap, ids, j + 1,
+                              bookingId, *releaseToken, *ret2)
+                          } else {
+                            ret2!((false, "slot lost"))
+                          }
+                        }
+                        _ => { ret2!((false, "slot lost")) }
+                      }
+                    }
+                  }
+                }
+              } |
+
+              contract allocVerifyHold(@st, @unitSlots, @i, @bookingId,
+                                       releaseToken, ret2) = {
+                if (i >= unitSlots.length()) {
+                  ret2!((true, Nil))
+                } else {
+                  match unitSlots.nth(i) {
+                    ur => {
+                      match st.get("slots").get(ur.get("unitId")) {
+                        Nil => { ret2!((false, "unknown unit")) }
+                        stateMap => {
+                          new ch in {
+                            allocVerifyHoldSlots!(stateMap, ur.get("slots"), 0,
+                                                  bookingId, *releaseToken, *ch) |
+                            for (@r <- ch) {
+                              match r {
+                                (true, Nil) => {
+                                  allocVerifyHold!(st, unitSlots, i + 1,
+                                    bookingId, *releaseToken, *ret2)
+                                }
+                                _ => { ret2!(r) }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              } |
+
+              contract unitPolicyOk(@slots, @i, @terms, @kind, ret2) = {
+                if (i >= slots.length()) {
+                  ret2!((true, Nil))
+                } else {
+                  match slots.nth(i) {
+                    s => {
+                      match s.get("startHeight") {
+                        Nil => { ret2!((false, "refund window")) }
+                        start => {
+                          match s.get("endHeight") {
+                            Nil => { ret2!((false, "refund window")) }
+                            end => {
+                              if (start < terms.get("fullRefundBeforeBlocks")
+                                  || start < terms.get("partialRefundBeforeBlocks")
+                                  || (kind == "event"
+                                      && terms.get("eventTransferCutoffBlocks")
+                                         > end - start)) {
+                                ret2!((false, "refund window"))
+                              } else {
+                                unitPolicyOk!(slots, i + 1, terms, kind, *ret2)
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              } |
+
+              contract listingAcquireGate(@st, @unitSlots, ret2) = {
+                if (st.get("status") != "active") {
+                  ret2!((false, "not active"))
+                } else {
+                  if (unitSlots.length() > st.get("terms").get("maxUnits")) {
+                    ret2!((false, "units"))
+                  } else {
+                    new pCh, prCh in {
+                      listingPaused!(*pCh) |
+                      listingProviderActive!(st.get("providerUri"), *prCh) |
+                      for (@p <- pCh; @pr <- prCh) {
+                        match p {
+                          (true, true) => { ret2!((false, "paused")) }
+                          (true, false) => {
+                            match pr {
+                              (true, true) => { ret2!((true, Nil)) }
+                              (true, false) => {
+                                ret2!((false, "provider paused"))
+                              }
+                              _ => { ret2!(pr) }
+                            }
+                          }
+                          _ => { ret2!(p) }
+                        }
+                      }
+                    }
+                  }
+                }
+              } |
+
+              contract ListingContract(@"verifyHold", @bookingId, @unitSlots,
+                                       releaseToken, ret2) = {
+                for (@st <<- listingState) {
+                  allocVerifyHold!(st, unitSlots, 0, bookingId, *releaseToken, *ret2)
+                }
+              } |
+
               contract ListingContract(@"info", ret2) = {
                 for (@st <<- listingState) {
                   ret2!((true, st.delete("slots")))
@@ -649,58 +811,61 @@ in {
                     match n {
                       (true, now) => {
                         for (@st <- listingState) {
-                          if (st.get("status") != "active") {
-                            listingState!(st) | ret2!((false, "not active"))
-                          } else {
-                            if (unitSlots.length() > st.get("terms").get("maxUnits")) {
-                              listingState!(st) | ret2!((false, "units"))
-                            } else {
-                              new ufCh in {
-                                listingResolve!("component:unit-factory", *ufCh) |
-                                for (@uf <- ufCh) {
-                                  match uf {
-                                    (true, UnitFactory) => {
-                                      new cCh in {
-                                        allocCheckUnits!(UnitFactory, st,
-                                          unitSlots, 0, now, untilHeight,
-                                          st.get("terms").get("maxLeadBlocks"),
-                                          st.get("terms").get("maxSlotBlocks"),
-                                          {}, {"count": 0, "rent": 0,
-                                               "minStart": now + st.get("terms").get("maxLeadBlocks") + 1,
-                                               "maxEnd": 0,
-                                               "checkIn": now + st.get("terms").get("maxLeadBlocks") + 1,
-                                               "checkOut": 0}, *cCh) |
-                                        for (@c <- cCh) {
-                                          match c {
-                                            (true, summary) => {
-                                              if (summary.get("count") < st.get("terms").get("minSlots")
-                                                  || summary.get("count") > st.get("terms").get("maxSlots")) {
-                                                listingState!(st) |
-                                                ret2!((false, "slots"))
-                                              } else {
-                                                new apCh in {
-                                                  allocApplyUnits!(st, unitSlots, 0,
-                                                    bookingId, untilHeight,
-                                                    *releaseToken, *apCh) |
-                                                  for (@st2 <- apCh) {
-                                                    listingState!(st2) |
-                                                    ret2!((true, summary))
+                          new gateCh in {
+                            listingAcquireGate!(st, unitSlots, *gateCh) |
+                            for (@g <- gateCh) {
+                              match g {
+                                (true, Nil) => {
+                                  new ufCh in {
+                                    listingResolve!("component:unit-factory", *ufCh) |
+                                    for (@uf <- ufCh) {
+                                      match uf {
+                                        (true, UnitFactory) => {
+                                          new cCh in {
+                                            allocCheckUnits!(UnitFactory, st,
+                                              unitSlots, 0, now, untilHeight,
+                                              st.get("terms").get("maxLeadBlocks"),
+                                              st.get("terms").get("maxSlotBlocks"),
+                                              {}, {"count": 0, "rent": 0,
+                                                   "minStart": now + st.get("terms").get("maxLeadBlocks") + 1,
+                                                   "maxEnd": 0,
+                                                   "checkIn": now + st.get("terms").get("maxLeadBlocks") + 1,
+                                                   "checkOut": 0}, *cCh) |
+                                            for (@c <- cCh) {
+                                              match c {
+                                                (true, summary) => {
+                                                  if (summary.get("count") < st.get("terms").get("minSlots")
+                                                      || summary.get("count") > st.get("terms").get("maxSlots")) {
+                                                    listingState!(st) |
+                                                    ret2!((false, "slots"))
+                                                  } else {
+                                                    new apCh in {
+                                                      allocApplyUnits!(st, unitSlots, 0,
+                                                        bookingId, untilHeight,
+                                                        *releaseToken, *apCh) |
+                                                      for (@st2 <- apCh) {
+                                                        listingState!(st2) |
+                                                        ret2!((true, summary))
+                                                      }
+                                                    }
                                                   }
+                                                }
+                                                _ => {
+                                                  listingState!(st) | ret2!(c)
                                                 }
                                               }
                                             }
-                                            _ => {
-                                              listingState!(st) | ret2!(c)
-                                            }
                                           }
+                                        }
+                                        _ => {
+                                          listingState!(st) |
+                                          ret2!((false, "unit factory unavailable"))
                                         }
                                       }
                                     }
-                                    _ => {
-                                      listingState!(st) | ret2!((false, "unit factory unavailable"))
-                                    }
                                   }
                                 }
+                                _ => { listingState!(st) | ret2!(g) }
                               }
                             }
                           }
@@ -766,32 +931,64 @@ in {
                 }
               } |
               contract ListingContract(@"reset", dId2, @unitId, @slotId, ret2) = {
-                for (@st <- listingState) {
-                  new o2 in {
-                    authIsOwner!(*dId2, st.get("providerId"), *o2) |
-                    for (@v2 <- o2) {
-                      match v2 {
-                        (true, Nil) => {
-                          new sCh in {
-                            allocSlot!(st, unitId, slotId, *sCh) |
-                            for (@s <- sCh) {
-                              match s {
-                                (true, _) => {
-                                  new setCh in {
-                                    allocSetSlot!(st, unitId, slotId,
-                                                  ["free", 0], *setCh) |
-                                    for (@st2 <- setCh) {
-                                      listingState!(st2) | ret2!((true, Nil))
+                new nCh in {
+                  listingNow!(*nCh) |
+                  for (@n <- nCh) {
+                    match n {
+                      (true, now) => {
+                        for (@st <- listingState) {
+                          new o2 in {
+                            authIsOwner!(*dId2, st.get("providerId"), *o2) |
+                            for (@v2 <- o2) {
+                              match v2 {
+                                (true, Nil) => {
+                                  new sCh in {
+                                    allocSlot!(st, unitId, slotId, *sCh) |
+                                    for (@s <- sCh) {
+                                      match s {
+                                        (true, slot) => {
+                                          match slot {
+                                            ["free", _] => {
+                                              listingState!(st) |
+                                              ret2!((true, Nil))
+                                            }
+                                            ["held", _, until, _] => {
+                                              if (now >= until) {
+                                                new setCh in {
+                                                  allocSetSlot!(st, unitId, slotId,
+                                                                ["free", 0], *setCh) |
+                                                  for (@st2 <- setCh) {
+                                                    listingState!(st2) |
+                                                    ret2!((true, Nil))
+                                                  }
+                                                }
+                                              } else {
+                                                listingState!(st) |
+                                                ret2!((false, "slot held"))
+                                              }
+                                            }
+                                            ["booked", _, _] => {
+                                              listingState!(st) |
+                                              ret2!((false, "slot booked"))
+                                            }
+                                            _ => {
+                                              listingState!(st) |
+                                              ret2!((false, "unknown slot"))
+                                            }
+                                          }
+                                        }
+                                        _ => { listingState!(st) | ret2!(s) }
+                                      }
                                     }
                                   }
                                 }
-                                _ => { listingState!(st) | ret2!(s) }
+                                _ => { listingState!(st) | ret2!(v2) }
                               }
                             }
                           }
                         }
-                        _ => { listingState!(st) | ret2!(v2) }
                       }
+                      _ => { ret2!((false, "clock")) }
                     }
                   }
                 }
@@ -868,6 +1065,12 @@ in {
                           for (@v2 <- o2) {
                             match v2 {
                               (true, Nil) => {
+                                new polCh in {
+                                  unitPolicyOk!(slots, 0, st.get("terms"),
+                                                st.get("kind"), *polCh) |
+                                  for (@policyOk <- polCh) {
+                                    match policyOk {
+                                      (true, Nil) => {
                                 new ufCh in {
                                   listingResolve!("component:unit-factory", *ufCh) |
                                   for (@uf <- ufCh) {
@@ -923,6 +1126,14 @@ in {
                                     }
                                   }
                                 }
+                                    }
+                                    _ => {
+                                      listingState!(st) |
+                                      ret2!((false, "refund window"))
+                                    }
+                                    }
+                                  }
+                                }
                               }
                               _ => { listingState!(st) | ret2!(v2) }
                             }
@@ -966,8 +1177,12 @@ in {
                     for (@v2 <- o2) {
                       match v2 {
                         (true, Nil) => {
-                          listingState!(st.set("status", "paused")) |
-                          ret2!((true, Nil))
+                          if (st.get("status") == "delisted") {
+                            listingState!(st) | ret2!((false, "delisted"))
+                          } else {
+                            listingState!(st.set("status", "paused")) |
+                            ret2!((true, Nil))
+                          }
                         }
                         _ => { listingState!(st) | ret2!(v2) }
                       }
@@ -982,8 +1197,12 @@ in {
                     for (@v2 <- o2) {
                       match v2 {
                         (true, Nil) => {
-                          listingState!(st.set("status", "active")) |
-                          ret2!((true, Nil))
+                          if (st.get("status") == "delisted") {
+                            listingState!(st) | ret2!((false, "delisted"))
+                          } else {
+                            listingState!(st.set("status", "active")) |
+                            ret2!((true, Nil))
+                          }
                         }
                         _ => { listingState!(st) | ret2!(v2) }
                       }
@@ -1025,9 +1244,13 @@ in {
                             } else {
                               match action {
                                 "pause" => {
-                                  listingState!(st.set("status", "paused")
-                                                  .set("nonce", nonce)) |
-                                  ret2!((true, Nil))
+                                  if (st.get("status") == "delisted") {
+                                    listingState!(st) | ret2!((false, "delisted"))
+                                  } else {
+                                    listingState!(st.set("status", "paused")
+                                                    .set("nonce", nonce)) |
+                                    ret2!((true, Nil))
+                                  }
                                 }
                                 "delist" => {
                                   listingState!(st.set("status", "delisted")
@@ -1067,14 +1290,21 @@ in {
                             if (ok == false) {
                               listingState!(st) | ret2!((false, "below threshold"))
                             } else {
-                              if (newThreshold < 1
-                                  || newThreshold > newAdmins.length()) {
-                                listingState!(st) | ret2!((false, "threshold"))
-                              } else {
-                                listingState!(st.set("admins", newAdmins)
-                                                 .set("threshold", newThreshold)
-                                                 .set("nonce", nonce)) |
-                                ret2!((true, Nil))
+                              new avCh in {
+                                adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
+                                for (@av <- avCh) {
+                                  match av {
+                                    (true, Nil) => {
+                                      listingState!(st.set("admins", newAdmins)
+                                                       .set("threshold", newThreshold)
+                                                       .set("nonce", nonce)) |
+                                      ret2!((true, Nil))
+                                    }
+                                    _ => {
+                                      listingState!(st) | ret2!(av)
+                                    }
+                                  }
+                                }
                               }
                             }
                           }

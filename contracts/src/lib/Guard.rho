@@ -66,7 +66,7 @@ contract guardCount(@digest, @sigs, @i, @count, @keys, @threshold, ret) = {
 } |
 
 contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, ret) = {
-  new hash(`rho:crypto:blake2b256Hash`), strCh, hashCh, okCh in {
+  new hash(`rho:crypto:blake2b256Hash`), strCh, hashCh, okCh, avCh in {
     guardArgsToString!(args, *strCh) |
     for (@argStr <- strCh) {
       match "rshare:admin:v1|" ++ domain ++ "|" ++ nonce.toString()
@@ -74,8 +74,16 @@ contract verifyAdmin(@domain, @nonce, @action, @args, @sigs, @keys, @threshold, 
         payload => {
           hash!(payload.toUtf8Bytes(), *hashCh) |
           for (@digest <- hashCh) {
-            guardCount!(digest, sigs, 0, 0, keys, threshold, *okCh) |
-            for (@ok <- okCh) { ret!((true, ok)) }
+            adminsValid!(keys, threshold, 0, {}, *avCh) |
+            for (@av <- avCh) {
+              match av {
+                (true, Nil) => {
+                  guardCount!(digest, sigs, 0, 0, keys, threshold, *okCh) |
+                  for (@ok <- okCh) { ret!((true, ok)) }
+                }
+                _ => { ret!((true, false)) }
+              }
+            }
           }
         }
       }

@@ -1,0 +1,1756 @@
+{
+  "schema": "rshare.traceability/v1",
+  "summary": {
+    "arms": 119,
+    "arms_with_flow_rule": 31,
+    "arms_with_hazard": 30,
+    "hazards": 40,
+    "findings": 21,
+    "improvements": 22,
+    "tests": 17
+  },
+  "arms": [
+    {
+      "component": "AdminGuard",
+      "arm": "verify",
+      "source": "contracts/src/deploy/02_admin.rho:51",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-006",
+        "HZ-024"
+      ],
+      "findings": [
+        "F-006"
+      ],
+      "improvements": [
+        "R-006",
+        "R-016"
+      ],
+      "tests": [
+        "T-ADMIN-KEYS"
+      ]
+    },
+    {
+      "component": "Bond",
+      "arm": "balance",
+      "source": "contracts/src/deploy/15_bond.rho:135",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Bond",
+      "arm": "info",
+      "source": "contracts/src/deploy/15_bond.rho:139",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Bond",
+      "arm": "pay",
+      "source": "contracts/src/deploy/15_bond.rho:102",
+      "visibility": "public",
+      "flow_rule": "D-pay",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Bond.pay_once",
+      "hazards": [
+        "HZ-016",
+        "HZ-029"
+      ],
+      "findings": [
+        "F-016"
+      ],
+      "improvements": [
+        "R-013"
+      ],
+      "tests": [
+        "T-BOND-REFUSAL",
+        "T-FAULT"
+      ]
+    },
+    {
+      "component": "BondFactory",
+      "arm": "create",
+      "source": "contracts/src/deploy/15_bond.rho:97",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BondFactory",
+      "arm": "createFromAccount",
+      "source": "contracts/src/deploy/15_bond.rho:148",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-027"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "accept",
+      "source": "contracts/src/deploy/22_booking_contract.rho:338",
+      "visibility": "public",
+      "flow_rule": "B-accept",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Booking.accept_only_from_requested",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "arbitrate",
+      "source": "contracts/src/deploy/22_booking_contract.rho:842",
+      "visibility": "public",
+      "flow_rule": "B-arbitrate",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Booking.resolve_step_only_from_disputed",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "cancel",
+      "source": "contracts/src/deploy/22_booking_contract.rho:438",
+      "visibility": "public",
+      "flow_rule": "B-cancel",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Booking.cancel_only_from_open",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "cancelByProvider",
+      "source": "contracts/src/deploy/22_booking_contract.rho:479",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "checkIn",
+      "source": "contracts/src/deploy/22_booking_contract.rho:518",
+      "visibility": "public",
+      "flow_rule": "B-checkin",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Booking.checkIn_only_from_confirmed",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "checkOut",
+      "source": "contracts/src/deploy/22_booking_contract.rho:566",
+      "visibility": "public",
+      "flow_rule": "B-checkout",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Booking.checkOut_only_from_checkedIn",
+      "hazards": [
+        "HZ-039"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "claimDeposit",
+      "source": "contracts/src/deploy/22_booking_contract.rho:698",
+      "visibility": "public",
+      "flow_rule": "B-claim",
+      "flow_status": "owed",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "claimNoShow",
+      "source": "contracts/src/deploy/22_booking_contract.rho:965",
+      "visibility": "public",
+      "flow_rule": "B-nosHow",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Booking.noShowClaim_only_from_confirmed",
+      "hazards": [
+        "HZ-004"
+      ],
+      "findings": [
+        "F-004"
+      ],
+      "improvements": [
+        "R-004",
+        "R-019"
+      ],
+      "tests": [
+        "T-ADVERSARIAL"
+      ]
+    },
+    {
+      "component": "BookingContract",
+      "arm": "closeEvent",
+      "source": "contracts/src/deploy/22_booking_contract.rho:1181",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "dispute",
+      "source": "contracts/src/deploy/22_booking_contract.rho:793",
+      "visibility": "public",
+      "flow_rule": "B-dispute",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Booking.dispute_only_from_checked",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "disputeNoShow",
+      "source": "contracts/src/deploy/22_booking_contract.rho:1024",
+      "visibility": "public",
+      "flow_rule": "B-dispute-noShow",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Booking.noShowDispute_only_from_claimed",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "expire",
+      "source": "contracts/src/deploy/22_booking_contract.rho:923",
+      "visibility": "public",
+      "flow_rule": "B-expire",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Booking.expire_only_from_requested",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "guestCheckOut",
+      "source": "contracts/src/deploy/22_booking_contract.rho:609",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "info",
+      "source": "contracts/src/deploy/22_booking_contract.rho:325",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "ops",
+      "source": "contracts/src/deploy/22_booking_contract.rho:334",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "redeem",
+      "source": "contracts/src/deploy/22_booking_contract.rho:1129",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-032"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "reject",
+      "source": "contracts/src/deploy/22_booking_contract.rho:399",
+      "visibility": "public",
+      "flow_rule": "B-reject",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Booking.reject_only_from_requested",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "resolveDeposit",
+      "source": "contracts/src/deploy/22_booking_contract.rho:751",
+      "visibility": "public",
+      "flow_rule": "B-resolve-deposit",
+      "flow_status": "owed",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "resolveDispute",
+      "source": "contracts/src/deploy/22_booking_contract.rho:889",
+      "visibility": "public",
+      "flow_rule": "B-resolve-dispute",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Booking.resolve_step_only_from_disputed",
+      "hazards": [
+        "HZ-030"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "resolveNoShow",
+      "source": "contracts/src/deploy/22_booking_contract.rho:1071",
+      "visibility": "public",
+      "flow_rule": "B-resolve-noShow",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Booking.noShowResolves",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "setAdmins",
+      "source": "contracts/src/deploy/22_booking_contract.rho:1275",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "settle",
+      "source": "contracts/src/deploy/22_booking_contract.rho:656",
+      "visibility": "public",
+      "flow_rule": "B-settle",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Booking.settle_from_checked_or_redeemed_or_disputed",
+      "hazards": [
+        "HZ-005",
+        "HZ-040"
+      ],
+      "findings": [
+        "F-005",
+        "F-021"
+      ],
+      "improvements": [
+        "R-005",
+        "R-022"
+      ],
+      "tests": [
+        "T-EVENT",
+        "T-SETTLE"
+      ]
+    },
+    {
+      "component": "BookingContract",
+      "arm": "status",
+      "source": "contracts/src/deploy/22_booking_contract.rho:328",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "ticket",
+      "source": "contracts/src/deploy/22_booking_contract.rho:331",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "transferTicket",
+      "source": "contracts/src/deploy/22_booking_contract.rho:1220",
+      "visibility": "public",
+      "flow_rule": "B-ticket",
+      "flow_status": "owed",
+      "lean_target": null,
+      "hazards": [
+        "HZ-031"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContractFactory",
+      "arm": "create",
+      "source": "contracts/src/deploy/22_booking_contract.rho:38",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-009"
+      ],
+      "findings": [
+        "F-009"
+      ],
+      "improvements": [
+        "R-008"
+      ],
+      "tests": [
+        "T-ADVERSARIAL"
+      ]
+    },
+    {
+      "component": "Clock",
+      "arm": "now",
+      "source": "contracts/src/deploy/01_kernel.rho:12",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Codec",
+      "arm": "adminPayload",
+      "source": "contracts/src/deploy/01_kernel.rho:53",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-025"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Codec",
+      "arm": "canonical",
+      "source": "contracts/src/deploy/01_kernel.rho:73",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Codec",
+      "arm": "hash",
+      "source": "contracts/src/deploy/01_kernel.rho:88",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "GuestBook",
+      "arm": "getOrCreate",
+      "source": "contracts/src/deploy/20_booking.rho:20",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-002"
+      ],
+      "findings": [
+        "F-002"
+      ],
+      "improvements": [
+        "R-002"
+      ],
+      "tests": [
+        "T-CELL"
+      ]
+    },
+    {
+      "component": "GuestBook",
+      "arm": "ledger",
+      "source": "contracts/src/deploy/20_booking.rho:72",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "GuestBook",
+      "arm": "ledgers",
+      "source": "contracts/src/deploy/20_booking.rho:81",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "GuestLedger",
+      "arm": "book",
+      "source": "contracts/src/deploy/23_guest_ledger.rho:417",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-003",
+        "HZ-033"
+      ],
+      "findings": [
+        "F-003"
+      ],
+      "improvements": [
+        "R-003",
+        "R-009"
+      ],
+      "tests": [
+        "T-FAULT",
+        "T-PAUSE"
+      ]
+    },
+    {
+      "component": "GuestLedger",
+      "arm": "ops",
+      "source": "contracts/src/deploy/23_guest_ledger.rho:402",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "GuestLedgerFactory",
+      "arm": "create",
+      "source": "contracts/src/deploy/23_guest_ledger.rho:381",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "acquire",
+      "source": "contracts/src/deploy/14_listing_contract.rho:776",
+      "visibility": "public",
+      "flow_rule": "L-acquire",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Allocator.acquire_no_double_owner",
+      "hazards": [
+        "HZ-007",
+        "HZ-011"
+      ],
+      "findings": [
+        "F-007",
+        "F-011"
+      ],
+      "improvements": [
+        "R-009",
+        "R-015"
+      ],
+      "tests": [
+        "T-CELL",
+        "T-FORMAL",
+        "T-PAUSE"
+      ]
+    },
+    {
+      "component": "ListingContract",
+      "arm": "activate",
+      "source": "contracts/src/deploy/14_listing_contract.rho:1105",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "adminPause",
+      "source": "contracts/src/deploy/14_listing_contract.rho:1177",
+      "visibility": "public",
+      "flow_rule": "L-admin",
+      "flow_status": "owed",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "confirm",
+      "source": "contracts/src/deploy/14_listing_contract.rho:849",
+      "visibility": "public",
+      "flow_rule": "L-confirm",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Allocator.confirm_requires_token",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "delist",
+      "source": "contracts/src/deploy/14_listing_contract.rho:1161",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "ensureUnit",
+      "source": "contracts/src/deploy/14_listing_contract.rho:1022",
+      "visibility": "public",
+      "flow_rule": "L-ensure-unit",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Allocator.ensureUnit_head",
+      "hazards": [
+        "HZ-015"
+      ],
+      "findings": [
+        "F-015"
+      ],
+      "improvements": [
+        "R-012"
+      ],
+      "tests": [
+        "T-BOUNDARIES"
+      ]
+    },
+    {
+      "component": "ListingContract",
+      "arm": "info",
+      "source": "contracts/src/deploy/14_listing_contract.rho:703",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-034"
+      ],
+      "findings": [],
+      "improvements": [
+        "R-002"
+      ],
+      "tests": [
+        "T-CELL"
+      ]
+    },
+    {
+      "component": "ListingContract",
+      "arm": "isActive",
+      "source": "contracts/src/deploy/14_listing_contract.rho:711",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "pause",
+      "source": "contracts/src/deploy/14_listing_contract.rho:1129",
+      "visibility": "public",
+      "flow_rule": "L-status",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Allocator.setStatus_applied",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "pauseUnit",
+      "source": "contracts/src/deploy/14_listing_contract.rho:966",
+      "visibility": "public",
+      "flow_rule": "L-pause-unit",
+      "flow_status": "owed",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "probe",
+      "source": "contracts/src/deploy/14_listing_contract.rho:898",
+      "visibility": "public",
+      "flow_rule": "L-probe",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Allocator.publicView_no_token",
+      "hazards": [
+        "HZ-035"
+      ],
+      "findings": [],
+      "improvements": [
+        "R-017"
+      ],
+      "tests": [
+        "T-CELL"
+      ]
+    },
+    {
+      "component": "ListingContract",
+      "arm": "quote",
+      "source": "contracts/src/deploy/14_listing_contract.rho:735",
+      "visibility": "public",
+      "flow_rule": "L-quote",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Allocator.checkAcquire_free",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "release",
+      "source": "contracts/src/deploy/14_listing_contract.rho:881",
+      "visibility": "public",
+      "flow_rule": "L-release",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Allocator.release_clears_token",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "reset",
+      "source": "contracts/src/deploy/14_listing_contract.rho:903",
+      "visibility": "public",
+      "flow_rule": "L-reset",
+      "flow_status": "owed",
+      "lean_target": null,
+      "hazards": [
+        "HZ-001"
+      ],
+      "findings": [
+        "F-001"
+      ],
+      "improvements": [
+        "R-001"
+      ],
+      "tests": [
+        "T-RESET"
+      ]
+    },
+    {
+      "component": "ListingContract",
+      "arm": "resume",
+      "source": "contracts/src/deploy/14_listing_contract.rho:1145",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-014"
+      ],
+      "findings": [
+        "F-014"
+      ],
+      "improvements": [
+        "R-011"
+      ],
+      "tests": [
+        "T-ADVERSARIAL",
+        "T-PROVIDER-INDEX"
+      ]
+    },
+    {
+      "component": "ListingContract",
+      "arm": "resumeUnit",
+      "source": "contracts/src/deploy/14_listing_contract.rho:994",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "schedule",
+      "source": "contracts/src/deploy/14_listing_contract.rho:722",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "setAdmins",
+      "source": "contracts/src/deploy/14_listing_contract.rho:1218",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "terms",
+      "source": "contracts/src/deploy/14_listing_contract.rho:708",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "unit",
+      "source": "contracts/src/deploy/14_listing_contract.rho:719",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "units",
+      "source": "contracts/src/deploy/14_listing_contract.rho:716",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContract",
+      "arm": "verifyHold",
+      "source": "contracts/src/deploy/14_listing_contract.rho:696",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingContractFactory",
+      "arm": "create",
+      "source": "contracts/src/deploy/14_listing_contract.rho:156",
+      "visibility": "internal",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ListingFactory",
+      "arm": "create",
+      "source": "contracts/src/deploy/14_listing_contract.rho:61",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-037"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Payments",
+      "arm": "accountOf",
+      "source": "contracts/src/deploy/40_payments.rho:86",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Payments",
+      "arm": "admin",
+      "source": "contracts/src/deploy/40_payments.rho:140",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Payments",
+      "arm": "depositFacet",
+      "source": "contracts/src/deploy/40_payments.rho:105",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-028"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Payments",
+      "arm": "ensureAccount",
+      "source": "contracts/src/deploy/40_payments.rho:66",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Payments",
+      "arm": "health",
+      "source": "contracts/src/deploy/40_payments.rho:40",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Payments",
+      "arm": "issuer",
+      "source": "contracts/src/deploy/40_payments.rho:117",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-008",
+        "HZ-026"
+      ],
+      "findings": [
+        "F-008"
+      ],
+      "improvements": [
+        "R-007"
+      ],
+      "tests": [
+        "T-ASSET"
+      ]
+    },
+    {
+      "component": "Payments",
+      "arm": "platformOwner",
+      "source": "contracts/src/deploy/40_payments.rho:136",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderBook",
+      "arm": "providerOf",
+      "source": "contracts/src/deploy/10_provider.rho:361",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderBook",
+      "arm": "register",
+      "source": "contracts/src/deploy/10_provider.rho:47",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "adminPause",
+      "source": "contracts/src/deploy/10_provider.rho:246",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "checkOwner",
+      "source": "contracts/src/deploy/10_provider.rho:119",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "info",
+      "source": "contracts/src/deploy/10_provider.rho:82",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "isActive",
+      "source": "contracts/src/deploy/10_provider.rho:85",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "listing",
+      "source": "contracts/src/deploy/10_provider.rho:105",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "listings",
+      "source": "contracts/src/deploy/10_provider.rho:100",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "owner",
+      "source": "contracts/src/deploy/10_provider.rho:90",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "pause",
+      "source": "contracts/src/deploy/10_provider.rho:145",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "profile",
+      "source": "contracts/src/deploy/10_provider.rho:95",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "registerListing",
+      "source": "contracts/src/deploy/10_provider.rho:185",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "removeListing",
+      "source": "contracts/src/deploy/10_provider.rho:218",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-012"
+      ],
+      "findings": [
+        "F-012"
+      ],
+      "improvements": [
+        "R-014"
+      ],
+      "tests": [
+        "T-LISTING",
+        "T-PROVIDER-INDEX"
+      ]
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "resume",
+      "source": "contracts/src/deploy/10_provider.rho:165",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "setAdmins",
+      "source": "contracts/src/deploy/10_provider.rho:280",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "updateProfile",
+      "source": "contracts/src/deploy/10_provider.rho:122",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Remedy",
+      "arm": "cancel",
+      "source": "contracts/src/deploy/04_remedy.rho:18",
+      "visibility": "public",
+      "flow_rule": "R-cancel",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Remedy.fullRefund_conserves",
+      "hazards": [
+        "HZ-013"
+      ],
+      "findings": [
+        "F-013"
+      ],
+      "improvements": [
+        "R-010"
+      ],
+      "tests": [
+        "T-BOUNDARIES",
+        "T-CUTOFFS"
+      ]
+    },
+    {
+      "component": "Remedy",
+      "arm": "depositSplit",
+      "source": "contracts/src/deploy/04_remedy.rho:99",
+      "visibility": "public",
+      "flow_rule": "R-split",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Remedy.depositSplit_conserves",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Remedy",
+      "arm": "fee",
+      "source": "contracts/src/deploy/04_remedy.rho:14",
+      "visibility": "public",
+      "flow_rule": "R-fee",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Remedy.fee_le_rent",
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Remedy",
+      "arm": "noShow",
+      "source": "contracts/src/deploy/04_remedy.rho:83",
+      "visibility": "public",
+      "flow_rule": "R-noshow",
+      "flow_status": "proved-model",
+      "lean_target": "RShare.Remedy.noShow_conserves",
+      "hazards": [
+        "HZ-017"
+      ],
+      "findings": [
+        "F-017"
+      ],
+      "improvements": [
+        "R-020"
+      ],
+      "tests": [
+        "T-COVERAGE",
+        "T-FORMAL"
+      ]
+    },
+    {
+      "component": "ShareAdmin",
+      "arm": "admin",
+      "source": "contracts/src/deploy/02_admin.rho:106",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-036"
+      ],
+      "findings": [],
+      "improvements": [
+        "R-006",
+        "R-016"
+      ],
+      "tests": [
+        "T-ADMIN-KEYS"
+      ]
+    },
+    {
+      "component": "ShareAdmin",
+      "arm": "isPaused",
+      "source": "contracts/src/deploy/02_admin.rho:100",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ShareAdmin",
+      "arm": "keys",
+      "source": "contracts/src/deploy/02_admin.rho:94",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ShareRoot",
+      "arm": "admin",
+      "source": "contracts/src/deploy/00_root.rho:221",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ShareRoot",
+      "arm": "deprecate",
+      "source": "contracts/src/deploy/00_root.rho:161",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ShareRoot",
+      "arm": "freeze",
+      "source": "contracts/src/deploy/00_root.rho:195",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-023"
+      ],
+      "findings": [],
+      "improvements": [
+        "R-016"
+      ],
+      "tests": [
+        "T-ADMIN-KEYS"
+      ]
+    },
+    {
+      "component": "ShareRoot",
+      "arm": "get",
+      "source": "contracts/src/deploy/00_root.rho:31",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ShareRoot",
+      "arm": "keys",
+      "source": "contracts/src/deploy/00_root.rho:40",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ShareRoot",
+      "arm": "register",
+      "source": "contracts/src/deploy/00_root.rho:83",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-021"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ShareRoot",
+      "arm": "resolve",
+      "source": "contracts/src/deploy/00_root.rho:16",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ShareRoot",
+      "arm": "resolveMany",
+      "source": "contracts/src/deploy/00_root.rho:74",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ShareRoot",
+      "arm": "rotate",
+      "source": "contracts/src/deploy/00_root.rho:118",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-022"
+      ],
+      "findings": [],
+      "improvements": [
+        "R-016",
+        "R-018"
+      ],
+      "tests": [
+        "T-ADMIN-KEYS",
+        "T-MIGRATION"
+      ]
+    },
+    {
+      "component": "Terms",
+      "arm": "booking",
+      "source": "contracts/src/deploy/03_terms.rho:147",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Terms",
+      "arm": "fields",
+      "source": "contracts/src/deploy/03_terms.rho:18",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Terms",
+      "arm": "hash",
+      "source": "contracts/src/deploy/03_terms.rho:130",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Terms",
+      "arm": "remedy",
+      "source": "contracts/src/deploy/03_terms.rho:164",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Terms",
+      "arm": "scheduleOk",
+      "source": "contracts/src/deploy/03_terms.rho:237",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Terms",
+      "arm": "validate",
+      "source": "contracts/src/deploy/03_terms.rho:73",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Terms",
+      "arm": "values",
+      "source": "contracts/src/deploy/03_terms.rho:27",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "UnitFactory",
+      "arm": "schedule",
+      "source": "contracts/src/deploy/13_unit.rho:56",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "UnitFactory",
+      "arm": "slotScan",
+      "source": "contracts/src/deploy/13_unit.rho:60",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-038"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "UnitFactory",
+      "arm": "validate",
+      "source": "contracts/src/deploy/13_unit.rho:34",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Verifier",
+      "arm": "hash",
+      "source": "contracts/src/deploy/01_kernel.rho:19",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Verifier",
+      "arm": "sigOk",
+      "source": "contracts/src/deploy/01_kernel.rho:26",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ShareAdmin",
+      "arm": "nonce",
+      "source": "contracts/src/deploy/02_admin.rho:106",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ShareRoot",
+      "arm": "nonce",
+      "source": "contracts/src/deploy/00_root.rho:46",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    }
+  ]
+}

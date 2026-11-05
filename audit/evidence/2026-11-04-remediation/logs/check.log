@@ -1,0 +1,103 @@
+.venv/bin/python tools/build_contracts.py --check
+build-contracts: 13 term(s) up to date
+.venv/bin/python tools/measure_contracts.py --check
+measure: 13 term(s) within budget
+.venv/bin/python tools/metrics.py --compare contracts/metrics-baseline.json
+metric                         baseline    current    delta
+deploy_terms                         13         13       +0
+bytes_total                      115690     115690       +0
+bytes_max                         26975      26975       +0
+depth_max                            39         39       +0
+contracts_max                        34         34       +0
+components                           21         21       +0
+state_cell_types                     10         10       +0
+arm_declarations                    117        117       +0
+root_resolve_sites                    4          4       +0
+registry_lookup_sites                33         33       +0
+registry_insert_sites                21         21       +0
+.venv/bin/python tools/check_arch.py
+check-arch: 21 component(s), 10 state cell(s), acyclic
+.venv/bin/python tools/check_captures.py
+check-captures: no forbidden bundles
+.venv/bin/python tools/check_select.py
+check-select: no select
+.venv/bin/python tools/check_placeholders.py
+check-placeholders: all placeholders are install-rendered
+.venv/bin/python tools/check_money.py
+check-money: integer money only
+.venv/bin/python tools/check_coverage.py
+check-coverage: 30 cells — passing 20, mapping 0, design 10, not implemented 0
+.venv/bin/python tools/check_remedy_table.py
+check-remedy: 6 classes, bounds and vectors present
+.venv/bin/python tools/check_no_oracle.py
+check-no-oracle: 16 keys, 3 trust assumptions, no attestor
+.venv/bin/python tools/check_suites.py
+check-suites: 24 suites mapped and documented
+.venv/bin/python tools/check_allocator.py
+check-allocator: no slot contracts or raw state replies
+.venv/bin/python tools/pareto.py --check
+pareto: scorecard current
+.venv/bin/python harness/install.py --dry-run
+install: rendered 00_root.rho (9063 bytes minified)
+install: rendered 01_kernel.rho (2591 bytes minified)
+install: rendered 02_admin.rho (4989 bytes minified)
+install: rendered 40_payments.rho (5066 bytes minified)
+install: rendered 03_terms.rho (6852 bytes minified)
+install: rendered 04_remedy.rho (2978 bytes minified)
+install: rendered 10_provider.rho (9326 bytes minified)
+install: rendered 13_unit.rho (4050 bytes minified)
+install: rendered 14_listing_contract.rho (26925 bytes minified)
+install: rendered 15_bond.rho (4359 bytes minified)
+install: rendered 22_booking_contract.rho (26978 bytes minified)
+install: rendered 23_guest_ledger.rho (10960 bytes minified)
+install: rendered 20_booking.rho (2496 bytes minified)
+tools/parse_check.sh contracts/build/*.rho .devnet/rendered/*.rho
+OK   /home/patrick/RShare/contracts/build/00_root.rho
+OK   /home/patrick/RShare/contracts/build/01_kernel.rho
+OK   /home/patrick/RShare/contracts/build/02_admin.rho
+OK   /home/patrick/RShare/contracts/build/03_terms.rho
+OK   /home/patrick/RShare/contracts/build/04_remedy.rho
+OK   /home/patrick/RShare/contracts/build/10_provider.rho
+OK   /home/patrick/RShare/contracts/build/13_unit.rho
+OK   /home/patrick/RShare/contracts/build/14_listing_contract.rho
+OK   /home/patrick/RShare/contracts/build/15_bond.rho
+OK   /home/patrick/RShare/contracts/build/20_booking.rho
+OK   /home/patrick/RShare/contracts/build/22_booking_contract.rho
+OK   /home/patrick/RShare/contracts/build/23_guest_ledger.rho
+OK   /home/patrick/RShare/contracts/build/40_payments.rho
+OK   /home/patrick/RShare/.devnet/rendered/00_root.rho
+OK   /home/patrick/RShare/.devnet/rendered/01_kernel.rho
+OK   /home/patrick/RShare/.devnet/rendered/02_admin.rho
+OK   /home/patrick/RShare/.devnet/rendered/03_terms.rho
+OK   /home/patrick/RShare/.devnet/rendered/04_remedy.rho
+OK   /home/patrick/RShare/.devnet/rendered/10_provider.rho
+OK   /home/patrick/RShare/.devnet/rendered/13_unit.rho
+OK   /home/patrick/RShare/.devnet/rendered/14_listing_contract.rho
+OK   /home/patrick/RShare/.devnet/rendered/15_bond.rho
+OK   /home/patrick/RShare/.devnet/rendered/20_booking.rho
+OK   /home/patrick/RShare/.devnet/rendered/22_booking_contract.rho
+OK   /home/patrick/RShare/.devnet/rendered/23_guest_ledger.rho
+OK   /home/patrick/RShare/.devnet/rendered/40_payments.rho
+.venv/bin/python tools/check_docs.py
+README.md:111: warning: plain http link
+docs/guides/use-the-web-app.md:22: warning: plain http link
+docs/reference/client-architecture.md:45: warning: plain http link
+check-docs: 64 chapters, 274 relative links, 1 includes, 21 components, 16 component keys
+mdbook build
+ INFO Book building has started
+ INFO Running the html backend
+ INFO HTML book written to `/home/patrick/RShare/docs/book`
+.venv/bin/python tools/check_lean.py
+lean: built, 76 axiom audits, 72 source theorems, no sorry/admit/axiom/native_decide
+.venv/bin/python tools/check_vectors.py
+vectors: 21 vectors current
+.venv/bin/python tools/check_flows.py
+check-flows: 35 rules, 31 arms, 13 core arms proved-model, 0 proof-quality warnings
+.venv/bin/python tools/check_flows.py --strict
+check-flows: 35 rules, 31 arms, 13 core arms proved-model, 0 proof-quality warnings
+.venv/bin/python tools/check_audit.py
+check-audit: 21 findings, 40 hazards, 72 theorems, 22 improvements, 14 tests, 117 arms
+.venv/bin/python tools/check_arm_inventory.py
+check-arm-inventory: 117 source arms, 117 registered, 31 flow rules
+.venv/bin/python tools/audit_trace.py --check
+audit-trace: 117 arms current

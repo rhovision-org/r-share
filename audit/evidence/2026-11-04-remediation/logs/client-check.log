@@ -1,0 +1,152 @@
+cargo fmt --all -- --check
+cargo clippy -p rshare-core -p rshare-keystore -p rshare-sdk -p rshare-cli --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.24s
+cargo test -p rshare-core -p rshare-keystore -p rshare-sdk
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.19s
+     Running unittests src/lib.rs (target/debug/deps/rshare_core-bb5fb702edcc2194)
+
+running 21 tests
+test component::tests::short_names_are_accepted ... ok
+test manifest::tests::components_are_optional ... ok
+test component::tests::every_key_round_trips ... ok
+test manifest::tests::refuses_a_non_registry_root ... ok
+test manifest::tests::parses_the_installer_shape ... ok
+test op::tests::refuses_unrepresentable_ids ... ok
+test op::tests::validates_and_composes ... ok
+test render::tests::refuses_floats_and_injection ... ok
+test render::tests::refuses_oversized_terms ... ok
+test render::tests::renders_data_deterministically ... ok
+test slots::tests::refuses_unrepresentable_ids_and_bad_windows ... ok
+test slots::tests::renders_the_expected_booking_shape ... ok
+test slots::tests::validates_the_unit_cap_and_duplicates ... ok
+test status::tests::statuses_round_trip_and_preserve_unknown_values ... ok
+test status::tests::terminality_matches_the_lifecycle ... ok
+test terms::tests::canonical_values_start_with_kind_and_are_twenty_long ... ok
+test terms::tests::defaults_are_valid_and_render_the_full_map ... ok
+test terms::tests::parses_the_fixture_shape_and_keeps_kind_separate ... ok
+test terms::tests::rejects_bad_ranges_and_cross_field_rules ... ok
+test terms::tests::refuses_a_mismatched_kind_in_the_map ... ok
+test terms::tests::rejects_missing_and_non_integer_fields ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/rshare_keystore-7dd37f8aff52dd6c)
+
+running 3 tests
+test tests::refuses_bad_lengths_and_versions ... ok
+test tests::refuses_a_tampered_mac ... ok
+test tests::round_trips_and_rejects_the_wrong_password ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.99s
+
+     Running tests/rcash_fixture.rs (target/debug/deps/rcash_fixture-48cf9a05218b80fd)
+
+running 3 tests
+test a_wrong_password_is_refused ... ok
+test the_fixture_address_matches_the_derived_public_key ... ok
+test decrypts_a_document_written_by_rcash ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.31s
+
+     Running unittests src/lib.rs (target/debug/deps/rshare_sdk-6834ecda30fe70cf)
+
+running 3 tests
+test wire::tests::explore_terms_reply_on_the_first_private_name ... ok
+test wire::tests::resolve_many_renders_every_key ... ok
+test wire::tests::signed_terms_reply_on_the_deploy_id ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/resolve.rs (target/debug/deps/resolve-283edb9a7ee72f81)
+
+running 3 tests
+test surfaces_a_designed_refusal ... ok
+test resolves_a_component_and_reads_the_block_height ... ok
+test resolve_many_decodes_the_map_and_caches ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests rshare_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests rshare_keystore
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests rshare_sdk
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+cargo check -p rshare-wasm --target wasm32-unknown-unknown
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.18s
+cd web && npm ci --no-audit --no-fund
+npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+
+added 195 packages in 3s
+cd web && npm run test:wasm
+
+> rshare-web@0.1.0 test:wasm
+> node scripts/build-wasm.mjs && node tests/wasm-smoke.mjs
+
+[INFO]: 🎯  Checking for the Wasm target...
+[INFO]: 🌀  Compiling to Wasm...
+    Finished `release` profile [optimized] target(s) in 0.14s
+[INFO]: ⬇️  Installing wasm-bindgen...
+[INFO]: License key is set in Cargo.toml but no LICENSE file(s) were found; Please add the LICENSE file(s) to your project directory
+[INFO]: ✨   Done in 0.79s
+[INFO]: 📦   Your wasm pkg is ready to publish at /home/patrick/RShare/web/src/wasm/pkg.
+WASM SMOKE: PASS
+cd web && npm run typecheck && npm test && npm run build
+
+> rshare-web@0.1.0 typecheck
+> tsc --noEmit
+
+
+> rshare-web@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /home/patrick/RShare/web
+
+ ✓ src/lib/format.test.ts (3 tests) 5ms
+ ✓ src/lib/termsDefaults.test.ts (2 tests) 5ms
+
+ Test Files  2 passed (2)
+      Tests  5 passed (5)
+   Start at  19:17:05
+   Duration  956ms (transform 108ms, setup 145ms, collect 80ms, tests 10ms, environment 920ms, prepare 230ms)
+
+
+> rshare-web@0.1.0 prebuild
+> node scripts/build-wasm.mjs && node scripts/sync-manifest.mjs
+
+[INFO]: 🎯  Checking for the Wasm target...
+[INFO]: 🌀  Compiling to Wasm...
+    Finished `release` profile [optimized] target(s) in 0.13s
+[INFO]: ⬇️  Installing wasm-bindgen...
+[INFO]: License key is set in Cargo.toml but no LICENSE file(s) were found; Please add the LICENSE file(s) to your project directory
+[INFO]: ✨   Done in 0.84s
+[INFO]: 📦   Your wasm pkg is ready to publish at /home/patrick/RShare/web/src/wasm/pkg.
+sync-manifest: copied deployments/devnet.json
+sync-manifest: copied deployments/catalogue.json
+
+> rshare-web@0.1.0 build
+> tsc --noEmit && vite build
+
+vite v6.4.5 building for production...
+transforming...
+✓ 109 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                               0.41 kB │ gzip:   0.28 kB
+dist/assets/rshare_wasm_bg-DRO86ND1.wasm  1,851.55 kB │ gzip: 491.16 kB
+dist/assets/index-C9qlGvon.css                6.19 kB │ gzip:   1.90 kB
+dist/assets/index-BHL7G1hH.js               305.23 kB │ gzip:  91.85 kB
+✓ built in 1.70s

@@ -14,11 +14,12 @@ namespace Booking
 
 inductive BStatus where
   | requested | confirmed | checkedIn | checkedOut | redeemed
-  | settled | rejected | cancelled | expired | noShow | disputed
+  | settled | rejected | cancelled | expired
+  | noShow | noShowClaimed | noShowDisputed | noShowRefunded | disputed
   deriving DecidableEq, Repr
 
 def terminal : BStatus → Bool
-  | .settled | .rejected | .cancelled | .expired | .noShow => true
+  | .settled | .rejected | .cancelled | .expired | .noShow | .noShowRefunded => true
   | _ => false
 
 inductive Step : BStatus → BStatus → Prop where
@@ -28,7 +29,10 @@ inductive Step : BStatus → BStatus → Prop where
   | cancelConfirmed : Step .confirmed .cancelled
   | expire : Step .requested .expired
   | checkIn : Step .confirmed .checkedIn
-  | noShow : Step .confirmed .noShow
+  | claimNoShow : Step .confirmed .noShowClaimed
+  | disputeNoShow : Step .noShowClaimed .noShowDisputed
+  | resolveNoShowProvider : Step .noShowClaimed .noShow
+  | resolveNoShowGuest : Step .noShowDisputed .noShowRefunded
   | checkOut : Step .checkedIn .checkedOut
   | checkOutRedeemed : Step .redeemed .settled
   | disputeIn : Step .checkedIn .disputed
@@ -77,6 +81,54 @@ theorem expire_only_from_requested {s : BStatus} (h : Step s .expired) :
   cases h with
   | expire => rfl
 
+theorem reject_only_from_requested {s : BStatus} (h : Step s .rejected) :
+    s = .requested := by
+  cases h with
+  | reject => rfl
+
+theorem checkIn_only_from_confirmed {s : BStatus} (h : Step s .checkedIn) :
+    s = .confirmed := by
+  cases h with
+  | checkIn => rfl
+
+theorem checkOut_only_from_checkedIn {s : BStatus} (h : Step s .checkedOut) :
+    s = .checkedIn := by
+  cases h with
+  | checkOut => rfl
+
+/-- The generic settled node has three sources in the graph; the `settle` arm is one. -/
+theorem settle_from_checked_or_redeemed_or_disputed {s : BStatus}
+    (h : Step s .settled) :
+    s = .checkedOut ∨ s = .redeemed ∨ s = .disputed := by
+  cases h with
+  | settle => exact Or.inl rfl
+  | checkOutRedeemed => exact Or.inr (Or.inl rfl)
+  | resolve => exact Or.inr (Or.inr rfl)
+
+theorem resolve_step_only_from_disputed {t : BStatus} (h : Step .disputed t) :
+    t = .settled := by
+  cases h with
+  | resolve => rfl
+
+theorem noShowClaim_only_from_confirmed {s : BStatus}
+    (h : Step s .noShowClaimed) : s = .confirmed := by
+  cases h with
+  | claimNoShow => rfl
+
+theorem noShowDispute_only_from_claimed {s : BStatus}
+    (h : Step s .noShowDisputed) : s = .noShowClaimed := by
+  cases h with
+  | disputeNoShow => rfl
+
+theorem noShowResolves (s : BStatus)
+    (h : s = .noShowClaimed ∨ s = .noShowDisputed) :
+    ∃ t, terminal t = true ∧ Reach s t := by
+  rcases h with rfl | rfl
+  · exact ⟨.noShow, by rfl,
+      Reach.step Step.resolveNoShowProvider (Reach.refl .noShow)⟩
+  · exact ⟨.noShowRefunded, by rfl,
+      Reach.step Step.resolveNoShowGuest (Reach.refl .noShowRefunded)⟩
+
 /-- Every booking state is terminal or has a path to a terminal state. -/
 theorem progress (s : BStatus) :
     terminal s = true ∨ ∃ t, terminal t = true ∧ Reach s t := by
@@ -86,6 +138,13 @@ theorem progress (s : BStatus) :
   | cancelled => exact Or.inl rfl
   | expired => exact Or.inl rfl
   | noShow => exact Or.inl rfl
+  | noShowRefunded => exact Or.inl rfl
+  | noShowClaimed =>
+      exact Or.inr ⟨.noShow, by rfl,
+        Reach.step Step.resolveNoShowProvider (Reach.refl .noShow)⟩
+  | noShowDisputed =>
+      exact Or.inr ⟨.noShowRefunded, by rfl,
+        Reach.step Step.resolveNoShowGuest (Reach.refl .noShowRefunded)⟩
   | requested =>
       exact Or.inr ⟨.cancelled, by rfl,
         Reach.step Step.cancelRequested (Reach.refl .cancelled)⟩

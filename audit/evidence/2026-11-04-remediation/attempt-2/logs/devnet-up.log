@@ -1,0 +1,16 @@
+==> devnet: 1 validator(s) + 0 observer(s)
+    autopropose=true propose-on-deploy=true admin=true deployer=true
+==> starting rshare-audit-bootstrap (validator 0, standalone, creates genesis)
+47f3cc182e112f0201120b051d4f72e9d8e273b1102cb99bead6d6d295f189a6
+==> bootstrap id: 7f80b7cc5cc49076532ede3fb1ca53c3c4638a54
+==> rshare-audit-bootstrap has committed genesis (latestBlockNumber=1); starting the network
+==> rshare-audit-bootstrap serving /api/v1/status (latestBlockNumber=1)
+
+==> up. Interact with:
+    tools/devnet.sh deploy <contract.rho>   # signed deploy to rshare-audit-bootstrap
+    tools/devnet.sh query <name>            # listen for data at a public name
+    tools/devnet.sh propose [--admin]       # force a block
+    tools/devnet.sh status | logs <node> | diagnose | down
+
+    Public HTTP API:  http://localhost:41403/api/v1/status
+    Admin HTTP API:   http://localhost:41405/api/v1/propose

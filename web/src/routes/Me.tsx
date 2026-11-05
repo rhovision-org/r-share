@@ -3,10 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Empty, ErrorBox, Field, Money, Panel, Uri } from "../components/ui";
 import { parseRead, parseWrite } from "../lib/api";
+import { accountView, fundResult, guestLedgerView, guestOps, nativeBalance } from "../lib/decoders";
 import { parseUnits } from "../lib/format";
 import { record } from "../lib/journal";
 import { useWallet } from "../lib/store";
-import type { AccountView, GuestOp } from "../lib/types";
 
 export default function Me() {
   const { client, address, status } = useWallet();
@@ -19,31 +19,43 @@ export default function Me() {
   const native = useQuery({
     queryKey: ["native", address],
     enabled: Boolean(client && address),
-    queryFn: async () =>
-      parseRead<number>(await client!.native_rev_balance(address!)).data,
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      if (!address) throw new Error("no address");
+      return parseRead(await client.native_rev_balance(address), nativeBalance).data;
+    },
     refetchInterval: 10_000,
   });
 
   const account = useQuery({
     queryKey: ["account", address],
     enabled: Boolean(client && address && status === "unlocked"),
-    queryFn: async () => parseRead<AccountView>(await client!.account_balance()).data,
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      return parseRead(await client.account_balance(), accountView).data;
+    },
     retry: 1,
   });
 
   const ledger = useQuery({
     queryKey: ["guest-ledger", address],
     enabled: Boolean(client && address && status === "unlocked"),
-    queryFn: async () =>
-      parseRead<{ uri: string; guestId: string }>(await client!.guest_ledger()).data,
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      return parseRead(await client.guest_ledger(), guestLedgerView).data;
+    },
     retry: 1,
   });
 
   const ops = useQuery({
     queryKey: ["guest-ops", ledger.data?.uri],
     enabled: Boolean(client && ledger.data),
-    queryFn: async () =>
-      parseRead<Record<string, GuestOp>>(await client!.guest_ops(ledger.data!.uri)).data,
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      const ledgerUri = ledger.data?.uri;
+      if (!ledgerUri) throw new Error("no guest ledger");
+      return parseRead(await client.guest_ops(ledgerUri), guestOps).data;
+    },
     staleTime: 10_000,
   });
 
@@ -118,7 +130,7 @@ export default function Me() {
               onClick={() =>
                 run(async () => {
                   const raw = await client.fund_account_rev(parseUnits(amount));
-                  const write = parseWrite<{ revBaseUnits: number }>(raw);
+                  const write = parseWrite(raw, fundResult);
                   await record({
                     id: `fund-${Date.now()}`,
                     kind: "wallet.fund",

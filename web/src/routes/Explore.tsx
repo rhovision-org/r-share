@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { Empty, ErrorBox, Panel, StatusPill, Uri } from "../components/ui";
+import { chainInt, parseJson } from "../lib/decode";
+import { catalogue as catalogueDecoder, nodeStatus } from "../lib/decoders";
 import { useWallet } from "../lib/store";
-import type { Catalogue } from "../lib/types";
 
 export default function Explore() {
   const { client, node } = useWallet();
@@ -15,7 +16,7 @@ export default function Explore() {
     queryFn: async () => {
       const response = await fetch("/catalogue.json");
       if (!response.ok) return null;
-      return (await response.json()) as Catalogue;
+      return parseJson(await response.text(), catalogueDecoder, "$.catalogue");
     },
     staleTime: 60_000,
   });
@@ -24,8 +25,8 @@ export default function Explore() {
     queryKey: ["chain"],
     queryFn: async () => {
       if (!client) throw new Error("wallet is not initialised");
-      const status = JSON.parse(await client.status()) as Record<string, unknown>;
-      const height = Number(await client.height());
+      const status = parseJson(await client.status(), nodeStatus, "$.status");
+      const height = chainInt(await client.height(), "$.height");
       return { status, height };
     },
     enabled: Boolean(client),
@@ -55,7 +56,13 @@ export default function Explore() {
           </div>
           <div className="stat">
             <span className="muted">Finalized height</span>
-            <strong>{chain.data?.height ?? (chain.error ? "unavailable" : "…")}</strong>
+            <strong>
+              {chain.data
+                ? chain.data.height.toString()
+                : chain.error
+                  ? "unavailable"
+                  : "…"}
+            </strong>
           </div>
         </div>
         <ErrorBox error={chain.error} />

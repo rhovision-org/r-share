@@ -11,10 +11,12 @@
 | Unit | `active`, `paused` |
 | Slot | `free`, `held`, `booked` |
 | Provider | `active`, `paused` |
-| Booking | `requested`, `confirmed`, `checkedIn`, `checkedOut`, `redeemed`, `settled`, `rejected`, `cancelled`, `expired`, `noShow`, `disputed` |
+| Booking | `requested`, `confirmed`, `checkedIn`, `checkedOut`, `redeemed`, `settled`, `rejected`, `cancelled`, `expired`, `noShow`, `noShowClaimed`, `noShowDisputed`, `noShowRefunded`, `disputed` |
 
-Terminal booking values are `settled`, `redeemed`, `rejected`, `cancelled`, `expired` and
-`noShow`. `checkedOut` is not terminal; settlement is still pending.
+Terminal booking values are `settled`, `rejected`, `cancelled`, `expired`, `noShow` and
+`noShowRefunded`. `checkedOut` is not terminal; settlement is still pending. `redeemed`
+is not terminal: an event can still be settled after it ends. `noShowClaimed` and
+`noShowDisputed` are contestable states, not terminal outcomes.
 
 The provider listing index stores a copied `status` that is set at registration. Treat the
 listing's own `status` as authoritative; the client reads it.
@@ -36,9 +38,10 @@ The activity journal uses these values. It is a device log, not a chain index.
 ## Refusal classes
 
 `RefusalCode` groups the published vocabulary: authority (`not owner`), state (`closed`,
-`replay`, `pending`), slots (`slot held`, `slot lost`, `unknown slot`), gates (`not active`,
-`paused`, `provider paused`, `unit paused`), validation (`terms`, `slots`, `schedule`,
-`window`, `price`, `bps`, `amount`, `threshold`), rail (`payments unavailable`, `account`,
+`replay`, `pending`), slots (`slot held`, `slot booked`, `slot lost`, `unknown slot`),
+gates (`not active`, `paused`, `provider paused`, `unit paused`), validation (`terms`,
+`slots`, `schedule`, `window`, `price`, `bps`, `amount`, `threshold`, `duplicate key`,
+`reservation`, `listing`), rail (`payments unavailable`, `account`,
 `bond factory unavailable`), time (`too early`, `too late`) and authority count (`below
 threshold`).
 

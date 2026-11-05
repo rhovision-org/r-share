@@ -1,0 +1,88 @@
+schema: rshare.tests/v1
+total: 17
+tests:
+- id: T-RESET
+  name: reset safety
+  file: harness/unit_reset_safety.py
+  status: passing
+  focus: free, held, booked, expired-held, wrong owner, replay
+- id: T-CELL
+  name: cell fullness
+  file: harness/unit_cell_liveness.py
+  status: passing
+  focus: read every state cell after success/refusal; no empty cell; no pending ledger op
+- id: T-FAULT
+  name: dependency failures
+  file: harness/unit_cell_liveness.py
+  status: passing
+  focus: missing Root/component, missing account, insufficient funds, wrong asset, Bond/GuestLedger/Booking factory failure
+- id: T-ADVERSARIAL
+  name: adversarial paths
+  file: harness/unit_no_show_contest.py
+  status: passing
+  focus: reset abuse, direct factory, pause bypass, resume delisted, early settle, no-show without check-in, duplicate keys, replay, wrong token
+- id: T-EVENT
+  name: event timing
+  file: harness/unit_event_timing.py
+  status: passing
+  focus: redeem before event, settle before event, closeEvent before event, transfer cutoff
+- id: T-ADMIN-KEYS
+  name: admin key sets
+  file: harness/unit_admin_keys.py
+  status: passing
+  focus: duplicate keys, threshold 1/2/>keys, one/two signatures, nonce replay, setAdmins
+- id: T-ASSET
+  name: asset allowlist
+  file: harness/unit_payments.py
+  status: passing
+  focus: allowed and disallowed asset issuer paths
+- id: T-PAUSE
+  name: pause scope
+  file: harness/unit_pause_scope.py
+  status: passing
+  focus: global/provider/listing/unit pause; direct acquire is gated
+- id: T-BOUNDARIES
+  name: boundary matrix
+  file: unit_boundaries
+  status: planned
+  focus: height edges, amounts, feeBps, slots/units, deposit
+- id: T-LISTING
+  name: listing index consistency
+  file: harness/unit_listing.py
+  status: passing
+  focus: create, activate, pause, resume, delist, removeListing
+- id: T-PROVIDER-INDEX
+  name: provider index consistency
+  file: harness/unit_provider_index.py
+  status: passing
+  focus: removeListing delists the listing; delisted is terminal for pause/resume
+- id: T-CUTOFFS
+  name: cutoff arithmetic
+  file: harness/unit_cutoffs.py
+  status: passing
+  focus: refund and transfer windows fit slot start/duration
+- id: T-BOND-REFUSAL
+  name: Bond refusal mapping
+  file: harness/unit_bond_refusals.py
+  status: passing
+  focus: Bond "closed" is a booking refusal, not a deploy error
+- id: T-COVERAGE
+  name: coverage inventory
+  file: tools/check_arm_inventory.py
+  status: planned
+  focus: source arms versus flow manifest and audit register
+- id: T-FORMAL
+  name: formal manifest
+  file: tools/check_flows.py
+  status: passing
+  focus: flow rules and Lean names; strengthened checker is planned
+- id: T-MIGRATION
+  name: migration
+  file: audit/improvement/migration.md
+  status: planned
+  focus: v1/v2 coexistence, schemaVersion/abiVersion, rollback
+- id: T-SETTLE
+  name: terminal settlement release
+  file: harness/unit_settle_release.py
+  status: passing
+  focus: settle, resolveDeposit and closeEvent free the slot; no double release

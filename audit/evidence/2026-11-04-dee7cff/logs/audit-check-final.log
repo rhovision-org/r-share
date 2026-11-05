@@ -1,0 +1,6 @@
+.venv/bin/python tools/check_audit.py
+check-audit: 20 findings, 39 hazards, 66 theorems, 21 improvements, 13 tests, 114 arms
+.venv/bin/python tools/check_arm_inventory.py
+check-arm-inventory: 114 source arms, 114 registered, 29 flow rules
+.venv/bin/python tools/audit_trace.py --check
+audit-trace: 114 arms current

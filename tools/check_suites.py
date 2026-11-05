@@ -18,7 +18,8 @@ sys.path.insert(0, str(ROOT / "harness"))
 import run_suites  # noqa: E402
 
 ALLOWED_TARGETS = {"unit_all"}
-SCAN = [ROOT / "README.md", ROOT / "docs", ROOT / "spec"]
+OPT_IN_PREFIX = "audit_"
+SCAN = [ROOT / "README.md", ROOT / "docs", ROOT / "spec", ROOT / "audit"]
 SUITE_REF = re.compile(r"`(unit[-_][a-z0-9_-]+)`")
 
 
@@ -33,14 +34,15 @@ def check_files() -> list[str]:
     if missing:
         errors.append(f"suite files not mapped in run_suites.SUITES: {missing}")
     keys = set(run_suites.SUITES)
-    missing_default = sorted(keys - set(run_suites.DEFAULT))
+    default_expected = {key for key in keys if not key.startswith(OPT_IN_PREFIX)}
+    missing_default = sorted(default_expected - set(run_suites.DEFAULT))
     if missing_default:
         errors.append(f"suites missing from run_suites.DEFAULT: {missing_default}")
     unknown_default = sorted(set(run_suites.DEFAULT) - keys)
     if unknown_default:
         errors.append(f"DEFAULT names unknown suites: {unknown_default}")
-    if len(run_suites.DEFAULT) != len(keys):
-        errors.append("run_suites.DEFAULT is not the full SUITES map")
+    if len(run_suites.DEFAULT) != len(default_expected):
+        errors.append("run_suites.DEFAULT is not the full non-audit SUITES map")
     return errors
 
 

@@ -13,6 +13,7 @@ zero Bond balance rather than a direct second `pay`.
 from __future__ import annotations
 
 import argparse
+import json
 
 import actors
 from assertions import expect_refusal
@@ -117,8 +118,39 @@ def expect_deltas(before: dict, after: dict, expected: dict) -> None:
 def scenario_cancel() -> None:
     print("  scenario cancel_full_refund")
     market, before, _, uri, info, bond = open_market(
-        "cancel", instant_book=False)
+        "cancel", instant_book=False, slot_lead=300)
     market.cancel(uri, market.op("cancel"))
+    after = finish(market, before, bond, info["rent"], info["deposit"], "free")
+    expect_deltas(before, after, {"guest": 0, "provider": 0, "platform": 0})
+
+
+def debug_cancel() -> None:
+    """Run one cancel with the policy split and balances printed. Not a loop."""
+    print("  scenario cancel_full_refund (instrumented)")
+    market, before, _, uri, info, bond = open_market(
+        "cancel-debug", instant_book=False, slot_lead=300)
+    now = actors.block_height()
+    remedy = actors.resolve("component:remedy")
+    split = actors.invoke(
+        remedy, "cancel",
+        f'"{info["kind"]}", {json.dumps(info["cancellation"])}, {now}, '
+        f'{info["checkInHeight"]}, {info["rent"]}, {info["deposit"]}, "guest"')
+    print(f"  booking rent={info['rent']} deposit={info['deposit']} "
+          f"checkIn={info['checkInHeight']} now={now}")
+    print(f"  remedy split: {split!r}")
+    market.cancel(uri, market.op("cancel"))
+    after = snapshot(market, bond)
+    print(f"  before: {before!r}")
+    print(f"  after:  {after!r}")
+    print(f"  bond:   {actors.bond_info(bond)!r}")
+    print(f"  slot:   {market.slot_state()!r}")
+
+
+def scenario_provider_cancel() -> None:
+    print("  scenario provider_cancel_full_refund")
+    market, before, _, uri, info, bond = open_market(
+        "provider-cancel", instant_book=False, slot_lead=300)
+    market.cancel_by_provider(uri, market.op("cancelByProvider"))
     after = finish(market, before, bond, info["rent"], info["deposit"], "free")
     expect_deltas(before, after, {"guest": 0, "provider": 0, "platform": 0})
 
@@ -150,7 +182,7 @@ def scenario_settle() -> None:
     market.check_in(uri, market.op("checkIn"))
     market.check_out(uri, market.op("checkOut"))
     market.settle(uri, market.op("settle"))
-    after = finish(market, before, bond, info["rent"], info["deposit"], "booked")
+    after = finish(market, before, bond, info["rent"], info["deposit"], "free")
     expect_deltas(before, after,
                   settle_expectations(info["rent"], info["deposit"], 100))
 
@@ -158,9 +190,12 @@ def scenario_settle() -> None:
 def scenario_no_show() -> None:
     print("  scenario no_show")
     market, before, _, uri, info, bond = open_market(
-        "noshow", instant_book=True, feeBps=100)
+        "noshow", instant_book=True, feeBps=100, disputeWindowBlocks=10)
     market.wait_in()
     market.claim_no_show(uri, market.op("claimNoShow"))
+    claim = market.booking_info(uri)
+    actors.wait_height(claim["noShowClaimAtHeight"] + 11)
+    actors.invoke(uri, "resolveNoShow", f'"{market.op("resolveNoShow")}"')
     after = finish(market, before, bond, info["rent"], info["deposit"], "free")
     expect_deltas(before, after,
                   settle_expectations(info["rent"], info["deposit"], 100))
@@ -176,7 +211,7 @@ def scenario_deposit_split() -> None:
     claim = 20
     market.claim_deposit(uri, market.op("claimDeposit"), claim)
     market.resolve_deposit(uri, market.op("resolveDeposit"))
-    after = finish(market, before, bond, info["rent"], info["deposit"], "booked")
+    after = finish(market, before, bond, info["rent"], info["deposit"], "free")
     expect_deltas(before, after,
                   settle_expectations(info["rent"], info["deposit"], 100, claim))
 
@@ -224,6 +259,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--negative-control", action="store_true",
                     help="prove the sum assertion detects untracked escrow")
+    ap.add_argument("--debug-cancel", action="store_true",
+                    help="run one instrumented cancel and print the split")
     args = ap.parse_args(argv)
 
     if not require_devnet("conservation"):
@@ -232,8 +269,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.negative_control:
         negative_control()
         return 0
+    if args.debug_cancel:
+        debug_cancel()
+        return 0
 
     scenario_cancel()
+    scenario_provider_cancel()
     scenario_reject()
     scenario_expire()
     scenario_settle()

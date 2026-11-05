@@ -13,11 +13,21 @@ import {
   Uri,
 } from "../components/ui";
 import { parseRead, parseWrite, shareUrl } from "../lib/api";
-import { parseUnits } from "../lib/format";
+import { array, object, parseJson, string } from "../lib/decode";
+import {
+  emptyData,
+  listingCreation,
+  listingView,
+  providerRegistration,
+  providerView,
+  slotSpecInput,
+  unitCreation,
+} from "../lib/decoders";
+import { jsonValue, parseUnits } from "../lib/format";
 import { record } from "../lib/journal";
 import { useWallet } from "../lib/store";
 import { defaultTerms } from "../lib/termsDefaults";
-import type { ListingView, ProviderView, Terms } from "../lib/types";
+import type { ListingStatus, ListingView, Terms } from "../lib/types";
 
 export default function Provider() {
   const { uri } = useParams<{ uri: string }>();
@@ -44,8 +54,9 @@ export default function Provider() {
     queryFn: async () => {
       if (uri) return uri;
       if (!address) return null;
+      if (!client) throw new Error("wallet is locked");
       try {
-        return parseRead<string>(await client!.provider_of(address)).data;
+        return parseRead(await client.provider_of(address), string).data;
       } catch (caught) {
         if (String(caught).includes("no provider")) return null;
         throw caught;
@@ -59,19 +70,25 @@ export default function Provider() {
   const info = useQuery({
     queryKey: ["provider", providerUri],
     enabled: Boolean(client && providerUri),
-    queryFn: async () =>
-      parseRead<ProviderView>(await client!.provider_info(providerUri!)),
+    queryFn: async () => {
+      if (!client) throw new Error("wallet is locked");
+      if (!providerUri) throw new Error("no provider URI");
+      return parseRead(await client.provider_info(providerUri), providerView);
+    },
     staleTime: 5_000,
   });
 
   const statuses = useQuery({
-    queryKey: ["provider-status", providerUri, info.data?.data.nonce],
+    queryKey: ["provider-status", providerUri, info.data?.data.nonce.toString()],
     enabled: Boolean(client && info.data),
     queryFn: async () => {
-      const entries = Object.values(info.data!.data.listings);
-      const out: Record<string, string> = {};
+      if (!client) throw new Error("wallet is locked");
+      const data = info.data?.data;
+      if (!data) throw new Error("no provider");
+      const entries = Object.values(data.listings);
+      const out: Record<string, ListingStatus> = {};
       for (const entry of entries) {
-        out[entry.uri] = parseRead<ListingView>(await client!.listing_info(entry.uri)).data.status;
+        out[entry.uri] = parseRead(await client.listing_info(entry.uri), listingView).data.status;
       }
       return out;
     },
@@ -103,9 +120,11 @@ export default function Provider() {
 
   const register = () =>
     run(async () => {
-      const profile = JSON.parse(profileJson) as Record<string, unknown>;
-      const write = parseWrite<{ providerUri: string; ownerId: string }>(
-        await client!.register_provider(JSON.stringify(profile)),
+      if (!client) throw new Error("wallet is locked");
+      const profile = parseJson(profileJson, object, "$.profile");
+      const write = parseWrite(
+        await client.register_provider(JSON.stringify(profile)),
+        providerRegistration,
       );
       await record({
         id: `register-${Date.now()}`,
@@ -119,15 +138,17 @@ export default function Provider() {
 
   const createListing = () =>
     run(async () => {
+      if (!client) throw new Error("wallet is locked");
       if (!providerUri) throw new Error("Register a provider first.");
       if (!listingId.trim()) throw new Error("Choose a listing id.");
-      const write = parseWrite<{ listingUri: string }>(
-        await client!.create_listing(
+      const write = parseWrite(
+        await client.create_listing(
           providerUri,
           listingId.trim(),
           terms.kind,
-          JSON.stringify(terms),
+          jsonValue(terms),
         ),
+        listingCreation,
       );
       await record({
         id: `listing-${Date.now()}`,
@@ -142,15 +163,16 @@ export default function Provider() {
 
   const listingAction = (listingUri: string, action: string) =>
     run(async () => {
+      if (!client) throw new Error("wallet is locked");
       const raw =
         action === "activate"
-          ? await client!.activate_listing(listingUri)
+          ? await client.activate_listing(listingUri)
           : action === "pause"
-            ? await client!.pause_listing(listingUri)
+            ? await client.pause_listing(listingUri)
             : action === "resume"
-              ? await client!.resume_listing(listingUri)
-              : await client!.delist_listing(listingUri);
-      const write = parseWrite<Record<string, never>>(raw);
+              ? await client.resume_listing(listingUri)
+              : await client.delist_listing(listingUri);
+      const write = parseWrite(raw, emptyData);
       await record({
         id: `${action}-${Date.now()}`,
         kind: `listing.${action}`,
@@ -163,23 +185,20 @@ export default function Provider() {
 
   const addUnit = () =>
     run(async () => {
+      if (!client) throw new Error("wallet is locked");
       if (!unitListing) throw new Error("Choose a listing.");
       if (!unitId.trim()) throw new Error("Choose a unit id.");
-      const attrs = JSON.parse(unitAttrs) as Record<string, unknown>;
-      const slots = JSON.parse(unitSlots) as Array<{
-        slotId: string;
-        startHeight: number;
-        endHeight: number;
-      }>;
-      const price = Number(parseUnits(unitPrice));
-      const write = parseWrite<{ unitId: string }>(
-        await client!.ensure_unit(
+      const attrs = parseJson(unitAttrs, object, "$.attrs");
+      const slots = parseJson(unitSlots, array(slotSpecInput), "$.slots");
+      const write = parseWrite(
+        await client.ensure_unit(
           unitListing,
           unitId.trim(),
           JSON.stringify(attrs),
           JSON.stringify(slots),
-          BigInt(price),
+          parseUnits(unitPrice),
         ),
+        unitCreation,
       );
       await record({
         id: `unit-${Date.now()}`,
@@ -377,13 +396,14 @@ function UnitList({ providerUri }: { providerUri: string }) {
     queryKey: ["provider-units", providerUri],
     enabled: Boolean(client),
     queryFn: async () => {
-      const provider = parseRead<ProviderView>(await client!.provider_info(providerUri));
+      if (!client) throw new Error("wallet is locked");
+      const provider = parseRead(await client.provider_info(providerUri), providerView);
       const entries = Object.values(provider.data.listings);
       const out: Array<{ uri: string; listing: ListingView }> = [];
       for (const entry of entries) {
         out.push({
           uri: entry.uri,
-          listing: parseRead<ListingView>(await client!.listing_info(entry.uri)).data,
+          listing: parseRead(await client.listing_info(entry.uri), listingView).data,
         });
       }
       return out;

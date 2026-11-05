@@ -9,7 +9,9 @@ use rcash_chain::address::eth_address_from_public_key;
 use rcash_chain::KeyPair;
 use rshare_core::render::quote_string;
 use rshare_core::render::render_json;
-use rshare_core::{Manifest, OpId, RegistryUri, ResourceKind, SlotSpec, Terms, UnitSlotRequest};
+use rshare_core::{
+    BasisPoints, Manifest, Nonce, OpId, RegistryUri, ResourceKind, SlotSpec, Terms, UnitSlotRequest,
+};
 use rshare_sdk::{BookingAction, Client, DeployReceipt, ReadMeta, ReadSource};
 use serde_json::{json, Value};
 use wasm_bindgen::prelude::*;
@@ -504,6 +506,24 @@ impl Rshare {
         Ok(read_out(json!(read.value), &read.meta))
     }
 
+    pub async fn share_admin_nonce(&self) -> Result<String, JsValue> {
+        let read = self.client.share_admin_nonce().await.map_err(js)?;
+        let next = read.value.next();
+        Ok(read_out(
+            json!({"current": read.value, "next": next}),
+            &read.meta,
+        ))
+    }
+
+    pub async fn share_root_nonce(&self) -> Result<String, JsValue> {
+        let read = self.client.share_root_nonce().await.map_err(js)?;
+        let next = read.value.next();
+        Ok(read_out(
+            json!({"current": read.value, "next": next}),
+            &read.meta,
+        ))
+    }
+
     pub async fn platform_owner(&self) -> Result<String, JsValue> {
         let read = self.client.payments_platform_owner().await.map_err(js)?;
         Ok(read_out(json!(read.value), &read.meta))
@@ -574,6 +594,7 @@ impl Rshare {
         args_json: &str,
     ) -> Result<String, JsValue> {
         let args = render_arguments(args_json)?;
+        let nonce = Nonce::new(nonce).map_err(js)?;
         let read = self
             .client
             .admin_payload(domain, nonce, action, &args)
@@ -594,6 +615,7 @@ impl Rshare {
     ) -> Result<String, JsValue> {
         let args = render_arguments(args_json)?;
         let signatures = parse_strings(signatures_json)?;
+        let nonce = Nonce::new(nonce).map_err(js)?;
         let write = self
             .client
             .admin_submit_share(nonce, action, &args, &signatures)
@@ -612,6 +634,7 @@ impl Rshare {
     ) -> Result<String, JsValue> {
         let args = render_arguments(args_json)?;
         let signatures = parse_strings(signatures_json)?;
+        let nonce = Nonce::new(nonce).map_err(js)?;
         let write = self
             .client
             .admin_submit_listing(&parse_uri(uri)?, nonce, action, &args, &signatures)
@@ -627,6 +650,7 @@ impl Rshare {
         signatures_json: &str,
     ) -> Result<String, JsValue> {
         let signatures = parse_strings(signatures_json)?;
+        let nonce = Nonce::new(nonce).map_err(js)?;
         let write = self
             .client
             .admin_submit_provider(&parse_uri(uri)?, nonce, &signatures)
@@ -644,6 +668,10 @@ impl Rshare {
         op_id: &str,
     ) -> Result<String, JsValue> {
         let signatures = parse_strings(signatures_json)?;
+        let nonce = Nonce::new(nonce).map_err(js)?;
+        let split_bps = u16::try_from(split_bps)
+            .map_err(|_| js("split bps is outside the basis-point range"))
+            .and_then(|value| BasisPoints::new(value).map_err(js))?;
         let write = self
             .client
             .arbitrate(
@@ -855,8 +883,12 @@ fn booking_action_from(action: &str, args: &[Value]) -> Result<BookingAction, Js
             reason_hash: arg(0, "a reason hash")?,
         },
         "resolveDispute" => BookingAction::ResolveDispute,
+        "disputeNoShow" => BookingAction::DisputeNoShow {
+            reason_hash: arg(0, "a reason hash")?,
+        },
         "expire" => BookingAction::Expire,
         "claimNoShow" => BookingAction::ClaimNoShow,
+        "resolveNoShow" => BookingAction::ResolveNoShow,
         "redeem" => BookingAction::Redeem,
         "closeEvent" => BookingAction::CloseEvent,
         "transferTicket" => BookingAction::TransferTicket {

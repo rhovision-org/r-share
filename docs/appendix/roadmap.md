@@ -1,6 +1,6 @@
 # Roadmap and acceptance milestones
 
-> **Status:** M0–M7, M9 and M10 are implemented; M8 is planned.
+> **Status:** M0–M7 and M9–M11 are implemented; M8 is planned.
 
 The roadmap is an acceptance map, not a promise. Each milestone names the suite that must
 pass before the milestone is considered done. The machine-readable version is
@@ -21,6 +21,7 @@ pass before the milestone is considered done. The machine-readable version is
 | M8 | property tests, soak, invariant checks, docs complete | `unit_all`, all invariants |
 | M9 | Lean cornerstone, vectors and flow manifest | `make formal-check` |
 | M10 | Rust SDK, CLI, WASM wallet, React client and browser journeys | `make client-check`, `make client-journey`, Playwright |
+| M11 | audit baseline, HAZOP, Lean proof roadmap and Rholang improvement plan | `make audit-check`, `make audit-dynamic` |
 
 ## Status
 
@@ -31,6 +32,9 @@ pass before the milestone is considered done. The machine-readable version is
 - M10: the Rust SDK/CLI, WASM wallet and React client build; the CLI journey and three
   browser journeys pass on the recorded devnet. The client has no indexer, provider inbox,
   search or fiat ramp.
+- M11: the audit baseline, HAZOP and improvement plan are in `audit/`. Five P0/P1 findings
+  are reproduced on an isolated devnet; the remaining findings and the Rholang changes are
+  open. The milestone does not claim the findings are fixed.
 
 "Implemented" means source plus static/parser gates. It does not mean a behavioural run.
 

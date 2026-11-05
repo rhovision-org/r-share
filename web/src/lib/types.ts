@@ -1,13 +1,29 @@
-// Wire types returned by the rshare-wasm facade. Amounts and heights are integers in
-// base units/blocks; the UI formats them with exact BigInt helpers.
+// Wire types returned by the rshare-wasm facade. Chain integers (amounts, heights and
+// nonces) are `bigint`; counts and basis points stay `number`. The UI formats exact
+// bigint values without floating-point arithmetic.
+//
+// Today the Rust facade emits amounts, heights and nonces as JSON numbers. The decoders in
+// `decoders.ts` also accept decimal strings so the later Rust wave can switch the wire
+// shape without changing the UI.
+
+export type Amount = bigint;
+export type Height = bigint;
+export type Nonce = bigint;
+export type BasisPoints = number;
 
 export type ResourceKind = "lodging" | "event" | "bike" | "car" | "robot";
+
+/** A status value from a newer contract version than this client understands. */
+export interface UnknownStatus {
+  kind: "unknown";
+  raw: string;
+}
 
 export interface Terms {
   kind: ResourceKind;
   assetId: string;
-  pricePerSlot: number;
-  deposit: number;
+  pricePerSlot: Amount;
+  deposit: Amount;
   minSlots: number;
   maxSlots: number;
   instantBook: boolean;
@@ -17,18 +33,23 @@ export interface Terms {
   disputeWindowBlocks: number;
   noShowBlocks: number;
   fullRefundBeforeBlocks: number;
-  partialRefundBps: number;
+  partialRefundBps: BasisPoints;
   partialRefundBeforeBlocks: number;
-  feeBps: number;
+  feeBps: BasisPoints;
   maxLeadBlocks: number;
   maxSlotBlocks: number;
   maxUnits: number;
   eventTransferCutoffBlocks: number;
 }
 
-export type ListingStatus = "draft" | "active" | "paused" | "delisted";
-export type UnitStatus = "active" | "paused";
-export type ProviderStatus = "active" | "paused";
+export type ListingStatus =
+  | "draft"
+  | "active"
+  | "paused"
+  | "delisted"
+  | UnknownStatus;
+export type UnitStatus = "active" | "paused" | UnknownStatus;
+export type ProviderStatus = "active" | "paused" | UnknownStatus;
 export type BookingStatus =
   | "requested"
   | "confirmed"
@@ -40,10 +61,14 @@ export type BookingStatus =
   | "cancelled"
   | "expired"
   | "noShow"
-  | "disputed";
+  | "noShowClaimed"
+  | "noShowDisputed"
+  | "noShowRefunded"
+  | "disputed"
+  | UnknownStatus;
 
 export interface ReadMeta {
-  atHeight: number;
+  atHeight: Height;
   blockHash: string;
   source: "explore" | "signedDeploy";
   deployId: string | null;
@@ -59,7 +84,7 @@ export interface DeployReceipt {
   deployId: string;
   finalized: boolean;
   blockHash: string | null;
-  blockNumber: number;
+  blockNumber: Height;
   termBytes: number;
   status: string;
 }
@@ -74,7 +99,7 @@ export interface ProviderListingEntry {
   uri: string;
   kind: ResourceKind;
   termsHash: string;
-  status: string;
+  status: ListingStatus;
 }
 
 export interface ProviderView {
@@ -84,20 +109,20 @@ export interface ProviderView {
   listings: Record<string, ProviderListingEntry>;
   admins: string[];
   threshold: number;
-  nonce: number;
+  nonce: Nonce;
 }
 
 export interface SlotSpec {
   slotId: string;
-  startHeight: number;
-  endHeight: number;
+  startHeight: Height;
+  endHeight: Height;
 }
 
 export interface UnitView {
   unitId: string;
   kind: ResourceKind;
   attrs: Record<string, unknown>;
-  pricePerSlot: number;
+  pricePerSlot: Amount;
   maxHoldBlocks: number;
   status: UnitStatus;
   schedule: Record<string, SlotSpec>;
@@ -114,12 +139,12 @@ export interface ListingView {
   units: Record<string, UnitView>;
   admins: string[];
   threshold: number;
-  nonce: number;
+  nonce: Nonce;
 }
 
 export type SlotState =
   | ["free", number]
-  | ["held", string, number]
+  | ["held", string, Height]
   | ["booked", string]
   | ["invalid"];
 
@@ -130,24 +155,24 @@ export interface UnitSlotRequest {
 
 export interface QuoteSummary {
   count: number;
-  rent: number;
-  minStart: number;
-  maxEnd: number;
-  checkIn: number;
-  checkOut: number;
+  rent: Amount;
+  minStart: Height;
+  maxEnd: Height;
+  checkIn: Height;
+  checkOut: Height;
 }
 
 export interface TicketView {
   holderId: string;
   redeemed: boolean;
-  redeemedAtHeight: number;
-  transferCutoffHeight: number;
+  redeemedAtHeight: Height;
+  transferCutoffHeight: Height;
 }
 
 export interface ClaimView {
-  amount: number;
+  amount: Amount;
   evidenceHash: string;
-  atHeight: number;
+  atHeight: Height;
 }
 
 export interface BookingView {
@@ -159,37 +184,38 @@ export interface BookingView {
   kind: ResourceKind;
   unitSlots: UnitSlotRequest[];
   assetId: string;
-  rent: number;
-  deposit: number;
-  feeBps: number;
+  rent: Amount;
+  deposit: Amount;
+  feeBps: BasisPoints;
   bondUri: string;
-  holdUntilHeight: number;
-  checkInHeight: number;
-  checkOutHeight: number;
+  holdUntilHeight: Height;
+  checkInHeight: Height;
+  checkOutHeight: Height;
   status: BookingStatus;
   cancellation: Terms;
   admins: string[];
   threshold: number;
-  checkInAtHeight: number;
-  checkOutAtHeight: number;
-  depositReleaseHeight: number;
-  disputeAtHeight: number;
+  checkInAtHeight: Height;
+  checkOutAtHeight: Height;
+  depositReleaseHeight: Height;
+  disputeAtHeight: Height;
+  noShowClaimAtHeight: Height;
   rejectReason: string;
   ticket: TicketView;
   claim: ClaimView;
   ops: Record<string, unknown>;
-  nonce: number;
+  nonce: Nonce;
 }
 
 export interface BondInfo {
   paid: boolean;
-  expected: number;
-  remaining: number;
+  expected: Amount;
+  remaining: Amount;
 }
 
 export interface AccountView {
   ownerId: string;
-  revBaseUnits: number;
+  revBaseUnits: Amount;
 }
 
 export interface GuestOp {
@@ -248,11 +274,40 @@ export interface PendingAdminAction {
   id: string;
   target: string;
   uri?: string;
-  nonce: number;
+  /** Decimal string. Older records stored a JSON number; loading normalizes them. */
+  nonce: string;
   action: string;
   args: string;
   payload: string;
   digest: string;
   signatures: Signature[];
   createdAt: number;
+}
+
+/** Node status is an open JSON document from the node; keep the raw record too. */
+export interface NodeStatus {
+  latestBlockNumber: Height | null;
+  raw: Record<string, unknown>;
+}
+
+export interface PaymentsHealth {
+  ok: boolean;
+  components: Record<string, string>;
+  raw: unknown;
+}
+
+export interface AdminKeys {
+  admins: string[];
+  threshold: number;
+}
+
+/** `share_admin_nonce` / `share_root_nonce` return the stored nonce and its successor. */
+export interface NonceView {
+  current: Nonce;
+  next: Nonce;
+}
+
+export interface AdminPayload {
+  payload: string;
+  digest: string;
 }

@@ -26,6 +26,17 @@ license = "AGPL-3.0-or-later"
 rust-version = "1.95"
 repository = "https://github.com/rhovision-org/r-share"
 
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+unreachable = "deny"
+todo = "deny"
+unimplemented = "deny"
+
 [workspace.dependencies]
 rshare-core = { path = "crates/rshare-core" }
 rshare-keystore = { path = "crates/rshare-keystore" }

@@ -35,10 +35,24 @@ SUITES = {
     "listing": "unit_listing.py",
     "behavior": "unit_behavior.py",
     "conservation": "unit_conservation.py",
+    "reset_safety": "unit_reset_safety.py",
+    "settle_release": "unit_settle_release.py",
+    "no_show_contest": "unit_no_show_contest.py",
+    "event_timing": "unit_event_timing.py",
+    "admin_keys": "unit_admin_keys.py",
+    "pause_scope": "unit_pause_scope.py",
+    "cell_liveness": "unit_cell_liveness.py",
+    "factory_auth": "unit_factory_auth.py",
+    "provider_index": "unit_provider_index.py",
+    "cutoffs": "unit_cutoffs.py",
+    "bond_refusals": "unit_bond_refusals.py",
 }
 DEFAULT = ["root", "payments", "lifecycle", "claims", "pricing", "guestbook",
            "booking", "pause", "allocator", "admin", "events", "generality",
-           "provider", "listing", "behavior", "conservation"]
+           "provider", "listing", "behavior", "conservation",
+           "reset_safety", "settle_release", "no_show_contest", "event_timing",
+           "admin_keys", "pause_scope", "cell_liveness", "factory_auth",
+           "provider_index", "cutoffs", "bond_refusals"]
 
 
 def run(name: str) -> dict:

@@ -1,0 +1,17 @@
+cargo run -q -p rshare-cli -- devnet fixtures
+{
+  "catalogue": "deployments/catalogue.json",
+  "fixtures": {
+    "deposit": 50,
+    "guest_key": "sender",
+    "listing_uri": "rho:id:sksoukwm8jasbhr845a9a8chnpkz4iwhq7u6r1fd475uj19zxk8y",
+    "price": 100,
+    "provider_key": "business",
+    "provider_uri": "rho:id:u5cx84s1q59dstwfxwx1adx9bfnur849oixmdotodbhr9fmocaay",
+    "slot_end": 6594,
+    "slot_id": "s1",
+    "slot_start": 6494,
+    "unit_id": "unit:listing:client:1793836566395"
+  },
+  "path": ".devnet/client-fixtures.json"
+}

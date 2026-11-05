@@ -22,8 +22,9 @@ address as a caller argument.
 - The BookingContract's release token is a fresh unforgeable name created in the booking
   deploy. A slot releases only for the matching token; an expired hold reclaimed by another
   booking cannot be released by the old booking.
-- The unit's reset token is held by the unit contract. A provider calls `Unit.reset`, which
-  presents the token to the slot; the provider never handles the token.
+- `ListingContract("reset")` is the provider cleanup arm. It is owner-gated and clears only
+  a free slot or an expired hold; a live hold or a booked slot is refused. There is no
+  separate unit contract or unit-reset token.
 - Deposit facets are receive-only. A booking can pay a party, not act as that party.
 
 ## Refusal ordering

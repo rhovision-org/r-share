@@ -23,10 +23,10 @@ use rcash_sdk::Client as RcashClient;
 
 use rshare_core::{ComponentKey, Manifest, RegistryUri};
 
-pub use error::{RefusalCode, SdkError};
+pub use error::{DecodeError, DecodeKind, RefusalCode, SdkError};
 pub use models::{
     AccountView, BondInfo, BookingUnit, BookingView, ClaimView, GuestOp, ListingView,
-    ProviderListingEntry, ProviderView, QuoteSummary, TicketView, UnitView,
+    OpaqueMetadata, ProviderListingEntry, ProviderView, QuoteSummary, TicketView, UnitView,
 };
 pub use reads::GuestLedgerRef;
 pub use wire::{DeployReceipt, Read, ReadMeta, ReadSource};
@@ -36,7 +36,7 @@ pub use writes::{BookOutcome, BookingAction, Preview, Write};
 /// use `Date.now()` and the CLI can use `SystemTime` without the SDK touching a clock.
 pub fn new_op_id(prefix: &str, now_ms: i64) -> Result<rshare_core::OpId, SdkError> {
     let mut bytes = [0u8; 16];
-    getrandom::fill(&mut bytes).map_err(|error| SdkError::Decode(error.to_string()))?;
+    getrandom::fill(&mut bytes).map_err(|error| SdkError::Entropy(error.to_string()))?;
     let random: String = bytes.iter().map(|byte| format!("{byte:02x}")).collect();
     Ok(rshare_core::OpId::new(format!(
         "{prefix}-{now_ms}-{random}"
@@ -182,26 +182,25 @@ impl Client {
         Ok(self.inner.node().status().await?)
     }
 
+    /// The cache lock. Poisoning cannot make the map invalid, so recover the guard
+    /// instead of panicking.
+    fn cache_lock(&self) -> std::sync::MutexGuard<'_, BTreeMap<ComponentKey, ResolvedComponent>> {
+        self.cache
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
     /// Resolve one component through the r-share Root. Results are cached for the life of
     /// the client; call `refresh_components` after a rotation.
     pub async fn resolve(&self, key: ComponentKey) -> Result<ResolvedComponent, SdkError> {
-        if let Some(hit) = self
-            .cache
-            .lock()
-            .expect("component cache lock")
-            .get(&key)
-            .cloned()
-        {
+        if let Some(hit) = self.cache_lock().get(&key).cloned() {
             return Ok(hit);
         }
         let term = wire::resolve_term(self.manifest.root_uri(), key)?;
         let (value, _meta) = wire::explore_value(&self.inner, &term).await?;
         let values = wire::decode_reply(&value)?;
         let resolved = parse_resolved(&values)?;
-        self.cache
-            .lock()
-            .expect("component cache lock")
-            .insert(key, resolved.clone());
+        self.cache_lock().insert(key, resolved.clone());
         Ok(resolved)
     }
 
@@ -219,31 +218,29 @@ impl Client {
         let map = values
             .first()
             .and_then(rcash_chain::rho_expr::RhoValue::as_map)
-            .ok_or_else(|| SdkError::Decode("resolveMany reply is not a map".into()))?;
+            .ok_or_else(|| SdkError::decode("resolveMany", "reply", DecodeKind::WrongType))?;
         let mut resolved = BTreeMap::new();
         for key in keys {
+            let field = key.as_str();
             let entry = map
-                .get(key.as_str())
-                .ok_or_else(|| SdkError::Decode(format!("resolveMany omitted {key}")))?;
+                .get(field)
+                .ok_or_else(|| SdkError::decode("resolveMany", field, DecodeKind::Missing))?;
             let entry = entry
                 .as_map()
-                .ok_or_else(|| SdkError::Decode(format!("{key} entry is not a map")))?;
+                .ok_or_else(|| SdkError::decode("resolveMany", field, DecodeKind::WrongType))?;
             let uri = entry
                 .get("uri")
                 .and_then(rcash_chain::rho_expr::RhoValue::as_str)
-                .ok_or_else(|| SdkError::Decode(format!("{key} entry has no uri")))?;
+                .ok_or_else(|| SdkError::decode("resolveMany", "uri", DecodeKind::WrongType))?;
             let version = entry
                 .get("version")
                 .and_then(rcash_chain::rho_expr::RhoValue::as_int)
-                .ok_or_else(|| SdkError::Decode(format!("{key} entry has no version")))?;
+                .ok_or_else(|| SdkError::decode("resolveMany", "version", DecodeKind::WrongType))?;
             let component = ResolvedComponent {
                 uri: RegistryUri::new(uri)?,
                 version,
             };
-            self.cache
-                .lock()
-                .expect("component cache lock")
-                .insert(*key, component.clone());
+            self.cache_lock().insert(*key, component.clone());
             resolved.insert(*key, component);
         }
         Ok(resolved)
@@ -251,7 +248,7 @@ impl Client {
 
     /// Drop the component cache.
     pub fn refresh_components(&self) {
-        self.cache.lock().expect("component cache lock").clear();
+        self.cache_lock().clear();
     }
 }
 
@@ -270,11 +267,11 @@ fn parse_resolved(
     let uri = values
         .first()
         .and_then(rcash_chain::rho_expr::RhoValue::as_str)
-        .ok_or_else(|| SdkError::Decode("resolve reply has no uri".into()))?;
+        .ok_or_else(|| SdkError::decode("resolve", "uri", DecodeKind::WrongType))?;
     let version = values
         .get(1)
         .and_then(rcash_chain::rho_expr::RhoValue::as_int)
-        .ok_or_else(|| SdkError::Decode("resolve reply has no version".into()))?;
+        .ok_or_else(|| SdkError::decode("resolve", "version", DecodeKind::WrongType))?;
     Ok(ResolvedComponent {
         uri: RegistryUri::new(uri)?,
         version,

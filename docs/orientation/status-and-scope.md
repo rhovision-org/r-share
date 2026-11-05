@@ -2,9 +2,9 @@
 
 > **Status:** This chapter defines the labels used everywhere else in the book.
 
-r-share has static, parser and one recorded 16-suite behavioural run. On 2026-11-03, a fresh
-devnet built from rholo `e2d073d` with r-cash `49b441d` passed every suite in
-`harness/run_suites.py`: root, payments, lifecycle, claims, pricing, guestbook, booking,
+r-share has static and parser checks plus recorded behavioural campaigns. On 2026-11-03, a
+fresh devnet built from rholo `e2d073d` with r-cash `49b441d` passed every then-defined suite
+in `harness/run_suites.py`: root, payments, lifecycle, claims, pricing, guestbook, booking,
 pause, allocator, admin, events, generality, provider, listing, the golden transcript and
 conservation. The claims run verifies `buyerUseBreach`, `noFaultCancellation`, `noShow` and
 `damage` across all five kinds (20/30 coverage cells); conservation verifies seven real
@@ -66,13 +66,14 @@ targets as estimates.
 
 ## What is planned
 
-The M2–M7 suite milestones have landed; the recorded 16-suite campaign is in
+The M2–M7 suite milestones have landed; the recorded campaigns are in
 [Verification](../reference/verification.md). What remains:
 
 | Item | Scope | Status |
 |---|---|---|
 | M8 | property tests, soak and broader invariant checks | planned |
 | Formal model | `make formal-check`: Lean allocator/booking/bond/remedy model, vectors and flow manifest | implemented, proved-model |
+| Audit baseline | `audit/` registers; 21 findings; P0/P1 and addressed P2 fixes implemented in v2; 24 suites recorded, 27-suite acceptance pending; 72/72 Lean theorems named in the axiom audit | Remaining P2/P3 open |
 | Client | Rust SDK, CLI, WASM wallet, React app; curated catalogue and share links | implemented, exercised on devnet |
 | Phase 2 | provider bond leg, obligation objects, generalized claims, evidence enforcement | design |
 
@@ -100,6 +101,7 @@ These belong to the fork or to the regulated product around it.
 ```sh
 make spec-check       # build drift, budgets, architecture, captures, select, money
 make formal-check     # Lean build, axiom audit, vectors and flow manifest
+make audit-check      # audit registers, arm inventory and traceability
 make parse-check      # render install terms and parse with the target node parser
 make docs-check       # book links, orphans, coverage and build
 make client-check     # Rust SDK/CLI, WASM smoke, web unit tests and build
@@ -110,6 +112,7 @@ The behavioural suites need the devnet path:
 ```sh
 make devnet-up rcash-keys rcash-bootstrap keys install
 make unit-all
+make audit-dynamic
 make client-fixtures client-journey
 make client-keystores
 cd web && npm install && npm run test:e2e

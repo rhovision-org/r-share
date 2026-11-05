@@ -1,0 +1,9 @@
+.venv/bin/python tools/check_docs.py
+README.md:111: warning: plain http link
+docs/guides/use-the-web-app.md:22: warning: plain http link
+docs/reference/client-architecture.md:45: warning: plain http link
+check-docs: 64 chapters, 274 relative links, 1 includes, 21 components, 16 component keys
+mdbook build
+ INFO Book building has started
+ INFO Running the html backend
+ INFO HTML book written to `/home/patrick/RShare/docs/book`

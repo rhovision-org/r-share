@@ -7,6 +7,11 @@ pub enum RshareError {
     Rcash(#[from] rcash_core::CoreError),
     #[error("invalid terms: {0}")]
     Terms(#[from] TermsError),
+    #[error("invalid {field}: {reason}")]
+    Value {
+        field: &'static str,
+        reason: &'static str,
+    },
     #[error("invalid slot request: {0}")]
     Slots(String),
     #[error("invalid operation id: {0}")]

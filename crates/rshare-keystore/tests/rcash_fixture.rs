@@ -1,3 +1,5 @@
+#![allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)]
+
 //! Cross-decrypt proof against a document produced by r-cash's own keystore code.
 
 const DOCUMENT: &str = include_str!("fixtures/rcash-v3.json");

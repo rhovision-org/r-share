@@ -1,0 +1,273 @@
+.venv/bin/python harness/run_suites.py
+--- root: pass (0) ---
+unit-root
+  ok root keys
+  ok resolve clock
+  ok unknown component
+  ok stale version
+--- payments: pass (0) ---
+unit-payments
+  ok payments health
+  ok platform owner
+  ok REV issuer
+  ok unknown asset
+--- lifecycle: pass (0) ---
+unit-lifecycle
+  bond rho:id:gacfeo439gkrf56ukfrrh5qs79kyrth8eit5z87597ftmyo9uxxy
+  ok dispute from requested
+  ok arbitrate outside dispute
+  ok dispute -> resolveDispute
+  ok evidence read
+  ok evidence anchors
+--- claims: pass (0) ---
+unit-claims
+  ok vector remedy.fee
+  ok vector remedy.depositSplit
+  ok vector remedy.full
+  bond rho:id:n389jw8zswq8w5igzmdrupaistq6bpdqw1a4a6mjsrfbiqoz3j3o
+  ok lodging noFaultCancellation
+  ok lodging noShow
+  ok lodging buyerUseBreach/damage
+  ok event noFaultCancellation
+  ok event noShow
+  ok event buyerUseBreach/damage
+  ok bike noFaultCancellation
+  ok bike noShow
+  ok bike buyerUseBreach/damage
+  ok car noFaultCancellation
+  ok car noShow
+  ok car buyerUseBreach/damage
+  ok robot noFaultCancellation
+  ok robot noShow
+  ok robot buyerUseBreach/damage
+--- pricing: pass (0) ---
+unit-pricing
+  ok unit info
+  ok unit A price
+  ok unit info
+  ok unit B price
+  ok provider
+  ok listing
+  ok unit price zero
+--- guestbook: pass (0) ---
+unit-guestbook
+  ledger rho:id:9p33y4kcyfctji5pemij14jyeimeior6n1375ms5w1pximxeweyy
+  ok ledger read-back
+  ok stable guest ledger
+--- booking: pass (0) ---
+unit-booking
+  height 1268
+  ok provider register
+  provider rho:id:d413gea99f15ceu9wnio9zqm1bwcxpcre5pza6zp5z5gps7dk5io
+  ok listing create
+  listing rho:id:8xhpdimk9y7fr1k96twr99au7wyo35qgig9ntyx79ycy7ntfftay
+  ok unit A create
+  ok unit B create
+  ok listing activate
+  ok guest ledger
+  funded 1002
+  balance 1002
+  ok book
+  booking rho:id:1khdkdbnh6jw81hjh33tbrefkiqqd19a6f698715qm6woge3rjuo
+  ok booking info
+  ok bond info
+  ok escrow debit 80
+  ok cancel
+  ok bond after cancel
+  ok refund and bond closed
+  ok rent, windows and bond total
+--- pause: pass (0) ---
+unit-pause
+  ok global pause
+  ok isPaused after pause
+  ok global resume
+  ok isPaused after resume
+  ok provider register
+  ok provider pause
+  ok provider inactive
+  ok provider resume
+  ok provider active
+  ok listing create
+  ok unit create
+  ok listing activate
+  ok unit pause
+  ok unit info
+  ok unit status
+  ok unit resume
+  ok unit resumed
+--- allocator: pass (0) ---
+unit-allocator
+  atomic multi-slot acquire
+  ok multi book
+  ok all-or-none hold, confirm and release
+  one held slot refuses the whole set
+  ok first hold
+  ok partial request
+  ok refused request left the free slot untouched
+  token-only confirm and release
+  ok wrong token confirm
+  ok wrong token release
+  ok holder confirm
+  ok holder release
+  ok wrong token moved nothing
+  pause gates
+  ok listing pause
+  ok book paused listing
+  ok listing resume
+  ok unit pause
+  ok book paused unit
+  ok unit resume
+  ok listing and unit pause refuse acquisition
+  expiry takeover
+  ok takeover book
+  ok old expired
+  ok old terminal
+  ok expired hold reclaimed without a double booking
+  no slot capability leak
+  ok info has no slots
+  ok unit has no slots
+  ok projections and probe redact the token
+  same-slot contention
+  ok first booking
+  ok second booking
+  ok one owner and one refusal
+--- admin: pass (0) ---
+unit-admin
+  ok admin keys
+  ok ShareAdmin below threshold
+  ok ShareAdmin replay
+  booking domain booking:11112mRBwp3PPqaL7EidamWriPSmWm6ptbocNMVdxzs2nmhAdcWHUP:admin-payload:1793810545575-2723797:book:1
+  ok rotation
+  ok rotation admins
+  ok rotation threshold
+  ok rotation nonce
+  ok booking replay
+  ok booking below threshold
+  ok invalid threshold
+  ok wrong payload
+  ok old-key signatures
+  ok new-key rotation
+  ok restored admins
+  ok listing rotation
+  ok listing admins
+  ok listing threshold
+  ok listing restore
+  ok provider rotation
+  ok provider admins
+  ok provider threshold
+  ok provider restore
+--- events: pass (0) ---
+unit-events
+  ok redeem -> closeEvent
+  ok transfer ticket
+  ok ticket moved to the new holder
+--- generality: pass (0) ---
+unit-generality
+  ok lodging terms
+  ok event terms
+  ok bike terms
+  ok car terms
+  ok robot terms
+  ok unknown kind
+--- provider: pass (0) ---
+unit-provider
+  ok register
+  ok owner id
+  ok register is stable
+  ok info
+  ok status
+  ok update profile
+  ok profile read
+  ok pause
+  ok inactive
+  ok resume
+  ok active again
+  ok check owner
+--- listing: pass (0) ---
+unit-listing
+  ok provider register
+  ok listing create
+  ok listing info
+  ok draft status
+  ok ensure unit
+  ok unit registered
+  ok activate
+  ok active status
+  ok pause listing
+  ok paused status
+  ok resume listing
+  ok resumed status
+  ok read terms
+  ok price
+  ok delist
+  ok delisted status
+--- behavior: pass (0) ---
+unit-lifecycle
+  bond rho:id:wzadh5rd8999qmwd1i5n1ugo1o7pa7hdxg7kynar75gpgmkmnj9y
+  ok dispute from requested
+  ok arbitrate outside dispute
+  ok dispute -> resolveDispute
+  ok evidence read
+  ok evidence anchors
+unit-behavior: transcript matches
+--- conservation: pass (0) ---
+unit-conservation (per-scenario closed set)
+conservation
+  scenario cancel_full_refund
+  ok conserved 2400
+  ok bond paid once and closed
+  ok slot free
+  ok no pending ledger op
+  ok guest delta +0
+  ok provider delta +0
+  ok platform delta +0
+  scenario reject_full_refund
+  ok conserved 2400
+  ok bond paid once and closed
+  ok slot free
+  ok no pending ledger op
+  ok guest delta +0
+  ok provider delta +0
+  ok platform delta +0
+  scenario expire_full_refund
+  ok conserved 2400
+  ok bond paid once and closed
+  ok slot free
+  ok no pending ledger op
+  ok guest delta +0
+  ok provider delta +0
+  ok platform delta +0
+  scenario settle_with_fee
+  ok conserved 2400
+  ok bond paid once and closed
+  ok slot booked
+  ok no pending ledger op
+  ok guest delta -100
+  ok provider delta +99
+  ok platform delta +1
+  scenario no_show
+  ok conserved 2400
+  ok bond paid once and closed
+  ok slot free
+  ok no pending ledger op
+  ok guest delta -100
+  ok provider delta +99
+  ok platform delta +1
+  scenario deposit_split
+  ok conserved 2400
+  ok bond paid once and closed
+  ok slot booked
+  ok no pending ledger op
+  ok guest delta -120
+  ok provider delta +119
+  ok platform delta +1
+  scenario replay
+  ok conserved 2400
+  ok bond paid once and closed
+  ok slot free
+  ok no pending ledger op
+  ok same op replayed without value movement
+  ok new op after terminal
+  ok refusal left balances unchanged
+conservation: all scenarios conserved
+run_suites: wrote deployments/suite-results.json

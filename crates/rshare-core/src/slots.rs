@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Result, RshareError};
+use crate::primitives::Height;
 use crate::render::{quote_string, render_i64, render_map};
 
 /// One slot in a unit's schedule.
@@ -10,8 +11,8 @@ use crate::render::{quote_string, render_i64, render_map};
 #[serde(rename_all = "camelCase")]
 pub struct SlotSpec {
     pub slot_id: String,
-    pub start_height: i64,
-    pub end_height: i64,
+    pub start_height: Height,
+    pub end_height: Height,
 }
 
 impl SlotSpec {
@@ -196,8 +197,8 @@ mod tests {
 
         let bad = SlotSpec {
             slot_id: "s1".into(),
-            start_height: 10,
-            end_height: 10,
+            start_height: Height::new(10).unwrap(),
+            end_height: Height::new(10).unwrap(),
         };
         assert!(bad.validate().is_err());
     }

@@ -1,0 +1,37 @@
+RSHARE_NODE=http://localhost:41403 RSHARE_ADMIN=http://localhost:41405 \
+RSHARE_CONTAINER=rshare-audit-bootstrap RCASH_DIR=/tmp/rcash-audit \
+.venv/bin/python harness/run_suites.py --suites audit_reset,audit_no_show,audit_event,audit_admin_keys,audit_pause
+--- audit_reset: pass (0) ---
+unit-audit-reset (F-001)
+  ok first booking
+  ok slot booked before reset
+  ok reset
+  ok slot free after reset
+  ok second booking on the freed slot
+  ok first booking still confirmed
+  ok second booking exists
+REPRODUCED F-001: reset freed a booked slot; a second booking acquired it
+--- audit_no_show: pass (0) ---
+unit-audit-no-show (F-004)
+  ok book
+  ok claimNoShow after the window
+  ok booking terminal
+  ok guest dispute after noShow
+REPRODUCED F-004: provider claimed no-show without check-in; guest dispute refused
+--- audit_event: pass (0) ---
+unit-audit-event (F-005)
+  ok redeem then settle before event end
+REPRODUCED F-005: settle from redeemed succeeded before checkOutHeight
+--- audit_admin_keys: pass (0) ---
+unit-audit-admin-keys (F-006)
+  AdminGuard.verify -> (True, True)
+  ok duplicate-key threshold
+REPRODUCED F-006: one signature satisfied a duplicated-key threshold of 2
+--- audit_pause: pass (0) ---
+unit-audit-pause (F-007)
+  ok global pause
+  ok GuestLedger book while paused
+  ok direct acquire while globally paused
+REPRODUCED F-007: direct acquire succeeded while GuestLedger.book refused
+  ok global resume
+run_suites: wrote deployments/suite-results.json

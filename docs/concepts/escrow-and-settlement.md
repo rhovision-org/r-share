@@ -17,7 +17,8 @@ Root!("resolve", "component:clock", 1, clkCh)
 ```
 
 Pinned r-cash commit: `49b441d`. The asset allowlist starts at `REV`; other assets must
-resolve through r-cash's AssetResolver and be verified before enabling.
+resolve through r-cash's AssetResolver and be verified before enabling. `Payments("issuer")`
+enforces the allowlist and refuses `"asset"` for any id the admin has not added.
 
 ## One atomic guest deploy
 
@@ -45,6 +46,11 @@ state, checks the settle token and the expected total, resolves Payments once, w
 exact amounts from the escrow purse, deposits them into r-cash account deposit facets, and
 posts `paid: true`. A second `pay` is `"closed"`.
 
+The booking boundary maps Bond refusals it can act on: `"closed"` becomes a booking
+refusal `(false, "closed")`, and a wrong holder is treated as already released. Any other
+Bond failure after the release step returns `1/0` so the deploy rolls back rather than
+reporting a settled booking.
+
 ```
 AccountFactory.accountOf(ownerId) → account
 account.depositFacet(assetId)     → receive-only facet
@@ -64,6 +70,11 @@ The buckets are:
 The BookingContract asserts `expected == rent + deposit`; the Bond asserts the bucket sum
 and ends at zero. A mismatch fails the deploy. Deposit facets are receive-only; they cannot
 re-enter the booking.
+
+Before the Bond pays, the booking releases its slots under the same release token. The
+release is idempotent with the explicit release in cancel/reject/expire/no-show; a normal
+`settle`, `resolveDeposit` or `closeEvent` therefore frees the inventory instead of leaving
+it booked after the service.
 
 ## Failure modes
 

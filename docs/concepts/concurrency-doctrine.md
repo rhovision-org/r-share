@@ -13,14 +13,15 @@ chapter is near-verbatim the repository's concurrency doctrine; the code is the 
 2. **Per-listing serialization.** Bookings on the same listing serialize on the allocator
    cell. This is the accepted price of atomic multi-slot acquisition. Bookings on different
    listings never share a cell. The old per-slot sharding doctrine is retired.
-3. **Acquisition is one commit.** `acquire` validates the whole request and writes every
-   requested slot in one take/commit. There is no reachable state in which some requested
-   slots are held and others are not. This is structural, not a consequence of sequential
-   deploy execution.
+3. **Acquisition is one take/await/put.** `acquire` takes `listingState`, checks the global
+   pause and provider gates, awaits `UnitFactory.slotScan`, and reposts every requested slot
+   as held or the unchanged state. Other arms block while the cell is empty. There is no
+   reachable state in which some requested slots are held and others are not, but this is a
+   cell protocol, not a single Rholang comm event. Do not call it one commit.
 4. **Peek is a hint, never a lock.** `GuestLedger` probes slots before spending phlo on a
-   withdrawal, then `Unit.hold` revalidates under consume. A stale peek causes a clean
-   refusal, never a double booking. Never carry a peeked record across an external await
-   into a write.
+   withdrawal; `ListingContract.acquire` revalidates under consume. A stale peek causes a
+   clean refusal, never a double booking. Never carry a peeked record across an external
+   await into a write.
 5. **Per-booking contracts.** Every BookingContract has its own state cell, ticket
    projection and op map; every booking has its own Bond holding the escrow purse.
    Lifecycle operations on different bookings never share a cell.
@@ -47,12 +48,16 @@ chapter is near-verbatim the repository's concurrency doctrine; the code is the 
 ```
 
 - `acquire` accepts free and expired-held records, bounds `until <= now + maxHoldBlocks`,
-  checks listing and unit status, and writes all requested slots as one reservation.
+  checks listing, unit, global-pause and provider status, and writes all requested slots as
+  one reservation.
 - `confirm` turns every requested held slot into booked only for the same token; a wrong
   or expired key refuses the whole set.
 - `release` frees every requested slot held or booked by the token and ignores reclaimed
   or foreign keys, so a reclaimed slot cannot strand the rest of the booking.
-- `reset` is the provider's emergency path and requires the listing owner.
+- `reset` is the provider's cleanup path: it clears a free slot or an expired hold and
+  refuses a live hold or a booked slot. The listing owner is checked.
+- `settle`, `resolveDeposit` and `closeEvent` release the booking's slots before the Bond
+  pays; the release is idempotent with the explicit release in cancel/reject/expire.
 
 ## Where serialization is accepted
 

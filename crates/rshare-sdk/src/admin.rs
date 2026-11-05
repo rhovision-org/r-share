@@ -6,9 +6,9 @@
 //! carries the byte arrays and threshold.
 
 use rshare_core::render::quote_string;
-use rshare_core::{ComponentKey, OpId, RegistryUri};
+use rshare_core::{BasisPoints, ComponentKey, Nonce, OpId, RegistryUri};
 
-use crate::error::{Result, SdkError};
+use crate::error::{DecodeKind, Result, SdkError};
 use crate::wire::{self, Read};
 use crate::writes::{admins_rho, admins_text, signatures_rho, Write};
 use crate::Client;
@@ -18,14 +18,14 @@ impl Client {
     pub async fn admin_payload(
         &self,
         domain: &str,
-        nonce: i64,
+        nonce: Nonce,
         action: &str,
         args: &[String],
     ) -> Result<Read<String>> {
         let component = self.resolve(ComponentKey::Codec).await?;
         let args = vec![
             quote_string(domain)?,
-            nonce.to_string(),
+            nonce.get().to_string(),
             quote_string(action)?,
             render_list(args),
         ];
@@ -33,7 +33,7 @@ impl Client {
         let (value, meta) = wire::explore_value(&self.inner, &term).await?;
         let payload = value
             .as_str()
-            .ok_or_else(|| SdkError::Decode("admin payload is not a string".into()))?
+            .ok_or_else(|| SdkError::decode("admin payload", "payload", DecodeKind::WrongType))?
             .to_string();
         Ok(Read {
             value: payload,
@@ -57,14 +57,14 @@ impl Client {
     /// `ShareAdmin("admin")`.
     pub async fn admin_submit_share(
         &self,
-        nonce: i64,
+        nonce: Nonce,
         action: &str,
         args: &[String],
         signatures: &[String],
     ) -> Result<Write<()>> {
         let component = self.resolve(ComponentKey::ShareAdmin).await?;
         let args = vec![
-            nonce.to_string(),
+            nonce.get().to_string(),
             quote_string(action)?,
             render_list(args),
             signatures_rho(signatures)?,
@@ -76,13 +76,13 @@ impl Client {
     pub async fn admin_submit_listing(
         &self,
         listing_uri: &RegistryUri,
-        nonce: i64,
+        nonce: Nonce,
         action: &str,
         args: &[String],
         signatures: &[String],
     ) -> Result<Write<()>> {
         let args = vec![
-            nonce.to_string(),
+            nonce.get().to_string(),
             quote_string(action)?,
             render_list(args),
             signatures_rho(signatures)?,
@@ -94,7 +94,7 @@ impl Client {
     pub async fn admin_submit_provider(
         &self,
         provider_uri: &RegistryUri,
-        nonce: i64,
+        nonce: Nonce,
         signatures: &[String],
     ) -> Result<Write<()>> {
         let args = vec![nonce.to_string(), signatures_rho(signatures)?];
@@ -105,13 +105,13 @@ impl Client {
     pub async fn listing_set_admins(
         &self,
         listing_uri: &RegistryUri,
-        nonce: i64,
+        nonce: Nonce,
         new_admins: &[String],
         threshold: i64,
         signatures: &[String],
     ) -> Result<Write<()>> {
         let args = vec![
-            nonce.to_string(),
+            nonce.get().to_string(),
             admins_rho(new_admins)?,
             threshold.to_string(),
             signatures_rho(signatures)?,
@@ -123,13 +123,13 @@ impl Client {
     pub async fn provider_set_admins(
         &self,
         provider_uri: &RegistryUri,
-        nonce: i64,
+        nonce: Nonce,
         new_admins: &[String],
         threshold: i64,
         signatures: &[String],
     ) -> Result<Write<()>> {
         let args = vec![
-            nonce.to_string(),
+            nonce.get().to_string(),
             admins_rho(new_admins)?,
             threshold.to_string(),
             signatures_rho(signatures)?,
@@ -141,13 +141,13 @@ impl Client {
     pub async fn booking_set_admins(
         &self,
         booking_uri: &RegistryUri,
-        nonce: i64,
+        nonce: Nonce,
         new_admins: &[String],
         threshold: i64,
         signatures: &[String],
     ) -> Result<Write<()>> {
         let args = vec![
-            nonce.to_string(),
+            nonce.get().to_string(),
             admins_rho(new_admins)?,
             threshold.to_string(),
             signatures_rho(signatures)?,
@@ -159,14 +159,14 @@ impl Client {
     pub async fn arbitrate(
         &self,
         booking_uri: &RegistryUri,
-        nonce: i64,
-        split_bps: i64,
+        nonce: Nonce,
+        split_bps: BasisPoints,
         signatures: &[String],
         op: &OpId,
     ) -> Result<Write<()>> {
         let args = vec![
-            nonce.to_string(),
-            split_bps.to_string(),
+            nonce.get().to_string(),
+            split_bps.get().to_string(),
             signatures_rho(signatures)?,
             quote_string(op.as_str())?,
         ];
@@ -197,7 +197,7 @@ async fn submit(
     let reply = receipt
         .reply
         .clone()
-        .ok_or_else(|| SdkError::Decode(format!("{arm} returned no value")))?;
+        .ok_or_else(|| SdkError::decode(arm, "reply", DecodeKind::Missing))?;
     wire::decode_reply(&reply)?;
     Ok(Write { value: (), receipt })
 }

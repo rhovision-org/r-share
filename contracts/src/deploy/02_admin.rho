@@ -8,8 +8,10 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c1, c2,
-  guardAnySig, guardCount
+  guardAnySig, guardCount, adminsValid
 in {
+  // @@INLINE:lib/AdminSet.rho@@
+
   contract guardAnySig(@digest, @sigs, @j, @key, ret) = {
     if (j >= sigs.length()) {
       ret!(false)
@@ -62,10 +64,21 @@ in {
                 for (@payload <- pCh) {
                   hash!(payload.toUtf8Bytes(), *hCh) |
                   for (@digest <- hCh) {
-                    guardCount!(digest, sigs, 0, 0, admins, threshold, *okCh) |
-                    for (@ok <- okCh) {
-                      if (ok) { ret!((true, true)) }
-                      else { ret!((false, "below threshold")) }
+                    new avCh in {
+                      adminsValid!(admins, threshold, 0, {}, *avCh) |
+                      for (@av <- avCh) {
+                        match av {
+                          (true, Nil) => {
+                            guardCount!(digest, sigs, 0, 0, admins, threshold,
+                                        *okCh) |
+                            for (@ok <- okCh) {
+                              if (ok) { ret!((true, true)) }
+                              else { ret!((false, "below threshold")) }
+                            }
+                          }
+                          _ => { ret!((false, "below threshold")) }
+                        }
+                      }
                     }
                   }
                 }
@@ -87,6 +100,12 @@ in {
   contract ShareAdmin(@"isPaused", ret) = {
     for (@s <<- adminState) {
       ret!((true, s.get("pausedAll")))
+    }
+  } |
+
+  contract ShareAdmin(@"nonce", ret) = {
+    for (@s <<- adminState) {
+      ret!((true, s.get("nonce")))
     }
   } |
 
@@ -118,13 +137,21 @@ in {
                         newAdmins => {
                           match args.nth(1) {
                             newThreshold => {
-                              if (newThreshold < 1 || newThreshold > newAdmins.length()) {
-                                adminState!(s) | ret!((false, "threshold"))
-                              } else {
-                                adminState!(s.set("admins", newAdmins)
-                                             .set("threshold", newThreshold)
-                                             .set("nonce", nonce)) |
-                                ret!((true, Nil))
+                              new avCh in {
+                                adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
+                                for (@av <- avCh) {
+                                  match av {
+                                    (true, Nil) => {
+                                      adminState!(s.set("admins", newAdmins)
+                                                   .set("threshold", newThreshold)
+                                                   .set("nonce", nonce)) |
+                                      ret!((true, Nil))
+                                    }
+                                    _ => {
+                                      adminState!(s) | ret!(av)
+                                    }
+                                  }
+                                }
                               }
                             }
                           }
@@ -134,12 +161,18 @@ in {
                     "setThreshold" => {
                       match args.nth(0) {
                         newThreshold => {
-                          if (newThreshold < 1 || newThreshold > s.get("admins").length()) {
-                            adminState!(s) | ret!((false, "threshold"))
-                          } else {
-                            adminState!(s.set("threshold", newThreshold)
-                                         .set("nonce", nonce)) |
-                            ret!((true, Nil))
+                          new avCh in {
+                            adminsValid!(s.get("admins"), newThreshold, 0, {}, *avCh) |
+                            for (@av <- avCh) {
+                              match av {
+                                (true, Nil) => {
+                                  adminState!(s.set("threshold", newThreshold)
+                                               .set("nonce", nonce)) |
+                                  ret!((true, Nil))
+                                }
+                                _ => { adminState!(s) | ret!(av) }
+                              }
+                            }
                           }
                         }
                       }

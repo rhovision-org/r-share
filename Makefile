@@ -11,13 +11,14 @@ export RHOLO_DIR := $(abspath $(RHOLO_DIR))
 
 .PHONY: venv build build-check measure measure-check metrics metrics-compare \
         metrics-baseline check-arch check-captures check-select check-placeholders \
-        check-money check-suites check-allocator spec-check parse-check docs docs-serve docs-check devnet devnet-up \
+        audit-campaign check-money check-suites check-allocator spec-check parse-check docs docs-serve docs-check devnet devnet-up \
         devnet-wait down status rcash-install rcash-keys rcash-bootstrap keys install setup unit-root unit-payments \
         unit-provider unit-listing unit-booking unit-allocator unit-lifecycle \
         unit-claims unit-pricing unit-guestbook unit-events unit-admin unit-pause \
         unit-generality unit-conservation unit-behavior unit-all \
-        check ci clean lean-build lean-check vectors vectors-write check-flows formal-check \
-        client-lint client-test client-wasm client-wasm-smoke client-check \
+        check ci clean lean-build lean-check vectors vectors-write check-flows check-flows-strict formal-check \
+        audit-check audit-trace audit-trace-check check-audit check-arm-inventory audit-dynamic \
+        client-lint client-test client-wasm client-wasm-smoke client-gates client-check \
         client-fixtures client-journey client-keystores \
         web-install web-test web-build web-e2e
 
@@ -136,6 +137,9 @@ install:
 
 setup: devnet-up rcash-keys rcash-bootstrap keys install
 
+audit-campaign:
+	tools/audit_campaign.sh
+
 unit-root:
 	$(PY) harness/unit_root.py
 unit-payments:
@@ -188,16 +192,48 @@ vectors:
 check-flows:
 	$(PY) tools/check_flows.py
 
-formal-check: lean-check vectors check-flows
+check-flows-strict:
+	$(PY) tools/check_flows.py --strict
+
+formal-check: lean-check vectors check-flows check-flows-strict
+
+# ---- audit ---------------------------------------------------------------------------
+
+audit-check: check-audit check-arm-inventory audit-trace-check
+
+audit-trace:
+	$(PY) tools/audit_trace.py --write
+
+audit-trace-check:
+	$(PY) tools/audit_trace.py --check
+
+check-audit:
+	$(PY) tools/check_audit.py
+
+check-arm-inventory:
+	$(PY) tools/check_arm_inventory.py
+
+# Needs a fresh devnet. Runs the fault-injection and factory-origin regressions; it is
+# not part of the offline `check` gate. Override the four AUDIT_* values for an isolated
+# devnet or a different container name.
+AUDIT_NODE ?= $(NODE)
+AUDIT_ADMIN ?= http://localhost:40405
+AUDIT_CONTAINER ?= devnet-bootstrap
+AUDIT_RCASH_DIR ?= $(RCASH_DIR)
+audit-dynamic:
+	RSHARE_NODE=$(AUDIT_NODE) RSHARE_ADMIN=$(AUDIT_ADMIN) \
+	RSHARE_CONTAINER=$(AUDIT_CONTAINER) RCASH_DIR=$(AUDIT_RCASH_DIR) \
+	$(PY) harness/run_suites.py --suites cell_liveness,factory_auth
 
 # ---- reference client ---------------------------------------------------------------
 
 client-lint:
 	cargo fmt --all -- --check
-	cargo clippy -p rshare-core -p rshare-keystore -p rshare-sdk -p rshare-cli --all-targets -- -D warnings
+	cargo clippy --workspace --all-targets -- -D warnings
+	cargo clippy -p rshare-wasm --target wasm32-unknown-unknown -- -D warnings
 
 client-test:
-	cargo test -p rshare-core -p rshare-keystore -p rshare-sdk
+	cargo test --workspace
 
 client-wasm:
 	cargo check -p rshare-wasm --target wasm32-unknown-unknown
@@ -208,13 +244,15 @@ web-install:
 client-wasm-smoke: web-install
 	cd web && npm run test:wasm
 
-client-check: client-lint client-test client-wasm client-wasm-smoke
-	cd web && npm run typecheck && npm test && npm run build
+client-gates: client-lint client-test client-wasm web-install
+	cd web && npm run typecheck && npm run typecheck:e2e && npm run lint && npm test && npm run build
+
+client-check: client-gates client-wasm-smoke
 
 client-fixtures:
 	cargo run -q -p rshare-cli -- devnet fixtures
 
-client-journey:
+client-journey: client-fixtures
 	cargo run -q -p rshare-cli -- devnet journey --json
 
 client-keystores:
@@ -228,10 +266,10 @@ web-test:
 web-build: web-install
 	cd web && npm run build
 
-web-e2e: web-install client-keystores
+web-e2e: web-install client-keystores client-fixtures
 	cd web && npm run test:e2e
 
-check: spec-check parse-check docs-check formal-check
+check: spec-check parse-check docs-check formal-check audit-check
 
 ci: check unit-all
 

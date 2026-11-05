@@ -58,10 +58,12 @@ A slot record lives at `slots[unitId][slotId]` in `listingState`:
 ```
 
 `acquire` accepts free or expired-held records, caps the hold at `now + maxHoldBlocks`, and
-writes every requested slot in one commit. `confirm` turns every requested held slot into
+writes every requested slot in one take/await/put. `confirm` turns every requested held slot into
 booked only for the same token. `release` frees every requested slot held by the token and
-ignores reclaimed keys. `reset` is the provider's emergency path and needs the listing
-owner.
+ignores reclaimed keys. `reset` is the provider's cleanup arm and needs the listing owner;
+it clears only a free slot or an expired hold. `ensureUnit` rejects refund and transfer
+cutoffs that do not fit the slot window (`"refund window"`), so a cutoff can no longer run
+before a slot starts.
 
 The token is a fresh unforgeable name created in the booking deploy. It is what prevents an
 old booking from releasing a slot that a newer booking has since reclaimed.

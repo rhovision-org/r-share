@@ -25,7 +25,10 @@ reconstructs it in TypeScript.
 | Booking arbitration | `arbiter` | `split` | `[bookingId, splitBps]` |
 
 `ShareAdmin("admin")` uses the global admin set; listing, provider and booking use their
-own `admins` and `threshold`.
+own `admins` and `threshold`. A v2 admin set requires at least two distinct public keys and
+a threshold of at least 2; duplicate keys, threshold 1 and threshold greater than the key
+count are refused. A v1 object that already has duplicates or threshold 1 fails closed under
+the v2 guard and must be re-seeded or rotated.
 
 ## The `setAdmins` quirk
 
@@ -41,9 +44,14 @@ not confused.
 ## Nonce
 
 A nonce must be strictly greater than the target's stored nonce; a replay refuses `replay`.
-Listing, provider and booking expose their nonce, so the client uses `current + 1`. The
-global `ShareAdmin` has no nonce read: use the finalized height plus a margin (the web
-console and CLI default to height + 1000) and treat a refusal as a signal to read state.
+Every admin domain now exposes its current nonce: `ShareAdmin("nonce")`,
+`ShareRoot("nonce")`, and the `nonce` field in listing, provider and booking `info`.
+Clients read the current value and sign `current + 1`; they never derive a nonce from block
+height or wall-clock time.
+
+Two clients can read the same `N` and build `N+1`; the chain accepts one. Signatures bind
+the nonce, so a replay is a conflict, not an invitation to resubmit: re-read the nonce,
+invalidate the pending action, rebuild the payload and sign again.
 
 ## Ceremony
 
@@ -57,6 +65,8 @@ The web console stores pending actions and signatures in IndexedDB. The CLI acce
 comma-separated hex signatures:
 
 ```sh
+rshare-cli admin nonce                     # current and next
+rshare-cli admin nonce --root              # governance nonce
 rshare-cli admin payload --domain admin --nonce 12345 --action pauseAll
 rshare-cli --key admin1 admin sign --payload '<text>'
 rshare-cli --key admin1 admin pause-all --nonce 12345 --sig <hex>,<hex>
@@ -64,8 +74,8 @@ rshare-cli --key admin1 admin pause-all --nonce 12345 --sig <hex>,<hex>
 
 ## Limits
 
-There is no global nonce arm, no time-locked governance, no root rotation UI and no
-automatic signature relay. Those are out of scope for this client.
+There is no time-locked governance, no root rotation UI and no automatic signature relay.
+Those are out of scope for this client.
 
 > **Where to go deeper.** [Governance and arbitration](../concepts/governance-and-arbitration.md)
 > is the model. [Arm reference](arms.md) lists the admin arms. [Client

@@ -1,0 +1,38 @@
+
+Running 3 tests using 1 worker
+
+  ✘  1 e2e/admin-multisig.spec.ts:17:1 › two admin profiles sign a global pause and resume (2.1m)
+  ✓  2 e2e/guest-journey.spec.ts:4:1 › a guest funds an account and books a catalogue listing (34.7s)
+  ✓  3 e2e/provider-journey.spec.ts:4:1 › a provider publishes a listing and accepts a guest booking (1.3m)
+
+
+  1) e2e/admin-multisig.spec.ts:17:1 › two admin profiles sign a global pause and resume ───────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('.stat').filter({ hasText: 'Global pause' })
+    Expected substring: "true"
+    Received string:    "Global pausefalse"
+    Timeout: 120000ms
+
+    Call log:
+      - Expect "toContainText" locator('.stat').filter({ hasText: 'Global pause' }) with timeout 120000ms
+      - waiting for locator('.stat').filter({ hasText: 'Global pause' })
+        242 × locator resolved to <div class="stat">…</div>
+            - unexpected value "Global pausefalse"
+
+
+      48 |
+      49 |   const pauseStat = page.locator(".stat", { hasText: "Global pause" });
+    > 50 |   await expect(pauseStat).toContainText("true", { timeout: 120_000 });
+         |                           ^
+      51 |
+      52 |   await page.getByLabel("Action").selectOption("resumeAll");
+      53 |   await page.getByLabel("Nonce").fill(String(pauseNonce + 1));
+        at /home/patrick/RShare/web/e2e/admin-multisig.spec.ts:50:27
+
+    Error Context: test-results/admin-multisig-two-admin-p-6c5d6-n-a-global-pause-and-resume/error-context.md
+
+  1 failed
+    e2e/admin-multisig.spec.ts:17:1 › two admin profiles sign a global pause and resume ────────────
+  2 passed (4.0m)

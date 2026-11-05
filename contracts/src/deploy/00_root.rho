@@ -7,9 +7,11 @@ new
   dops(`rho:rchain:deployerId:ops`),
   deployId(`rho:rchain:deployId`),
   pkCh, uriCh, ack,
-  guardAnySig, guardArgsAppend, guardArgsToString, guardCount, resolveManySeq, verifyAdmin
+  guardAnySig, guardArgsAppend, guardArgsToString, guardCount, resolveManySeq, verifyAdmin,
+  adminsValid
 in {
   // @@INLINE:lib/Guard.rho@@
+  // @@INLINE:lib/AdminSet.rho@@
 
   contract ShareRoot(@"resolve", @key, @minVersion, ret) = {
     for (@s <<- rootState) {
@@ -38,6 +40,12 @@ in {
   contract ShareRoot(@"keys", ret) = {
     for (@s <<- rootState) {
       ret!((true, s.get("entries").keys()))
+    }
+  } |
+
+  contract ShareRoot(@"nonce", ret) = {
+    for (@s <<- rootState) {
+      ret!((true, s.get("govNonce")))
     }
   } |
 
@@ -236,13 +244,19 @@ in {
                         newAdmins => {
                           match args.nth(1) {
                             newThreshold => {
-                              if (newThreshold < 1 || newThreshold > newAdmins.length()) {
-                                rootState!(s) | ret!((false, "threshold"))
-                              } else {
-                                rootState!(s.set("admins", newAdmins)
-                                            .set("threshold", newThreshold)
-                                            .set("govNonce", nonce)) |
-                                ret!((true, Nil))
+                              new avCh in {
+                                adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
+                                for (@av <- avCh) {
+                                  match av {
+                                    (true, Nil) => {
+                                      rootState!(s.set("admins", newAdmins)
+                                                  .set("threshold", newThreshold)
+                                                  .set("govNonce", nonce)) |
+                                      ret!((true, Nil))
+                                    }
+                                    _ => { rootState!(s) | ret!(av) }
+                                  }
+                                }
                               }
                             }
                           }
@@ -252,12 +266,18 @@ in {
                     "setThreshold" => {
                       match args.nth(0) {
                         newThreshold => {
-                          if (newThreshold < 1 || newThreshold > s.get("admins").length()) {
-                            rootState!(s) | ret!((false, "threshold"))
-                          } else {
-                            rootState!(s.set("threshold", newThreshold)
-                                        .set("govNonce", nonce)) |
-                            ret!((true, Nil))
+                          new avCh in {
+                            adminsValid!(s.get("admins"), newThreshold, 0, {}, *avCh) |
+                            for (@av <- avCh) {
+                              match av {
+                                (true, Nil) => {
+                                  rootState!(s.set("threshold", newThreshold)
+                                              .set("govNonce", nonce)) |
+                                  ret!((true, Nil))
+                                }
+                                _ => { rootState!(s) | ret!(av) }
+                              }
+                            }
                           }
                         }
                       }

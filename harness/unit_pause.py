@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 
+import actors
 from assertions import expect, expect_ok, one, root_uri
 from market_fixture import terms
 from preflight import require_devnet
@@ -81,20 +82,22 @@ def main() -> int:
     provider_book = resolve_component("component:provider-book")
     listing_factory = resolve_component("component:listing-factory")
 
-    pause_nonce = block_height()
+    # The admin nonce is global and has no read arm; use a monotonic wall-clock value.
+    pause_nonce = actors.admin_nonce_read() + 1
     paused = one(call_uri(
         admin, "admin",
         f'{pause_nonce}, "pauseAll", [], '
         f'{admin_sigs(keys, "admin", pause_nonce, "pauseAll")}'))
     expect_ok("global pause", paused)
-    expect("isPaused after pause", one(call_uri(admin, "isPaused")), (True, True))
-
-    resume_nonce = pause_nonce + 1
-    resumed = one(call_uri(
-        admin, "admin",
-        f'{resume_nonce}, "resumeAll", [], '
-        f'{admin_sigs(keys, "admin", resume_nonce, "resumeAll")}'))
-    expect_ok("global resume", resumed)
+    try:
+        expect("isPaused after pause", one(call_uri(admin, "isPaused")), (True, True))
+    finally:
+        resume_nonce = actors.admin_nonce_read() + 1
+        resumed = one(call_uri(
+            admin, "admin",
+            f'{resume_nonce}, "resumeAll", [], '
+            f'{admin_sigs(keys, "admin", resume_nonce, "resumeAll")}'))
+        expect_ok("global resume", resumed)
     expect("isPaused after resume", one(call_uri(admin, "isPaused")), (True, False))
 
     owner = keys["deployer"]["address"]
