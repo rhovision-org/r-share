@@ -4,15 +4,16 @@
 from __future__ import annotations
 
 import json
+import time
 
 import actors
-from assertions import expect, expect_ok, expect_refusal
+from assertions import expect, expect_ok, expect_refusal, one
 from preflight import require_devnet
 
 
 def offer(**overrides) -> dict:
     base = {
-        "offerId": "offer:cover:1",
+        "offerId": f"offer:cover:{time.time_ns()}",
         "subjectKind": "booking",
         "useCase": "lodging",
         "product": "asset_protection",
@@ -41,6 +42,38 @@ def offer(**overrides) -> dict:
     }
     base.update(overrides)
     return base
+
+
+def fund_pool(pool_uri: str, amount: int = 200) -> object:
+    actors.ensure_vault("sender")
+    actors.ensure_account("sender")
+    actors.fund("sender", 1_000)
+    term = f"""
+new rl(`rho:registry:lookup`), rootCh, afCh, ac, oCh, wdCh, pCh, ret,
+    deployerId(`rho:rchain:deployerId`), deployId(`rho:rchain:deployId`) in {{
+  rl!(`{actors.rcash_root_uri()}`, *rootCh) |
+  for (Root <- rootCh) {{
+    Root!("resolve", "component:account-factory", 1, *afCh) |
+    for (@(true, afUri, _) <- afCh) {{
+      rl!(afUri, *ac) |
+      for (AccountFactory <- ac) {{
+        AccountFactory!("getOrCreate", "{actors.public("sender")}".hexToBytes(), *oCh) |
+        for (@(true, account, ownerId) <- oCh) {{
+          @account!("withdraw", *deployerId, "REV", {amount}, *wdCh) |
+          for (@(true, payment) <- wdCh) {{
+            rl!(`{pool_uri}`, *pCh) |
+            for (P <- pCh) {{
+              P!("premium", payment, *ret) |
+              for (@r <- ret) {{ deployId!(r) }}
+            }}
+          }}
+        }}
+      }}
+    }}
+  }}
+}}
+"""
+    return one(term, key="sender")
 
 
 def main() -> int:
@@ -77,7 +110,7 @@ def main() -> int:
     again = actors.invoke(book, "publish", f'*dId, {json.dumps(valid)}')
     expect("publish is idempotent for the same hash", again[1:], published[1:])
     different = actors.invoke(book, "publish", f'*dId, {json.dumps(offer(
-        coverageCap=300))}')
+        offerId=offer_id, coverageCap=300))}')
     expect_refusal("same offer id with a new hash", different, "offer exists")
 
     stored = actors.invoke(book, "offer", f'"{offer_id}"')
@@ -94,6 +127,33 @@ def main() -> int:
         book, "publish", f'*dId, {json.dumps(valid)}'), "retired")
     expect_refusal("pause a retired offer", actors.invoke(
         book, "pause", f'*dId, "{offer_id}"'), "retired")
+
+    pool = actors.resolve("component:cover-pool")
+    before = actors.invoke(pool, "info")[1]
+    funded = fund_pool(pool, 200)
+    expect_ok("fund cover pool", funded)
+    info = actors.invoke(pool, "info")[1]
+    expect("pool premium", info.get("premiumIn"),
+           before.get("premiumIn") + 200)
+    expect("pool capital unchanged", info.get("capital"), before.get("capital"))
+    expect("pool outstanding unchanged", info.get("outstanding"),
+           before.get("outstanding"))
+    policy_id = f"policy:cover:{time.time_ns()}"
+    allocated = actors.invoke(
+        pool, "allocate", f'*dId, "{policy_id}", 100')
+    expect_ok("allocate reserved cover", allocated)
+    info = actors.invoke(pool, "info")[1]
+    expect("reserved outstanding", info.get("outstanding"),
+           before.get("outstanding") + 100)
+    expect_refusal("duplicate policy allocation", actors.invoke(
+        pool, "allocate", f'*dId, "{policy_id}", 50'), "policy exists")
+    expect_refusal("allocation above capacity", actors.invoke(
+        pool, "allocate", f'*dId, "policy:cover:over", 1000001'), "capacity")
+    solvency = actors.invoke(pool, "solvency")[1]
+    expect("free cash after reserve", solvency.get("cash"),
+           before.get("capital") + before.get("premiumIn") + 200
+           - before.get("outstanding") - 100)
+    expect("pool solvent", solvency.get("solvent"), True)
     return 0
 
 

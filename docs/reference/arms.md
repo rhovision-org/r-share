@@ -338,3 +338,25 @@ never the counterparty. It also enforces the coverage cap/deductible, premium fl
 window, evidence schema and the K-Asset/insurer pricing fields. `CoverBook` stores an
 immutable offer record keyed by `offerId`; a platform-funded offer must be published by the
 platform owner.
+
+
+## Cover pool — `32_cover_pool.rho`
+
+```
+CoverPool("fund", dId, @payment, ret) -> (true, amount)
+CoverPool("premium", @payment, ret) -> (true, amount)
+CoverPool("allocate", dId, @policyId, @cap, ret)
+  -> (true, policyPurse) | (false, "paused" | "cap" | "policy exists" |
+                                   "capacity" | "solvency")
+CoverPool("release", dId, @policyId, @payment, @paidAmount, ret)
+  -> (true, amount) | (false, "unknown policy")
+CoverPool("close", dId, @policyId, @paidAmount, ret)
+  -> (true, Nil) | (false, "unknown policy")
+CoverPool("info", ret) -> (true, state)
+CoverPool("solvency", ret) -> (true, {cash, outstanding, solvent})
+```
+
+`allocate` moves the cap from the facility purse into a per-policy purse and
+reserves it against capacity and solvency. `release` returns the unused purse
+balance; `close` closes a fully paid policy. All pool mutations except the
+permissionless premium deposit are operator-gated.

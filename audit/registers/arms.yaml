@@ -1,5 +1,5 @@
 schema: rshare.arms/v1
-total: 126
+total: 133
 arms:
 - component: AdminGuard
   arm: verify
@@ -1135,3 +1135,66 @@ arms:
   lean_target: null
   audit_disposition: unmapped
   rationale: Publisher-gated terminal offer state; no new binds.
+- component: CoverPool
+  arm: fund
+  source: contracts/src/deploy/32_cover_pool.rho:37
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Operator-funded facility capital.
+- component: CoverPool
+  arm: premium
+  source: contracts/src/deploy/32_cover_pool.rho:66
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Permissionless premium deposit into the facility purse.
+- component: CoverPool
+  arm: allocate
+  source: contracts/src/deploy/32_cover_pool.rho:88
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Operator-gated reserved cover; capacity and solvency checked.
+- component: CoverPool
+  arm: release
+  source: contracts/src/deploy/32_cover_pool.rho:152
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Return unused reserved cover and close the policy.
+- component: CoverPool
+  arm: close
+  source: contracts/src/deploy/32_cover_pool.rho:197
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Close a fully paid policy without a residual payment.
+- component: CoverPool
+  arm: info
+  source: contracts/src/deploy/32_cover_pool.rho:228
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Read pool accounting.
+- component: CoverPool
+  arm: solvency
+  source: contracts/src/deploy/32_cover_pool.rho:232
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Read free cash, outstanding cover and solvency.

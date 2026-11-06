@@ -19,13 +19,14 @@ account after `40_payments.rho`.
 | 6 | `04_remedy.rho` | `component:remedy` |
 | 7 | `30_cover_terms.rho` | `component:cover-terms` |
 | 8 | `31_cover_offer.rho` | `component:cover-book` |
-| 9 | `10_provider.rho` | `component:provider-book` |
-| 10 | `13_unit.rho` | `component:unit-factory` |
-| 11 | `14_listing_contract.rho` | `component:listing-factory` |
-| 12 | `15_bond.rho` | `component:bond-factory` |
-| 13 | `22_booking_contract.rho` | `component:booking-factory` |
-| 14 | `23_guest_ledger.rho` | `component:guest-ledger-factory` |
-| 15 | `20_booking.rho` | `component:guest-book` |
+| 9 | `32_cover_pool.rho` | `component:cover-pool` |
+| 10 | `10_provider.rho` | `component:provider-book` |
+| 11 | `13_unit.rho` | `component:unit-factory` |
+| 12 | `14_listing_contract.rho` | `component:listing-factory` |
+| 13 | `15_bond.rho` | `component:bond-factory` |
+| 14 | `22_booking_contract.rho` | `component:booking-factory` |
+| 15 | `23_guest_ledger.rho` | `component:guest-ledger-factory` |
+| 16 | `20_booking.rho` | `component:guest-book` |
 
 `20_booking` comes last because GuestBook resolves the guest-ledger factory at runtime;
 `22_booking_contract` comes before the ledger because GuestLedger resolves the booking
@@ -65,6 +66,7 @@ component:guest-ledger-factory
 component:guest-book
 component:cover-terms
 component:cover-book
+component:cover-pool
 ```
 
 `component:listing-contract-factory` and `component:booking-contract-factory` are gone; the

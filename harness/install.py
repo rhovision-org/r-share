@@ -31,6 +31,7 @@ ORDER = [
     "04_remedy.rho",
     "30_cover_terms.rho",
     "31_cover_offer.rho",
+    "32_cover_pool.rho",
     "10_provider.rho",
     "13_unit.rho",
     "14_listing_contract.rho",

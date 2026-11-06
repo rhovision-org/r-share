@@ -200,6 +200,15 @@
         "CoverTerms",
         "Payments"
       ]
+    },
+    "CoverPool": {
+      "file": "32_cover_pool.rho",
+      "state_cells": [
+        "coverPoolState"
+      ],
+      "depends_on": [
+        "Payments"
+      ]
     }
   }
 }

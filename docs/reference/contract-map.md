@@ -18,6 +18,7 @@ per object. The arm signatures are in the [arm reference](arms.md); the install 
 | `04_remedy.rho` | Remedy |
 | `30_cover_terms.rho` | CoverTerms |
 | `31_cover_offer.rho` | CoverBook |
+| `32_cover_pool.rho` | CoverPool |
 | `40_payments.rho` | Payments |
 | `10_provider.rho` | ProviderBook, ProviderContract |
 | `13_unit.rho` | UnitFactory (stateless schedule helpers) |
@@ -41,6 +42,7 @@ per object. The arm signatures are in the [arm reference](arms.md); the install 
 | Remedy | `04_remedy.rho` | none | stateless arithmetic |
 | CoverTerms | `30_cover_terms.rho` | none | stateless offer validation/hash |
 | CoverBook | `31_cover_offer.rho` | `coverBookState` | singleton offer index |
+| CoverPool | `32_cover_pool.rho` | `coverPoolState` | operator-controlled facility purse |
 | Payments | `40_payments.rho` | `paymentsState` | singleton r-cash adapter |
 | ProviderBook | `10_provider.rho` | `providerBookState` | singleton index |
 | ProviderContract | `10_provider.rho` | `providerState` | one per provider |
@@ -65,6 +67,7 @@ ShareRoot
   +-- Remedy
   +-- CoverTerms ---- Codec
   +-- CoverBook ---- CoverTerms / Payments
+  +-- CoverPool ---- Payments
   +-- Payments ---- r-cash Root (account-factory, asset-resolver, clock)
   +-- ProviderBook ---- ProviderContract
   +-- ListingFactory ---- ListingContractFactory ---- ListingContract
@@ -91,7 +94,7 @@ arm entry; no registry capability is cached in a bundle.
 
 ## Where the code lives
 
-- `contracts/src/deploy/` — the 15 terms above.
+- `contracts/src/deploy/` — the 16 terms above.
 - `contracts/src/lib/` — `Auth` (inlined into owner-gated terms), `AdminGuard` (the
   shared wrapper inlined into the four terms that verify admin signatures), `AdminsText`
   (canonicalises an admin list because the node has no list `toString`), `AdminSet`
