@@ -1,5 +1,5 @@
 schema: rshare.improvements/v1
-total: 22
+total: 23
 improvements:
 - id: R-001
   priority: P0
@@ -397,3 +397,25 @@ improvements:
   rollout_stage: wave 1
   rollback: revert source
   status: implemented
+- id: R-023
+  priority: P1
+  findings: []
+  hazards:
+  - HZ-041
+  - HZ-042
+  - HZ-043
+  - HZ-044
+  - HZ-045
+  - HZ-046
+  - HZ-047
+  - HZ-048
+  change: add a two-sided cover engine (CoverOffer/CoverPolicy/CoverClaim/CoverPool), deposit modes, premium payer rule, K-Asset variance pricing and r-sure facility/reinsurance boundary, generalised across booking, ticket, session and service-contract subjects
+  type: source/abi
+  breaking: true
+  migration: new cover components and subject schema v3; Terms stays 20 fields; clean install, no in-place migration
+  compatibility_window: cover policies coexist with cash-deposit bookings; old subjects keep current semantics
+  tests: []
+  lean: null
+  rollout_stage: cover-phase-1
+  rollback: disable cover offers and keep the cash-deposit path; revert new components
+  status: proposed

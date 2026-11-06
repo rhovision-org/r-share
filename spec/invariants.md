@@ -6,7 +6,8 @@
 3. A booking has exactly one terminal outcome (`settled`, `rejected`, `cancelled`,
    `expired`, `noShow`, `noShowRefunded`).
 4. For each asset, `Σ r-cash account balances + Σ booking escrow purses` is invariant under
-   every operation.
+   every operation. When cover is enabled, the closed set also includes every cover pool
+   purse and provider/platform reserve sub-ledger; premiums and claim payouts conserve.
 5. A terminal booking's settlement buckets sum to `rent + deposit`.
 6. A slot is confirmed or released only for the release token that holds it. Release is a
    cleanup: it frees every requested slot the token still owns and ignores reclaimed keys.
@@ -19,6 +20,26 @@
     reset are listing arms under the same owner check. No owner id is accepted as an argument.
 11. A terminal settlement releases the booking's slots under its release token before the
     Bond pays. A slot is not left booked after the service ends.
+12. A cover premium is paid by the insured or the platform, never by the counterparty.
+13. Premium conservation: commission + facility/pool legs + reserves equal the premium paid;
+    no money is created by a cover offer or policy.
+14. Claim conservation: `depositPart + coverPart + otherRecovery` equals the award and never
+    exceeds the assessed loss; a second policy pays only the unrecovered excess of the same
+    `lossId`.
+15. Pool solvency: `cash >= solvencyBps * outstandingCover / 10000`; an insolvent pool
+    refuses `"solvency"` before moving value and the subject remains retryable.
+16. A cover claim cannot reopen a terminal booking/ticket/session/service contract.
+17. Only the subject contract's private cover token can authorize a pool payout; a party
+    cannot pay itself.
+18. A quoted subject premium is never below the facility's loaded-premium floor.
+19. `approval.liability.shareBps` is an indemnity/co-insurance input, not an engineering
+    variance signal.
+20. The cover engine is subject-kind agnostic: booking, ticket, session and service contract
+    share one policy state machine; use case is configuration.
+21. An evidence hash is an anchor, not proof; adjudication remains a trust point.
+
+Cover invariants 12–21 are design obligations for the Phase 1+ implementation. They are not
+yet in the Lean model or the flow manifest.
 
 ## Formal status
 

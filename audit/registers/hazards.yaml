@@ -1,5 +1,5 @@
 schema: rshare.hazards/v1
-total: 40
+total: 48
 hazards:
 - id: HZ-001
   node: N09
@@ -984,3 +984,195 @@ hazards:
   owner: contracts
   evidence:
   - contracts/src/deploy/22_booking_contract.rho:143
+- id: HZ-041
+  node: N05
+  arm: CoverPolicy@"bind"
+  guide_word: other_than
+  parameter: premium payer
+  deviation: the counterparty pays the premium for a policy it does not benefit from
+  causes:
+  - offer validation does not enforce payer in insured/platform
+  - bundle or client passes a payer id directly
+  consequences:
+    on_chain: premium charged to the wrong party
+    operational: consumer harm and disputed cover
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: high
+  controls: offer and bind validate payerRole; client display names payer; SDK rejects counterparty payer
+  findings: []
+  tests: []
+  lean: null
+  disposition: open
+  owner: cover
+  evidence:
+  - spec/cover.md
+- id: HZ-042
+  node: N15
+  arm: BookingContract@"claimCover"
+  guide_word: more
+  parameter: recovery
+  deviation: deposit, provider cover and a guest waiver all pay the same loss
+  causes:
+  - no shared lossId across policies
+  - settlement and cover claim do not reconcile
+  consequences:
+    on_chain: overcompensation and pool drain
+    operational: moral hazard
+    safety: none
+  severity: S3
+  likelihood: L2
+  risk: critical
+  controls: one lossId; depositPart + coverPart + otherRecovery == award; second policy pays only unrecovered excess
+  findings: []
+  tests: []
+  lean: null
+  disposition: open
+  owner: cover
+  evidence:
+  - spec/cover.md
+- id: HZ-043
+  node: N05
+  arm: CoverPool@"pay"
+  guide_word: less
+  parameter: solvency
+  deviation: pool pays a claim after cash falls below the required solvency ratio
+  causes:
+  - no solvency check before pay
+  - correlated losses exceed reserves
+  consequences:
+    on_chain: later claims are unfunded
+    operational: provider/guest loss and platform liability
+    safety: none
+  severity: S3
+  likelihood: L2
+  risk: critical
+  controls: solvency check before value moves; fail closed; pause new binds; top-up/reinsurance
+  findings: []
+  tests: []
+  lean: null
+  disposition: open
+  owner: cover
+  evidence:
+  - spec/cover-economics.md
+- id: HZ-044
+  node: N11
+  arm: GuestLedger@"bookWithCover"
+  guide_word: as_well_as
+  parameter: effective deposit
+  deviation: certificate sets an effective deposit above Terms.deposit or below zero
+  causes:
+  - offer not tied to terms hash
+  - factory does not revalidate the effective deposit
+  consequences:
+    on_chain: under-collateralized booking or negative deposit
+    operational: provider/guest dispute
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: high
+  controls: 0 <= d <= Terms.deposit; offerHash and termsHash checked at bind; factory revalidates
+  findings: []
+  tests: []
+  lean: null
+  disposition: open
+  owner: cover
+  evidence:
+  - spec/cover.md
+- id: HZ-045
+  node: N03
+  arm: CoverOffer@"publish"
+  guide_word: other_than
+  parameter: pricing input
+  deviation: liability share is priced as engineering variance or a quote undercuts the floor
+  causes:
+  - pricing adapter uses the old varianceRate signature
+  - manual premium bypasses loadedPremium
+  consequences:
+    on_chain: mispriced cover and pool shortfall
+    operational: provider pays for QA it already has
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: high
+  controls: pin r-sure c450072; engineeringBps excludes liability share; premiumTotal >= premiumFloor; gap disclosed
+  findings: []
+  tests: []
+  lean: null
+  disposition: open
+  owner: cover
+  evidence:
+  - spec/cover-pricing.md
+- id: HZ-046
+  node: N15
+  arm: CoverPolicy@"pay"
+  guide_word: later
+  parameter: terminality
+  deviation: a cover claim reopens or repays a terminal booking
+  causes:
+  - cover settlement is not tied to the subject terminal op
+  - retry after booking settled
+  consequences:
+    on_chain: second payout and inconsistent status
+    operational: reconciliation failure
+    safety: none
+  severity: S3
+  likelihood: L2
+  risk: high
+  controls: coverToken only callable inside terminal settlement; terminal check before pay; paidFor idempotency
+  findings: []
+  tests: []
+  lean: null
+  disposition: open
+  owner: cover
+  evidence:
+  - spec/cover.md
+- id: HZ-047
+  node: N05
+  arm: CoverPool@"refundPremium"
+  guide_word: reverse
+  parameter: premium refund
+  deviation: premium is refunded after cover starts or after a claim is filed
+  causes:
+  - refund and claim race
+  - no start-height/claim guard
+  consequences:
+    on_chain: premium refund plus claim payout
+    operational: pool loss
+    safety: none
+  severity: S2
+  likelihood: L1
+  risk: medium
+  controls: refund only before coverStartHeight and before a claim; once per policy; replay guard
+  findings: []
+  tests: []
+  lean: null
+  disposition: open
+  owner: cover
+  evidence:
+  - spec/cover.md
+- id: HZ-048
+  node: N19
+  arm: CoverOffer@"publish"
+  guide_word: other_than
+  parameter: product characterization
+  deviation: a protection product is presented as regulated insurance or a guaranteed payout
+  causes:
+  - marketing copy and UI labels overclaim
+  - no legal wrapper
+  consequences:
+    on_chain: none
+    operational: regulatory and consumer-protection exposure
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: high
+  controls: protection-programme language; no regulated-insurer claim; legal review before real money; disclose deductible/cap/denial
+  findings: []
+  tests: []
+  lean: null
+  disposition: open
+  owner: product
+  evidence:
+  - spec/cover.md
