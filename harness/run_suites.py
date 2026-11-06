@@ -46,13 +46,14 @@ SUITES = {
     "provider_index": "unit_provider_index.py",
     "cutoffs": "unit_cutoffs.py",
     "bond_refusals": "unit_bond_refusals.py",
+    "cover": "unit_cover.py",
 }
 DEFAULT = ["root", "payments", "lifecycle", "claims", "pricing", "guestbook",
            "booking", "pause", "allocator", "admin", "events", "generality",
            "provider", "listing", "behavior", "conservation",
            "reset_safety", "settle_release", "no_show_contest", "event_timing",
            "admin_keys", "pause_scope", "cell_liveness", "factory_auth",
-           "provider_index", "cutoffs", "bond_refusals"]
+           "provider_index", "cutoffs", "bond_refusals", "cover"]
 
 
 def run(name: str) -> dict:

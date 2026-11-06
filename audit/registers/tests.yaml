@@ -1,5 +1,5 @@
 schema: rshare.tests/v1
-total: 17
+total: 18
 tests:
 - id: T-RESET
   name: reset safety
@@ -86,3 +86,8 @@ tests:
   file: harness/unit_settle_release.py
   status: passing
   focus: settle, resolveDeposit and closeEvent free the slot; no double release
+- id: T-COVER
+  name: cover terms and offers
+  file: harness/unit_cover.py
+  status: passing
+  focus: payer rule, pricing floor, offer publish/pause/retire, hash and replay

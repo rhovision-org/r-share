@@ -1,0 +1,224 @@
+// CoverBook: publish, pause and retire two-sided protection offers.
+// Placeholders: __ROOT_URI__.
+new
+  CoverBook, coverBookState,
+  rl(`rho:registry:lookup`),
+  rs(`rho:registry:insertArbitrary`),
+  deployerId(`rho:rchain:deployerId`),
+  deployId(`rho:rchain:deployId`),
+  rootCh, c, a1,
+  resolveComponent, authOwner, authIsOwner
+in {
+contract resolveComponent(@key, ret) = {
+  new rCh, Root, kCh in {
+    rl!(`__ROOT_URI__`, *rCh) |
+    for (Root <- rCh) {
+      Root!("resolve", key, 1, *kCh) |
+      for (@r <- kCh) {
+        match r {
+          (true, uri, _) => {
+            new cCh in {
+              rl!(uri, *cCh) |
+              for (C <- cCh) { ret!((true, *C)) }
+            }
+          }
+          _ => { ret!((false, "unavailable", key)) }
+        }
+      }
+    }
+  }
+} |
+// Deployer identity helpers. r-cash owns accounts; r-share only derives the owner id.
+
+contract authOwner(dId, ret) = {
+  new dops(`rho:rchain:deployerId:ops`), rev(`rho:rev:address`), pkCh, addrCh in {
+    dops!("pubKeyBytes", *dId, *pkCh) |
+    for (@pk <- pkCh) {
+      rev!("fromPublicKey", pk, *addrCh) |
+      for (@addr <- addrCh) { ret!((true, addr)) }
+    }
+  }
+} |
+
+contract authIsOwner(dId, @ownerId, ret) = {
+  new c in {
+    authOwner!(*dId, *c) |
+    for (@r <- c) {
+      match r {
+        (true, addr) => {
+          if (addr == ownerId) { ret!((true, Nil)) }
+          else { ret!((false, "not owner")) }
+        }
+        _ => { ret!((false, "not owner")) }
+      }
+    }
+  }
+} |
+
+  contract CoverBook(@"publish", dId, @offer, ret) = {
+    new oCh in {
+      authOwner!(*dId, *oCh) |
+      for (@o <- oCh) {
+        match o {
+          (true, publisherId) => {
+            new tCh, pCh, poCh, vCh, hCh in {
+              resolveComponent!("component:cover-terms", *tCh) |
+              for (@t <- tCh) {
+                match t {
+                  (true, CoverTerms) => {
+                    resolveComponent!("component:payments", *pCh) |
+                    for (@p <- pCh) {
+                      match p {
+                        (true, Payments) => {
+                          @Payments!("platformOwner", *poCh) |
+                          for (@po <- poCh) {
+                            match po {
+                              (true, platform) => {
+                                if (offer.get("publisherId") != publisherId) {
+                                  ret!((false, "publisher"))
+                                } else if (offer.get("payer") == "platform"
+                                           && publisherId != platform) {
+                                  ret!((false, "platform"))
+                                } else {
+                                  @CoverTerms!("validate", offer, *vCh) |
+                                  for (@v <- vCh) {
+                                    match v {
+                                      (true, Nil) => {
+                                        @CoverTerms!("hash", offer, *hCh) |
+                                        for (@h <- hCh) {
+                                          match h {
+                                            (true, digest) => {
+                                              for (@s <- coverBookState) {
+                                                match s.get(offer.get("offerId")) {
+                                                  Nil => {
+                                                    coverBookState!(s.set(offer.get("offerId"), {
+                                                      "offer": offer,
+                                                      "offerHash": digest,
+                                                      "publisherId": publisherId,
+                                                      "status": "active"
+                                                    })) |
+                                                    ret!((true, offer.get("offerId"), digest))
+                                                  }
+                                                  entry => {
+                                                    coverBookState!(s) |
+                                                    if (entry.get("status") == "retired") {
+                                                      ret!((false, "retired"))
+                                                    } else if (entry.get("offerHash") == digest) {
+                                                      ret!((true, offer.get("offerId"), digest))
+                                                    } else {
+                                                      ret!((false, "offer exists"))
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                            _ => { ret!(h) }
+                                          }
+                                        }
+                                      }
+                                      _ => { ret!(v) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { ret!((false, "payments")) }
+                            }
+                          }
+                        }
+                        _ => { ret!((false, "payments")) }
+                      }
+                    }
+                  }
+                  _ => { ret!((false, "cover terms")) }
+                }
+              }
+            }
+          }
+          _ => { ret!(o) }
+        }
+      }
+    }
+  } |
+
+  contract CoverBook(@"offer", @offerId, ret) = {
+    for (@s <<- coverBookState) {
+      match s.get(offerId) {
+        Nil => { ret!((false, "unknown offer")) }
+        entry => { ret!((true, entry)) }
+      }
+    }
+  } |
+
+  contract CoverBook(@"offers", ret) = {
+    for (@s <<- coverBookState) { ret!((true, s)) }
+  } |
+
+  contract CoverBook(@"pause", dId, @offerId, ret) = {
+    new oCh in {
+      authOwner!(*dId, *oCh) |
+      for (@o <- oCh) {
+        match o {
+          (true, publisherId) => {
+            for (@s <- coverBookState) {
+              match s.get(offerId) {
+                Nil => { coverBookState!(s) | ret!((false, "unknown offer")) }
+                entry => {
+                  if (entry.get("publisherId") != publisherId) {
+                    coverBookState!(s) | ret!((false, "publisher"))
+                  } else if (entry.get("status") == "retired") {
+                    coverBookState!(s) | ret!((false, "retired"))
+                  } else if (entry.get("status") == "paused") {
+                    coverBookState!(s) | ret!((true, Nil))
+                  } else {
+                    coverBookState!(s.set(offerId, entry.set("status", "paused"))) |
+                    ret!((true, Nil))
+                  }
+                }
+              }
+            }
+          }
+          _ => { ret!(o) }
+        }
+      }
+    }
+  } |
+
+  contract CoverBook(@"retire", dId, @offerId, ret) = {
+    new oCh in {
+      authOwner!(*dId, *oCh) |
+      for (@o <- oCh) {
+        match o {
+          (true, publisherId) => {
+            for (@s <- coverBookState) {
+              match s.get(offerId) {
+                Nil => { coverBookState!(s) | ret!((false, "unknown offer")) }
+                entry => {
+                  if (entry.get("publisherId") != publisherId) {
+                    coverBookState!(s) | ret!((false, "publisher"))
+                  } else if (entry.get("status") == "retired") {
+                    coverBookState!(s) | ret!((true, Nil))
+                  } else {
+                    coverBookState!(s.set(offerId, entry.set("status", "retired"))) |
+                    ret!((true, Nil))
+                  }
+                }
+              }
+            }
+          }
+          _ => { ret!(o) }
+        }
+      }
+    }
+  } |
+
+  coverBookState!({}) |
+
+  rl!(`__ROOT_URI__`, *rootCh) |
+  for (Root <- rootCh) {
+    rs!(bundle+{*CoverBook}, *c) |
+    for (@uri <- c) {
+      Root!("register", "component:cover-book", uri, 1, "cover", *deployerId, *a1) |
+      for (@r1 <- a1) { deployId!([uri]) }
+    }
+  }
+}

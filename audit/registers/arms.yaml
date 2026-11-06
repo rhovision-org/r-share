@@ -1,5 +1,5 @@
 schema: rshare.arms/v1
-total: 119
+total: 126
 arms:
 - component: AdminGuard
   arm: verify
@@ -1072,3 +1072,66 @@ arms:
   lean_target: null
   audit_disposition: unmapped
   rationale: Read-only projection of the governance nonce; not in the cornerstone flow manifest.
+- component: CoverTerms
+  arm: validate
+  source: contracts/src/deploy/30_cover_terms.rho:27
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Pure cover-offer validation; enforces the premium-payer rule and pricing bounds.
+- component: CoverTerms
+  arm: hash
+  source: contracts/src/deploy/30_cover_terms.rho:112
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Canonical cover-offer hash via the deployed Codec.
+- component: CoverBook
+  arm: publish
+  source: contracts/src/deploy/31_cover_offer.rho:15
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Publisher-authenticated offer publication; platform payer requires the platform owner.
+- component: CoverBook
+  arm: offer
+  source: contracts/src/deploy/31_cover_offer.rho:100
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Read one cover offer.
+- component: CoverBook
+  arm: offers
+  source: contracts/src/deploy/31_cover_offer.rho:109
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Read the offer index.
+- component: CoverBook
+  arm: pause
+  source: contracts/src/deploy/31_cover_offer.rho:113
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Publisher-gated pause; existing policies continue.
+- component: CoverBook
+  arm: retire
+  source: contracts/src/deploy/31_cover_offer.rho:143
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Publisher-gated terminal offer state; no new binds.

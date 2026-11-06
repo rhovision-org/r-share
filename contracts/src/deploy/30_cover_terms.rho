@@ -1,0 +1,145 @@
+// CoverTerms: validate and hash a two-sided protection offer.
+// Placeholders: __ROOT_URI__.
+new
+  CoverTerms,
+  rl(`rho:registry:lookup`),
+  rs(`rho:registry:insertArbitrary`),
+  deployerId(`rho:rchain:deployerId`),
+  deployId(`rho:rchain:deployId`),
+  rootCh, c, a1,
+  resolveComponent, coverIn
+in {
+  // @@INLINE:lib/Resolve.rho@@
+
+  contract coverIn(@v, @list, @i, ret) = {
+    if (i >= list.length()) {
+      ret!(false)
+    } else {
+      match list.nth(i) {
+        x => {
+          if (v == x) { ret!(true) }
+          else { coverIn!(v, list, i + 1, *ret) }
+        }
+      }
+    }
+  } |
+
+  contract CoverTerms(@"validate", @o, ret) = {
+    new prCh, skCh, ucCh, trCh, deCh, pmCh in {
+      coverIn!(o.get("product"),
+               ["asset_protection", "liability", "booking_guarantee",
+                "income_cover", "performance", "purchase_default",
+                "purchase_nondelivery", "fraud"], 0, *prCh) |
+      coverIn!(o.get("subjectKind"),
+               ["booking", "ticket", "session", "service_contract"], 0, *skCh) |
+      coverIn!(o.get("useCase"),
+               ["lodging", "events", "ticketing", "bike_share",
+                "car_rental", "raas"], 0, *ucCh) |
+      coverIn!(o.get("trigger"),
+               ["damage", "cancellation", "non_delivery",
+                "performance_shortfall", "liability", "fraud", "default"],
+               0, *trCh) |
+      coverIn!(o.get("depositEffect"),
+               ["none", "reduce_to_deductible", "remove"], 0, *deCh) |
+      coverIn!(o.get("pricingMode"), ["kasset", "insurer-only"], 0, *pmCh) |
+      for (@pr <- prCh; @sk <- skCh; @uc <- ucCh; @tr <- trCh;
+           @de <- deCh; @pm <- pmCh) {
+        if (o.get("offerId") == Nil || o.get("offerId") == "") {
+          ret!((false, "offer"))
+        } else if (o.get("publisherId") == Nil || o.get("publisherId") == "") {
+          ret!((false, "publisher"))
+        } else if (pr == false) {
+          ret!((false, "product"))
+        } else if (sk == false) {
+          ret!((false, "subject"))
+        } else if (uc == false) {
+          ret!((false, "use case"))
+        } else if (tr == false) {
+          ret!((false, "trigger"))
+        } else if (o.get("payer") != "insured" && o.get("payer") != "platform") {
+          ret!((false, "payer"))
+        } else if (o.get("payer") == "platform"
+                   && o.get("payerRole") != "platform") {
+          ret!((false, "payer"))
+        } else if (o.get("payer") == "insured"
+                   && o.get("payerRole") != o.get("insuredRole")) {
+          ret!((false, "payer"))
+        } else if (o.get("beneficiaryRole") == Nil
+                   || o.get("beneficiaryRole") == "") {
+          ret!((false, "beneficiary"))
+        } else if (o.get("coverageCap") == Nil || o.get("coverageCap") < 1) {
+          ret!((false, "coverage cap"))
+        } else if (o.get("deductible") == Nil || o.get("deductible") < 0
+                   || o.get("deductible") >= o.get("coverageCap")) {
+          ret!((false, "deductible"))
+        } else if (o.get("premiumFloor") == Nil || o.get("premiumFloor") < 0) {
+          ret!((false, "premium"))
+        } else if (o.get("premiumTotal") == Nil
+                   || o.get("premiumTotal") < o.get("premiumFloor")) {
+          ret!((false, "premium"))
+        } else if (o.get("claimWindowBlocks") == Nil
+                   || o.get("claimWindowBlocks") < 0) {
+          ret!((false, "window"))
+        } else if (de == false) {
+          ret!((false, "deposit effect"))
+        } else if (o.get("evidenceSchema") == Nil
+                   || o.get("evidenceSchema") == "") {
+          ret!((false, "evidence"))
+        } else if (pm == false) {
+          ret!((false, "pricing"))
+        } else if (o.get("pricingMode") == "kasset"
+                   && (o.get("kassetUri") == Nil || o.get("kassetUri") == "")) {
+          ret!((false, "kasset"))
+        } else if (o.get("engineeringBps") == Nil
+                   || o.get("engineeringBps") < 0
+                   || o.get("engineeringBps") > 9000) {
+          ret!((false, "engineering"))
+        } else if (o.get("insurerVarianceBps") == Nil
+                   || o.get("insurerVarianceBps") < 0
+                   || o.get("insurerVarianceBps") > 10000) {
+          ret!((false, "variance"))
+        } else if (o.get("loadBps") == Nil
+                   || o.get("loadBps") < 0
+                   || o.get("loadBps") > 10000) {
+          ret!((false, "load"))
+        } else {
+          ret!((true, Nil))
+        }
+      }
+    }
+  } |
+
+  contract CoverTerms(@"hash", @o, ret) = {
+    new cCh in {
+      resolveComponent!("component:codec", *cCh) |
+      for (@r <- cCh) {
+        match r {
+          (true, Codec) => {
+            @Codec!("hash", "rshare:cover:v1", [
+              o.get("offerId"), o.get("subjectKind"), o.get("useCase"),
+              o.get("product"), o.get("trigger"), o.get("insuredRole"),
+              o.get("beneficiaryRole"), o.get("payerRole"), o.get("payer"),
+              o.get("assetClass"), o.get("assetId"), o.get("coverageCap"),
+              o.get("deductible"), o.get("claimWindowBlocks"),
+              o.get("evidenceSchema"), o.get("depositEffect"),
+              o.get("kassetUri"), o.get("engineeringBps"),
+              o.get("insurerVarianceBps"), o.get("loadBps"),
+              o.get("expectedLoss"), o.get("premiumFloor"),
+              o.get("premiumTotal"), o.get("gapBps"), o.get("pricingMode")
+            ], *ret)
+          }
+          _ => { ret!(r) }
+        }
+      }
+    }
+  } |
+
+  rl!(`__ROOT_URI__`, *rootCh) |
+  for (Root <- rootCh) {
+    rs!(bundle+{*CoverTerms}, *c) |
+    for (@uri <- c) {
+      Root!("register", "component:cover-terms", uri, 1, "cover", *deployerId, *a1) |
+      for (@r1 <- a1) { deployId!([uri]) }
+    }
+  }
+}

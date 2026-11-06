@@ -1,13 +1,13 @@
 {
   "schema": "rshare.traceability/v1",
   "summary": {
-    "arms": 119,
+    "arms": 126,
     "arms_with_flow_rule": 31,
     "arms_with_hazard": 30,
     "hazards": 48,
     "findings": 21,
     "improvements": 23,
-    "tests": 17
+    "tests": 18
   },
   "arms": [
     {
@@ -1743,6 +1743,97 @@
       "component": "ShareRoot",
       "arm": "nonce",
       "source": "contracts/src/deploy/00_root.rho:46",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverTerms",
+      "arm": "validate",
+      "source": "contracts/src/deploy/30_cover_terms.rho:27",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverTerms",
+      "arm": "hash",
+      "source": "contracts/src/deploy/30_cover_terms.rho:112",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverBook",
+      "arm": "publish",
+      "source": "contracts/src/deploy/31_cover_offer.rho:15",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverBook",
+      "arm": "offer",
+      "source": "contracts/src/deploy/31_cover_offer.rho:100",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverBook",
+      "arm": "offers",
+      "source": "contracts/src/deploy/31_cover_offer.rho:109",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverBook",
+      "arm": "pause",
+      "source": "contracts/src/deploy/31_cover_offer.rho:113",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverBook",
+      "arm": "retire",
+      "source": "contracts/src/deploy/31_cover_offer.rho:143",
       "visibility": "public",
       "flow_rule": null,
       "flow_status": "unmapped",

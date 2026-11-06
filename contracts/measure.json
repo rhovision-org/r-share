@@ -70,6 +70,16 @@
       "depth": 33,
       "contracts": 24
     },
+    "30_cover_terms.rho": {
+      "bytes": 4699,
+      "depth": 11,
+      "contracts": 3
+    },
+    "31_cover_offer.rho": {
+      "bytes": 4344,
+      "depth": 30,
+      "contracts": 4
+    },
     "40_payments.rho": {
       "bytes": 5487,
       "depth": 24,

@@ -316,3 +316,25 @@ BookingContract("setAdmins", @nonce, @newAdmins, @newThreshold, @sigs, ret) -> (
 > **Where to go deeper.** [Contract map](contract-map.md) is the component list. [Data
 > schemas](data-schemas.md) is the state shapes. [Bookings and lifecycle](../concepts/bookings-and-lifecycle.md)
 > is the transition model.
+
+## Cover terms and offers — `30_cover_terms.rho`, `31_cover_offer.rho`
+
+```
+CoverTerms("validate", @offer, ret) -> (true, Nil) | (false, reason)
+CoverTerms("hash", @offer, ret) -> (true, digest)
+
+CoverBook("publish", dId, @offer, ret) -> (true, offerId, digest)
+  | (false, "publisher" | "platform" | "payer" | "premium" | "offer exists" | "retired")
+CoverBook("offer", @offerId, ret) -> (true, entry) | (false, "unknown offer")
+CoverBook("offers", ret) -> (true, offers)
+CoverBook("pause", dId, @offerId, ret) -> (true, Nil)
+  | (false, "publisher" | "unknown offer" | "retired")
+CoverBook("retire", dId, @offerId, ret) -> (true, Nil)
+  | (false, "publisher" | "unknown offer")
+```
+
+`CoverTerms` enforces the premium-payer rule: the payer is the insured or the platform,
+never the counterparty. It also enforces the coverage cap/deductible, premium floor, claim
+window, evidence schema and the K-Asset/insurer pricing fields. `CoverBook` stores an
+immutable offer record keyed by `offerId`; a platform-funded offer must be published by the
+platform owner.

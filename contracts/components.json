@@ -183,6 +183,23 @@
       "depends_on": [
         "Payments"
       ]
+    },
+    "CoverTerms": {
+      "file": "30_cover_terms.rho",
+      "state_cells": [],
+      "depends_on": [
+        "Codec"
+      ]
+    },
+    "CoverBook": {
+      "file": "31_cover_offer.rho",
+      "state_cells": [
+        "coverBookState"
+      ],
+      "depends_on": [
+        "CoverTerms",
+        "Payments"
+      ]
     }
   }
 }
