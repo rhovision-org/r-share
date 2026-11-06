@@ -21,6 +21,7 @@ settlement scenarios over a closed balance set. `providerDeliveryBreach` and
 | **Planned** | A design-only feature or a future suite; no placeholder runner remains. |
 | **Mapping only** | No dedicated suite; the use case rides the shared contract path and is unverified. |
 | **Design intent** | Roadmap or north-star direction; not implemented. |
+| **Experimental demo** | Implemented source exercised only under an explicit demo profile; not default, not insurance and not production-safe. |
 | **Out of scope** | Deliberately not in this repository. |
 
 Never read "implemented" as "tested", "audited", "production-ready" or "battle-tested". Those
@@ -30,7 +31,7 @@ words are reserved for a recorded command and artifact.
 
 | Area | Evidence |
 |---|---|
-| 13 install terms | `make build`, `make measure`, `make parse-check` |
+| 14 safe install terms (19 with the experimental cover demo) | `make build`, `make measure`, `make parse-check` |
 | Component catalogue and state cells | `make check-arch` |
 | No `select`, no capability captures, no unknown placeholders | `make check-select`, `make check-captures`, `make check-placeholders` |
 | Integer money only | `make check-money` |

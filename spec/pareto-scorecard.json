@@ -18,7 +18,7 @@
     "deploy_terms": 19,
     "components": 27,
     "state_cell_types": 15,
-    "bytes_max": 34193,
+    "bytes_max": 34465,
     "arm_declarations": 164,
     "root_resolve_sites": 4,
     "registry_lookup_sites": 49
@@ -29,7 +29,7 @@
       "coverage_passing": 20,
       "coverage_total": 30,
       "trust": 3,
-      "bytes_max": 34193,
+      "bytes_max": 34465,
       "components": 27,
       "state_cell_types": 15,
       "measured": true

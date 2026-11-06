@@ -147,7 +147,13 @@ contract resolveComponent(@key, ret) = {
               }
             }
           }
-          _ => { ret!((false, "cover pool")) }
+          _ => {
+            new rCh in {
+              coverRelease!(ctx.get("listingUri"), ctx.get("unitSlots"),
+                            *releaseToken, *rCh) |
+              for (@_ <- rCh) { ret!((false, "cover pool")) }
+            }
+          }
         }
       }
     }

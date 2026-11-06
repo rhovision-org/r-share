@@ -34,6 +34,11 @@ def main() -> int:
         for dep in entry.get("depends_on", []):
             if dep not in components:
                 errors.append(f"{name}: unknown dependency {dep}")
+            elif components[dep].get("experimental") and not entry.get("experimental"):
+                errors.append(f"{name}: hard dependency on experimental {dep}")
+        for dep in entry.get("optional_depends_on", []):
+            if dep not in components:
+                errors.append(f"{name}: unknown optional dependency {dep}")
 
     for path in DEPLOY.glob("*.rho"):
         if path.name not in files:

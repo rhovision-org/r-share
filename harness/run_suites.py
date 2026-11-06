@@ -49,14 +49,13 @@ SUITES = {
     "cover": "unit_cover.py",
     "cover_policy": "unit_cover_policy.py",
     "cover_booking": "unit_cover_booking.py",
+    "cover_disabled": "unit_cover_disabled.py",
 }
-DEFAULT = ["root", "payments", "lifecycle", "claims", "pricing", "guestbook",
-           "booking", "pause", "allocator", "admin", "events", "generality",
-           "provider", "listing", "behavior", "conservation",
-           "reset_safety", "settle_release", "no_show_contest", "event_timing",
-           "admin_keys", "pause_scope", "cell_liveness", "factory_auth",
-           "provider_index", "cutoffs", "bond_refusals", "cover",
-           "cover_policy", "cover_booking"]
+EXPERIMENTAL = {"cover", "cover_policy", "cover_booking"}
+SAFE_ONLY = {"cover_disabled"}
+AUDIT = set()
+SAFE_CORE = sorted(set(SUITES) - EXPERIMENTAL - SAFE_ONLY - AUDIT)
+DEFAULT = SAFE_CORE + sorted(SAFE_ONLY)
 
 
 def run(name: str) -> dict:
@@ -89,8 +88,10 @@ def run(name: str) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--suites", default=",".join(DEFAULT),
-                    help="comma-separated suite names (default: implemented suites)")
+    ap.add_argument("--suites", default=None,
+                    help="comma-separated suite names (default: profile suites)")
+    ap.add_argument("--experimental", action="store_true",
+                    help="run SAFE_CORE plus the experimental cover suites")
     ap.add_argument("--list", action="store_true")
     args = ap.parse_args(argv)
 
@@ -99,7 +100,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{name:12} {script}")
         return 0
 
-    names = [name.strip() for name in args.suites.split(",") if name.strip()]
+    default_names = SAFE_CORE + sorted(EXPERIMENTAL) if args.experimental else DEFAULT
+    selected = args.suites if args.suites is not None else ",".join(default_names)
+    names = [name.strip() for name in selected.split(",") if name.strip()]
     unknown = [name for name in names if name not in SUITES]
     if unknown:
         print(f"run_suites: unknown suites {unknown}", file=sys.stderr)
@@ -108,6 +111,8 @@ def main(argv: list[str] | None = None) -> int:
     results = [run(name) for name in names]
     payload = {
         "node": os.environ.get("RSHARE_NODE", "http://localhost:40403"),
+        "profile": "cover-demo" if args.experimental else "safe",
+        "experimental": args.experimental,
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "results": results,
     }

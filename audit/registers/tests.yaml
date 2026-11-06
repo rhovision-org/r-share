@@ -1,5 +1,5 @@
 schema: rshare.tests/v1
-total: 20
+total: 21
 tests:
 - id: T-RESET
   name: reset safety
@@ -101,3 +101,8 @@ tests:
   file: harness/unit_cover_booking.py
   status: passing
   focus: reduced deposit, bind, Bond, attach, claim, deposit settlement, cover close
+- id: T-COVER-DISABLED
+  name: safe profile cover disabled
+  file: harness/unit_cover_disabled.py
+  status: passing
+  focus: cover keys absent, plain escrow full deposit, bookWithCover refusal, op recovery

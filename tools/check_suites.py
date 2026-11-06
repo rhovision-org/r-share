@@ -18,7 +18,6 @@ sys.path.insert(0, str(ROOT / "harness"))
 import run_suites  # noqa: E402
 
 ALLOWED_TARGETS = {"unit_all"}
-OPT_IN_PREFIX = "audit_"
 SCAN = [ROOT / "README.md", ROOT / "docs", ROOT / "spec", ROOT / "audit"]
 SUITE_REF = re.compile(r"`(unit[-_][a-z0-9_-]+)`")
 
@@ -34,15 +33,34 @@ def check_files() -> list[str]:
     if missing:
         errors.append(f"suite files not mapped in run_suites.SUITES: {missing}")
     keys = set(run_suites.SUITES)
-    default_expected = {key for key in keys if not key.startswith(OPT_IN_PREFIX)}
-    missing_default = sorted(default_expected - set(run_suites.DEFAULT))
-    if missing_default:
-        errors.append(f"suites missing from run_suites.DEFAULT: {missing_default}")
-    unknown_default = sorted(set(run_suites.DEFAULT) - keys)
-    if unknown_default:
-        errors.append(f"DEFAULT names unknown suites: {unknown_default}")
-    if len(run_suites.DEFAULT) != len(default_expected):
-        errors.append("run_suites.DEFAULT is not the full non-audit SUITES map")
+    groups = {
+        "SAFE_CORE": set(run_suites.SAFE_CORE),
+        "SAFE_ONLY": set(run_suites.SAFE_ONLY),
+        "EXPERIMENTAL": set(run_suites.EXPERIMENTAL),
+        "AUDIT": set(run_suites.AUDIT),
+    }
+    seen: dict[str, str] = {}
+    for name, group in groups.items():
+        unknown = sorted(group - keys)
+        if unknown:
+            errors.append(f"{name} names unknown suites: {unknown}")
+        for key in group:
+            if key in seen:
+                errors.append(f"suite {key} is in both {seen[key]} and {name}")
+            seen[key] = name
+    missing_group = sorted(keys - set(seen))
+    if missing_group:
+        errors.append(f"suites not assigned to a profile group: {missing_group}")
+    safe_expected = groups["SAFE_CORE"] | groups["SAFE_ONLY"]
+    if set(run_suites.DEFAULT) != safe_expected:
+        missing = sorted(safe_expected - set(run_suites.DEFAULT))
+        extra = sorted(set(run_suites.DEFAULT) - safe_expected)
+        if missing:
+            errors.append(f"suites missing from run_suites.DEFAULT: {missing}")
+        if extra:
+            errors.append(f"DEFAULT contains non-safe suites: {extra}")
+    if groups["EXPERIMENTAL"] & set(run_suites.DEFAULT):
+        errors.append("experimental suites must not be in run_suites.DEFAULT")
     return errors
 
 

@@ -223,17 +223,14 @@ def check_coverage(errors: list[str]) -> tuple[int, int]:
         if entry.get("file") and entry["file"] not in contract_map:
             fail(errors, CONTRACT_MAP, 1, f"missing deploy file: {entry['file']}")
 
-    install_text = INSTALL.read_text()
-    tree = ast.parse(install_text)
-    order = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Assign) and any(
-                isinstance(t, ast.Name) and t.id == "ORDER" for t in node.targets):
-            order = ast.literal_eval(node.value)
+    sys.path.insert(0, str(ROOT / "harness"))
+    import profiles
     keys_text = INSTALL_KEYS.read_text() if INSTALL_KEYS.is_file() else ""
-    for filename in order:
-        if filename not in keys_text:
-            fail(errors, INSTALL_KEYS, 1, f"missing install term: {filename}")
+    for profile, order in profiles.PROFILES.items():
+        for filename in order:
+            if filename not in keys_text:
+                fail(errors, INSTALL_KEYS, 1,
+                     f"missing install term ({profile}): {filename}")
 
     root_keys = set()
     for path in (ROOT / "contracts" / "src" / "deploy").glob("*.rho"):

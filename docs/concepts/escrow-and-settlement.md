@@ -1,6 +1,8 @@
 # Escrow and settlement
 
-> **Status:** Implemented. **Applies to:** every paid booking.
+> **Status:** Implemented; this is the default safe mode. **Applies to:** every paid booking.
+> The experimental cover demo can reduce the deposit only when explicitly installed and
+> called through `bookWithCover`; it is not part of this default path.
 
 r-cash is the payments rail. r-share does not mint, custody or clear its own asset. It holds
 a per-booking ERTP purse and settles exact buckets into r-cash account deposit facets.

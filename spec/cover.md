@@ -1,11 +1,10 @@
 # Two-sided cover
 
-> **Status:** Partial implementation. `CoverTerms`, `CoverBook`, `CoverPool`, the
-> `CoverPolicy`/`CoverSettle` capabilities and the atomic `bookWithCover`/`attachCover`
-> booking flow are implemented and tested on the isolated devnet. Claim adjudication is
-> operator-authorized; the fixed claim-token primitive is implemented but the booking path
-> currently pays through the operator. Client types and the platform-funded/guest-paid
-> variants are not implemented.
+> **Status:** Experimental demo. The cover engine is installed only by the explicit
+> `cover-demo` profile; plain escrow is the default safe mode. It uses provider reserves and
+> operator-authorized fixed claim tokens, with r-sure pricing conventions; no r-sure contract
+> is deployed. It is not insurance, not audited and not production-safe. Client types and the
+> platform-funded/guest-paid variants are not implemented.
 
 ## Purpose
 

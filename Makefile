@@ -12,10 +12,10 @@ export RHOLO_DIR := $(abspath $(RHOLO_DIR))
 .PHONY: venv build build-check measure measure-check metrics metrics-compare \
         metrics-baseline check-arch check-captures check-select check-placeholders \
         audit-campaign check-money check-suites check-allocator spec-check parse-check docs docs-serve docs-check devnet devnet-up \
-        devnet-wait down status rcash-install rcash-keys rcash-bootstrap keys install setup unit-root unit-payments \
+        devnet-wait down status rcash-install rcash-keys rcash-bootstrap keys install install-cover-demo setup setup-cover unit-root unit-payments \
         unit-provider unit-listing unit-booking unit-allocator unit-lifecycle \
         unit-claims unit-pricing unit-guestbook unit-events unit-admin unit-pause \
-        unit-generality unit-conservation unit-behavior unit-all \
+        unit-generality unit-conservation unit-behavior unit-all unit-all-cover \
         check ci clean lean-build lean-check vectors vectors-write check-flows check-flows-strict formal-check \
         audit-check audit-trace audit-trace-check check-audit check-arm-inventory audit-dynamic \
         client-lint client-test client-wasm client-wasm-smoke client-gates client-check \
@@ -89,7 +89,12 @@ spec-check: build-check measure-check metrics-compare check-arch check-captures 
             check-no-oracle check-suites check-allocator pareto-check
 
 parse-check:
-	$(PY) harness/install.py --dry-run
+	$(PY) harness/install.py --dry-run --profile safe
+	$(PY) harness/install.py --dry-run --profile cover-demo
+	tools/parse_check.sh contracts/build/*.rho .devnet/rendered/*.rho
+
+parse-check-cover-demo:
+	$(PY) harness/install.py --dry-run --profile cover-demo
 	tools/parse_check.sh contracts/build/*.rho .devnet/rendered/*.rho
 
 docs:
@@ -133,9 +138,13 @@ keys:
 		--from-path $(RCASH_DIR)/.devnet/keys.json
 
 install:
-	$(PY) harness/install.py --node $(NODE)
+	$(PY) harness/install.py --node $(NODE) --profile safe
+
+install-cover-demo:
+	$(PY) harness/install.py --node $(NODE) --profile cover-demo
 
 setup: devnet-up rcash-keys rcash-bootstrap keys install
+setup-cover: devnet-up rcash-keys rcash-bootstrap keys install-cover-demo
 
 audit-campaign:
 	tools/audit_campaign.sh
@@ -176,6 +185,9 @@ unit-behavior:
 # The runner reports pass / fail / not-run and writes deployments/suite-results.json.
 unit-all:
 	$(PY) harness/run_suites.py
+
+unit-all-cover:
+	$(PY) harness/run_suites.py --experimental
 
 lean-build:
 	cd spec/lean && lake build

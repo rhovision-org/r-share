@@ -9,14 +9,27 @@ set by dripping on demand.
 from __future__ import annotations
 
 import json
+import sys
 import time
 from pathlib import Path
 
-from assertions import one, root_call, root_uri
+from assertions import manifest, one, root_call, root_uri
 
 import deploy as node
 
 PING = 'new deployId(`rho:rchain:deployId`) in { deployId!(1) }'
+
+
+def profile() -> str:
+    return manifest().get("profile", "safe")
+
+
+def require_profile(expected: str) -> bool:
+    actual = profile()
+    if actual == expected:
+        return True
+    print(f"preflight: profile {actual!r}, expected {expected!r}; not run", file=sys.stderr)
+    return False
 
 def _nonce_reply(reply, label: str) -> int:
     if (

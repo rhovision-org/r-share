@@ -39,6 +39,8 @@ def main() -> int:
     print("unit-cover-booking")
     if not require_devnet("unit-cover-booking"):
         return 2
+    if not actors.require_profile("cover-demo"):
+        return 2
 
     market = market_fixture.Market(
         "coverbooking", deposit_review_blocks=100, dispute_window_blocks=2).setup()
@@ -98,9 +100,10 @@ def main() -> int:
 
     policy_uri = booking.get("cover").get("policyUri")
     claim_id = booking.get("bookingId")
-    expect_ok("operator pays cover", actors.invoke(
-        policy_uri, "pay",
-        f'*dId, "{claim_id}", "{claim_id}", 50, 60, 10, "damage"'))
+    expect_ok("authorize and attach claim token", single(one(
+        authorize_attach_term(policy_uri, booking_uri, claim_id, claim_id,
+                              50, 60, 10),
+        key="deployer", phlo_limit=4_000_000)))
 
     actors.wait_height(actors.block_height() + 4)
     provider_before = actors.balance(provider)
@@ -109,8 +112,8 @@ def main() -> int:
     settle = actors.invoke(booking_uri, "info")[1]
     expect("booking settled", settle.get("status"), "settled")
     expect("cover closed", settle.get("cover").get("status"), "closed")
-    expect("provider receives rent plus deposit", actors.balance(provider),
-           provider_before + settle.get("rent") + offer["deductible"])
+    expect("provider receives rent and full loss", actors.balance(provider),
+           provider_before + settle.get("rent") + 60)
     expect("guest deposit consumed", actors.bond_balance(booking.get("bondUri")), 0)
     policy = actors.invoke(policy_uri, "info")[1]
     expect("policy closed", policy.get("status"), "settled")

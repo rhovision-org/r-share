@@ -20,29 +20,12 @@ sys.path.insert(0, str(ROOT / "tools"))
 import deploy as node  # noqa: E402
 import preflight  # noqa: E402
 from minify_rho import minify  # noqa: E402
+from profiles import COVER_KEYS, COVER_DEMO_TERMS, DEFAULT_PROFILE, PROFILES  # noqa: E402
 from rcash_paths import configured_manifest  # noqa: E402
 
-ORDER = [
-    "00_root.rho",
-    "01_kernel.rho",
-    "02_admin.rho",
-    "40_payments.rho",
-    "03_terms.rho",
-    "04_remedy.rho",
-    "30_cover_terms.rho",
-    "31_cover_offer.rho",
-    "33_cover_policy.rho",
-    "32_cover_pool.rho",
-    "10_provider.rho",
-    "13_unit.rho",
-    "14_listing_contract.rho",
-    "15_bond.rho",
-    "34_booking_instance.rho",
-    "22_booking_contract.rho",
-    "23_guest_ledger.rho",
-    "24_guest_ledger_cover.rho",
-    "20_booking.rho",
-]
+SAFE_ORDER = PROFILES["safe"]
+COVER_ORDER = PROFILES["cover-demo"]
+ORDER = COVER_ORDER  # compatibility for older tools; profile selection is authoritative
 
 
 def load_json(path: Path) -> dict:
@@ -111,13 +94,40 @@ def admin_literal(keys: dict, dev_single_key: bool) -> str:
     return "[" + ", ".join(f'"{key}".hexToBytes()' for key in distinct[:3]) + "]"
 
 
+def verify_profile(profile: str) -> None:
+    """Fail closed on a partial cover install."""
+    sys.path.insert(0, str(ROOT / "harness"))
+    import actors
+    present = []
+    for key in COVER_KEYS:
+        try:
+            actors.resolve(key)
+            present.append(True)
+        except Exception:
+            present.append(False)
+    if profile == DEFAULT_PROFILE:
+        if any(present):
+            raise SystemExit("install: safe profile has cover components installed")
+    elif not all(present):
+        missing = [key for key, ok in zip(COVER_KEYS, present) if not ok]
+        raise SystemExit(f"install: cover-demo profile is incomplete: missing {missing}")
+    print(f"install: profile {profile} verified ({sum(present)}/{len(COVER_KEYS)} cover keys)")
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--node", default=None)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--dev-single-key", action="store_true",
                     help="allow a 2-of-3 set built from one devnet key (never for production)")
+    ap.add_argument("--profile", choices=sorted(PROFILES), default=DEFAULT_PROFILE,
+                    help="install profile; safe is the default")
+    ap.add_argument("--experimental-cover", action="store_true",
+                    help="alias for --profile cover-demo")
     args = ap.parse_args(argv)
+    if args.experimental_cover:
+        args.profile = "cover-demo"
+    order = PROFILES[args.profile]
 
     if args.node:
         node.NODE = args.node
@@ -163,13 +173,13 @@ def main(argv: list[str] | None = None) -> int:
     rendered_dir.mkdir(parents=True, exist_ok=True)
     if args.dry_run:
         for stale in rendered_dir.glob("*.rho"):
-            if stale.name not in ORDER:
+            if stale.name not in order:
                 stale.unlink()
     state: dict[str, str] = {}
     root_uri = "rho:id:dryrun" if args.dry_run else None
     secret = keys["deployer"]["secret"]
 
-    for name in ORDER:
+    for name in order:
         source = build / name
         if not source.is_file():
             raise SystemExit(f"install: missing {source}; run `make build`")
@@ -220,8 +230,14 @@ def main(argv: list[str] | None = None) -> int:
     if not args.dry_run:
         manifest = ROOT / cfg.get("manifest", "deployments/devnet.json")
         manifest.parent.mkdir(parents=True, exist_ok=True)
+        state["profile"] = args.profile
+        state["experimental"] = args.profile != DEFAULT_PROFILE
+        state["install_order"] = order
         manifest.write_text(json.dumps({"root_uri": root_uri, **state}, indent=2) + "\n")
         print(f"install: wrote {manifest}")
+        verify_profile(args.profile)
+        if args.profile != DEFAULT_PROFILE:
+            print("install: EXPERIMENTAL cover demo; not insurance, not production-safe")
     return 0
 
 

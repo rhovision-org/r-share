@@ -38,7 +38,7 @@ Do not put real value on it.
 
 | Area | Status |
 |---|---|
-| 13 install terms build, measure, and parse with the target node parser | Implemented |
+| 14 safe install terms build, measure, and parse with the target node parser | Implemented |
 | Static gates (`make spec-check`) | Passing |
 | 16 behavioural suites | Passing on a fresh devnet; see [Verification](reference/verification.md) |
 | Allocator cornerstone | `make formal-check`; Lean model, vectors and flow manifest (`proved-model`) |
@@ -55,7 +55,7 @@ throughout the book.
 
 | Path | Contents |
 |---|---|
-| `contracts/src/deploy/` | the 13 deployable Rholang terms |
+| `contracts/src/deploy/` | 14 safe deploy terms; 19 with the experimental cover demo |
 | `contracts/src/lib/` | fragments inlined at build time (`Auth`, `Guard`, `Terms`, `Money`) |
 | `contracts/build/` | generated, committed, drift-checked deploy terms |
 | `harness/` | installer, devnet driver, fixtures, behavioural suites |

@@ -38,7 +38,7 @@ primitive repo owns none of those. That is the point:
 
 - **Forkable.** Copy the contracts and the harness into your own repository. Rename it.
   Change the terms and the policy branch. Keep the parts that already work.
-- **Auditable.** The surface is 13 deploy terms, four shared fragments and a small policy
+- **Auditable.** The safe surface is 14 deploy terms (19 with the experimental cover demo), four shared fragments and a small policy
   contract. You can read all of it.
 - **Composable.** A letting product, an events product and a fleet product can share the
   same escrow and settlement code while having completely different front ends.

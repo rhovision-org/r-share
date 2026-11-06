@@ -80,6 +80,8 @@ def main() -> int:
     print("unit-cover")
     if not require_devnet("unit-cover"):
         return 2
+    if not actors.require_profile("cover-demo"):
+        return 2
 
     terms = actors.resolve("component:cover-terms")
     book = actors.resolve("component:cover-book")

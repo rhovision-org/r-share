@@ -101,7 +101,7 @@ arm entry; no registry capability is cached in a bundle.
 
 ## Where the code lives
 
-- `contracts/src/deploy/` — the 16 terms above.
+- `contracts/src/deploy/` — the 19 terms above (14 safe, 5 experimental cover).
 - `contracts/src/lib/` — `Auth` (inlined into owner-gated terms), `AdminGuard` (the
   shared wrapper inlined into the four terms that verify admin signatures), `AdminsText`
   (canonicalises an admin list because the node has no list `toString`), `AdminSet`

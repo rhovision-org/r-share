@@ -32,6 +32,10 @@ account after `40_payments.rho`.
 | 19 | `20_booking.rho` | `component:guest-book` |
 ---|---|
 
+The default **safe** profile installs 14 terms and omits `30`, `31`, `33`, `32` and `24`.
+The **cover-demo** experimental profile installs all 19 terms. Profiles are per-chain; use a
+fresh chain to switch.
+
 `20_booking` comes last because GuestBook resolves the guest-ledger factory at runtime;
 `34_booking_instance` comes before `22_booking_contract` because the booking factory
 resolves the instance factory; `24_guest_ledger_cover` follows the ledger because the

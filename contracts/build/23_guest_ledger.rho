@@ -387,8 +387,10 @@ contract authIsOwner(dId, @ownerId, ret) = {
                         "instantBook": listing.get("terms").get("instantBook"),
                         "cover": {
                           "policyUri": "", "policyId": "", "offerId": "",
-                          "cap": 0, "deductible": 0, "effectiveDeposit": 0,
-                          "termsDeposit": 0, "mode": "none", "status": "none",
+                          "cap": 0, "deductible": 0,
+                          "effectiveDeposit": listing.get("terms").get("deposit"),
+                          "termsDeposit": listing.get("terms").get("deposit"),
+                          "mode": "none", "status": "none",
                           "claimId": "", "lossId": "", "depositPart": 0,
                           "coverPart": 0, "coverExpiresAtHeight": 0
                         }
@@ -579,7 +581,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                                                   GuestLedgerDrop!(
                                                                     *ledgerState,
                                                                     opId) |
-                                                                  ret2!((false, "cover"))
+                                                                  ret2!((false, "cover disabled"))
                                                                 }
                                                               }
                                                             }

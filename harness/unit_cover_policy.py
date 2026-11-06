@@ -156,6 +156,8 @@ def main() -> int:
     print("unit-cover-policy")
     if not require_devnet("unit-cover-policy"):
         return 2
+    if not actors.require_profile("cover-demo"):
+        return 2
 
     market = market_fixture.Market("coverpolicy").setup()
     provider = market.provider

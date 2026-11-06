@@ -1,7 +1,7 @@
 {
   "deploy_terms": 19,
-  "bytes_total": 176647,
-  "bytes_max": 34193,
+  "bytes_total": 177113,
+  "bytes_max": 34465,
   "depth_max": 42,
   "contracts_max": 35,
   "components": 27,
@@ -67,12 +67,12 @@
       "contracts": 2
     },
     "23_guest_ledger.rho": {
-      "bytes": 12504,
+      "bytes": 12581,
       "depth": 38,
       "contracts": 24
     },
     "24_guest_ledger_cover.rho": {
-      "bytes": 9478,
+      "bytes": 9595,
       "depth": 27,
       "contracts": 15
     },
@@ -97,7 +97,7 @@
       "contracts": 14
     },
     "34_booking_instance.rho": {
-      "bytes": 34193,
+      "bytes": 34465,
       "depth": 42,
       "contracts": 33
     },

@@ -28,7 +28,7 @@ off-chain database.
 
 | Path | Contents |
 |---|---|
-| `contracts/src/deploy/` | 13 deployable Rholang terms (root, terms/remedy, capacity, bond, booking, payments) |
+| `contracts/src/deploy/` | 14 safe deploy terms; 19 with the experimental cover demo |
 | `contracts/src/lib/` | build-time fragments (`Auth` inline; `Guard` only for the bootstrap Root; `Money` into Remedy) |
 | `harness/` | installer, devnet driver, fixtures, behavioural suites |
 | `crates/` | `rshare-core`, `rshare-sdk`, `rshare-keystore`, `rshare-cli`, `rshare-wasm` |
@@ -39,12 +39,21 @@ off-chain database.
 | `docs/` | the mdBook source; `docs/book/` is generated and ignored |
 | `book.toml` | mdBook configuration |
 
+## Safety modes
+
+**Plain escrow is the default and the safe mode.** `make setup` installs only the 14 safe
+terms; a booking holds `rent + Terms.deposit` in the Bond and no cover component exists.
+The cover engine is an **experimental demo** in the `cover-demo` profile (`make setup-cover`).
+It uses provider reserves and operator-authorized fixed claim tokens with r-sure pricing
+conventions; no r-sure contract is deployed. It is not insurance, not audited and not
+production-safe, and no SDK/CLI/web cover surface is exposed.
+
 ## Status
 
 Devnet-only, unaudited, and pinned to r-cash v0.5 at commit `49b441d`. Do not put real value
 on it.
 
-The 13 install terms build, measure, and parse with the target node's own parser;
+The 14 safe install terms build, measure and parse with the target node's own parser;
 `make spec-check` passes. On 2026-11-03 a fresh devnet built from rholo `e2d073d` with
 r-cash `49b441d` recorded 16 passing suites: `unit_root`, `unit_payments`,
 `unit_lifecycle`, `unit_claims`, `unit_pricing`, `unit_guestbook`, `unit_booking`,

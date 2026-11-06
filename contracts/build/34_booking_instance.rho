@@ -404,7 +404,12 @@ contract bookingResolve(@key, ret) = {
                         claimTokenCell!("get", *tCh) |
                         for (@(true, Token) <- tCh) {
                           @Token!("pay", *pCh) |
-                          for (@p <- pCh) { ret2!(p) }
+                          for (@p <- pCh) {
+                            match p {
+                              (true, _) => { ret2!((true, Nil)) }
+                              _ => { ret2!(p) }
+                            }
+                          }
                         }
                       }
                     } |
@@ -609,6 +614,10 @@ contract bookingResolve(@key, ret) = {
                                     && cv.get("policyId") == policyId) {
                                   bookingState!(st) |
                                   ret2!((true, Nil))
+                                } else if (cv.get("mode") == "none"
+                                           || cv.get("status") == "none") {
+                                  bookingState!(st) |
+                                  ret2!((false, "cover disabled"))
                                 } else if (cv.get("status") != "pending") {
                                   bookingState!(st) |
                                   ret2!((false, "cover"))
@@ -690,6 +699,7 @@ contract bookingResolve(@key, ret) = {
                                                                       .set("claimId", claimId)
                                                                       .set("depositPart", depositPart)
                                                                       .set("coverPart", coverPart)) |
+                                                                    bookingState!(st) |
                                                                     ret2!((true, Nil))
                                                                   }
                                                                 }
@@ -1271,7 +1281,12 @@ contract bookingResolve(@key, ret) = {
                                                         bcRefuse!(st, "cover", *ret2)
                                                       } else {
                                                         new paidCh in {
-                                                          bcCoverPaid!(cv, coverPart, *paidCh) |
+                                                          if (coverPart > 0) {
+                                                            bcCoverPay!(st, st.get("bookingId"),
+                                                                        coverPart, *paidCh)
+                                                          } else {
+                                                            paidCh!((true, Nil))
+                                                          } |
                                                           for (@p <- paidCh) {
                                                             match p {
                                                               (true, Nil) => {
