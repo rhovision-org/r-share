@@ -1,7 +1,9 @@
 # Two-sided cover
 
-> **Status:** Design. Phase 0 specification for the r-sure-backed protection layer. No
-> contract arm, state cell or client type in this document is implemented yet.
+> **Status:** Partial implementation. `CoverTerms`, `CoverBook`, `CoverPool` and the
+> Phase 1a `CoverPolicy`/`CoverSettle` capability are implemented and tested on the isolated
+> devnet. Booking/deposit integration (`bookWithCover`, `attachCover`, claim settlement) is
+> Phase 1b and remains design. Client types are not implemented.
 
 ## Purpose
 

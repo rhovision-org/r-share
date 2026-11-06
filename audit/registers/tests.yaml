@@ -1,5 +1,5 @@
 schema: rshare.tests/v1
-total: 18
+total: 19
 tests:
 - id: T-RESET
   name: reset safety
@@ -91,3 +91,8 @@ tests:
   file: harness/unit_cover.py
   status: passing
   focus: payer rule, pricing floor, offer publish/pause/retire, hash and replay
+- id: T-COVER-POLICY
+  name: cover policy and settlement
+  file: harness/unit_cover_policy.py
+  status: passing
+  focus: reserve, bind/bindReserved, exact premium, pay/settle/expire, loss ledger, release token, redaction

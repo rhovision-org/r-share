@@ -1,5 +1,5 @@
 schema: rshare.hazards/v1
-total: 48
+total: 54
 hazards:
 - id: HZ-001
   node: N09
@@ -1174,5 +1174,155 @@ hazards:
   lean: null
   disposition: open
   owner: product
+  evidence:
+  - spec/cover.md
+- id: HZ-049
+  node: N19
+  arm: CoverPolicy@"attach"
+  guide_word: other_than
+  parameter: release and claim capabilities
+  deviation: a policy token is exposed through a public channel or info map and can be replayed by the wrong party
+  causes:
+  - token returned to a deployer-visible channel
+  - token or attach key included in info
+  consequences:
+    on_chain: unauthorized release or payout
+    operational: loss of reserve
+    safety: pool insolvency
+  severity: S1
+  likelihood: L2
+  risk: high
+  controls: settleToken attach key; private reply channel; claim token operator-authorized; redacted info
+  findings: []
+  tests:
+  - T-COVER-POLICY
+  lean: null
+  disposition: mitigate
+  owner: cover
+  evidence:
+  - spec/cover.md
+  - contracts/src/deploy/33_cover_policy.rho
+- id: HZ-050
+  node: N19
+  arm: CoverPool@"bindReserved"
+  guide_word: premature
+  parameter: reduced-deposit booking
+  deviation: a booking gets a reduced deposit before its policy is attached
+  causes:
+  - bind and attach in separate deploys
+  - attach failure ignored
+  consequences:
+    on_chain: under-collateralized provider
+    operational: unpaid claim
+    safety: none
+  severity: S1
+  likelihood: L2
+  risk: high
+  controls: acquire, bind, Bond, booking and attach in one deploy; 1/0 rollback; attach one-time
+  findings: []
+  tests:
+  - T-COVER-POLICY
+  lean: null
+  disposition: mitigate
+  owner: cover
+  evidence:
+  - spec/cover.md
+- id: HZ-051
+  node: N19
+  arm: CoverPolicy@"authorize"
+  guide_word: other_than
+  parameter: remove-mode deductible
+  deviation: cover pays the provider deductible instead of leaving it as first loss
+  causes:
+  - coverPart computed as loss minus deposit only
+  consequences:
+    on_chain: overpayment from the pool
+    operational: mispriced cover
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: deductibleRemaining = max(0, deductible - effectiveDeposit); maxClaim includes it
+  findings: []
+  tests:
+  - T-COVER-POLICY
+  lean: null
+  disposition: mitigate
+  owner: cover
+  evidence:
+  - spec/cover-economics.md
+- id: HZ-052
+  node: N19
+  arm: CoverSettle@"pay"
+  guide_word: more_than
+  parameter: loss recovery
+  deviation: two policies pay more than the assessed loss for the same loss id
+  causes:
+  - claim-id-only idempotency
+  - no shared loss ledger
+  consequences:
+    on_chain: over-recovery
+    operational: fraud
+    safety: pool loss
+  severity: S1
+  likelihood: L2
+  risk: high
+  controls: losses[lossId] with assessed, nonCoverRecovery and paid; check before payout
+  findings: []
+  tests:
+  - T-COVER-POLICY
+  lean: null
+  disposition: mitigate
+  owner: cover
+  evidence:
+  - spec/invariants.md
+- id: HZ-053
+  node: N19
+  arm: CoverPolicy@"expire"
+  guide_word: other_than
+  parameter: reserved cover
+  deviation: unclaimed cover remains reserved forever because only the operator can expire
+  causes:
+  - operator unavailable
+  - no permissionless expiry
+  consequences:
+    on_chain: stranded cap
+    operational: capacity exhaustion
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: permissionless expire after expiresAtHeight; settle returns remainder
+  findings: []
+  tests:
+  - T-COVER-POLICY
+  lean: null
+  disposition: mitigate
+  owner: cover
+  evidence:
+  - spec/cover.md
+- id: HZ-054
+  node: N19
+  arm: CoverPool@"bindReserved"
+  guide_word: other_than
+  parameter: provider reserve
+  deviation: an unattached bind consumes a provider's reserve premium without a real booking
+  causes:
+  - permissionless reserve debit
+  - reserve not capped
+  consequences:
+    on_chain: reserve drain
+    operational: provider cost
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: provider-published offer; paused/retired offers stop binds; reserve cap; expiry; monitor
+  findings: []
+  tests:
+  - T-COVER-POLICY
+  lean: null
+  disposition: open
+  owner: cover
   evidence:
   - spec/cover.md

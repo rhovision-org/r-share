@@ -18,6 +18,7 @@ per object. The arm signatures are in the [arm reference](arms.md); the install 
 | `04_remedy.rho` | Remedy |
 | `30_cover_terms.rho` | CoverTerms |
 | `31_cover_offer.rho` | CoverBook |
+| `33_cover_policy.rho` | CoverPolicyFactory |
 | `32_cover_pool.rho` | CoverPool |
 | `40_payments.rho` | Payments |
 | `10_provider.rho` | ProviderBook, ProviderContract |
@@ -42,6 +43,7 @@ per object. The arm signatures are in the [arm reference](arms.md); the install 
 | Remedy | `04_remedy.rho` | none | stateless arithmetic |
 | CoverTerms | `30_cover_terms.rho` | none | stateless offer validation/hash |
 | CoverBook | `31_cover_offer.rho` | `coverBookState` | singleton offer index |
+| CoverPolicyFactory | `33_cover_policy.rho` | — | per-policy purse, release token and claim token |
 | CoverPool | `32_cover_pool.rho` | `coverPoolState` | operator-controlled facility purse |
 | Payments | `40_payments.rho` | `paymentsState` | singleton r-cash adapter |
 | ProviderBook | `10_provider.rho` | `providerBookState` | singleton index |
@@ -67,7 +69,8 @@ ShareRoot
   +-- Remedy
   +-- CoverTerms ---- Codec
   +-- CoverBook ---- CoverTerms / Payments
-  +-- CoverPool ---- Payments
+  +-- CoverPool ---- Payments / Clock / CoverBook / CoverPolicyFactory
+  +-- CoverPolicyFactory ---- Payments / Clock
   +-- Payments ---- r-cash Root (account-factory, asset-resolver, clock)
   +-- ProviderBook ---- ProviderContract
   +-- ListingFactory ---- ListingContractFactory ---- ListingContract

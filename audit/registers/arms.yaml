@@ -1,5 +1,5 @@
 schema: rshare.arms/v1
-total: 133
+total: 152
 arms:
 - component: AdminGuard
   arm: verify
@@ -1198,3 +1198,174 @@ arms:
   lean_target: null
   audit_disposition: unmapped
   rationale: Read free cash, outstanding cover and solvency.
+- component: CoverPool
+  arm: reserve
+  source: contracts/src/deploy/32_cover_pool.rho:578
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Provider-funded reserve held by the facility; no policy created.
+- component: CoverPool
+  arm: bind
+  source: contracts/src/deploy/32_cover_pool.rho:641
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Paid bind; exact premium, offer/listing checks, reserved cap and policy spawn.
+- component: CoverPool
+  arm: bindReserved
+  source: contracts/src/deploy/32_cover_pool.rho:706
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Atomic booking bind; debits the provider reserve after guest auth.
+- component: CoverPool
+  arm: policy
+  source: contracts/src/deploy/32_cover_pool.rho:860
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Read one redacted policy entry.
+- component: CoverSettle
+  arm: attach
+  source: contracts/src/deploy/32_cover_pool.rho:364
+  visibility: capability
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Private attach channel; verifies the settleToken-derived key.
+- component: CoverSettle
+  arm: pay
+  source: contracts/src/deploy/32_cover_pool.rho:388
+  visibility: capability
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Private accounting channel; enforces the loss ledger and remaining cap.
+- component: CoverSettle
+  arm: settle
+  source: contracts/src/deploy/32_cover_pool.rho:436
+  visibility: capability
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Private settlement channel; measures the returned payment against the cap.
+- component: CoverSettle
+  arm: settleEmpty
+  source: contracts/src/deploy/32_cover_pool.rho:476
+  visibility: capability
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Private settlement channel for a fully paid policy.
+- component: CoverPolicyFactory
+  arm: spawn
+  source: contracts/src/deploy/33_cover_policy.rho:14
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Creates a per-policy purse, release token and private settle channel.
+- component: CoverPolicy
+  arm: pay
+  source: contracts/src/deploy/33_cover_policy.rho:326
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Operator manual payout only for an unattached policy.
+- component: CoverPolicy
+  arm: authorize
+  source: contracts/src/deploy/33_cover_policy.rho:348
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Operator mints a fixed claim token after evidence review.
+- component: CoverPolicy
+  arm: settle
+  source: contracts/src/deploy/33_cover_policy.rho:404
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Operator releases an unattached policy.
+- component: CoverPolicy
+  arm: expire
+  source: contracts/src/deploy/33_cover_policy.rho:424
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Permissionless release after the expiry height.
+- component: CoverPolicy
+  arm: attach
+  source: contracts/src/deploy/33_cover_policy.rho:428
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Attaches to the booking with its settleToken key and returns the release token.
+- component: CoverPolicy
+  arm: info
+  source: contracts/src/deploy/33_cover_policy.rho:434
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Redacted policy metadata; no purse, key or token names.
+- component: CoverToken
+  arm: settle
+  source: contracts/src/deploy/33_cover_policy.rho:319
+  visibility: capability
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Release capability held by the booking; never authorizes payout.
+- component: CoverToken
+  arm: info
+  source: contracts/src/deploy/33_cover_policy.rho:322
+  visibility: capability
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Release token metadata.
+- component: claimToken
+  arm: pay
+  source: contracts/src/deploy/33_cover_policy.rho:373
+  visibility: capability
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Fixed claim token; pays once, cannot change amount or beneficiary.
+- component: claimToken
+  arm: info
+  source: contracts/src/deploy/33_cover_policy.rho:378
+  visibility: capability
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Fixed claim metadata.

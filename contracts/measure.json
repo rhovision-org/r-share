@@ -81,9 +81,14 @@
       "contracts": 4
     },
     "32_cover_pool.rho": {
-      "bytes": 5633,
-      "depth": 22,
-      "contracts": 4
+      "bytes": 18836,
+      "depth": 32,
+      "contracts": 14
+    },
+    "33_cover_policy.rho": {
+      "bytes": 9184,
+      "depth": 37,
+      "contracts": 13
     },
     "40_payments.rho": {
       "bytes": 5487,

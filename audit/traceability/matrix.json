@@ -1,13 +1,13 @@
 {
   "schema": "rshare.traceability/v1",
   "summary": {
-    "arms": 133,
+    "arms": 152,
     "arms_with_flow_rule": 31,
-    "arms_with_hazard": 30,
-    "hazards": 48,
+    "arms_with_hazard": 36,
+    "hazards": 54,
     "findings": 21,
     "improvements": 23,
-    "tests": 18
+    "tests": 19
   },
   "arms": [
     {
@@ -1926,6 +1926,278 @@
       "arm": "solvency",
       "source": "contracts/src/deploy/32_cover_pool.rho:232",
       "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverPool",
+      "arm": "reserve",
+      "source": "contracts/src/deploy/32_cover_pool.rho:578",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverPool",
+      "arm": "bind",
+      "source": "contracts/src/deploy/32_cover_pool.rho:641",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverPool",
+      "arm": "bindReserved",
+      "source": "contracts/src/deploy/32_cover_pool.rho:706",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-050",
+        "HZ-054"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": [
+        "T-COVER-POLICY"
+      ]
+    },
+    {
+      "component": "CoverPool",
+      "arm": "policy",
+      "source": "contracts/src/deploy/32_cover_pool.rho:860",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverSettle",
+      "arm": "attach",
+      "source": "contracts/src/deploy/32_cover_pool.rho:364",
+      "visibility": "capability",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverSettle",
+      "arm": "pay",
+      "source": "contracts/src/deploy/32_cover_pool.rho:388",
+      "visibility": "capability",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-052"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": [
+        "T-COVER-POLICY"
+      ]
+    },
+    {
+      "component": "CoverSettle",
+      "arm": "settle",
+      "source": "contracts/src/deploy/32_cover_pool.rho:436",
+      "visibility": "capability",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverSettle",
+      "arm": "settleEmpty",
+      "source": "contracts/src/deploy/32_cover_pool.rho:476",
+      "visibility": "capability",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverPolicyFactory",
+      "arm": "spawn",
+      "source": "contracts/src/deploy/33_cover_policy.rho:14",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverPolicy",
+      "arm": "pay",
+      "source": "contracts/src/deploy/33_cover_policy.rho:326",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-046"
+      ],
+      "findings": [],
+      "improvements": [
+        "R-023"
+      ],
+      "tests": []
+    },
+    {
+      "component": "CoverPolicy",
+      "arm": "authorize",
+      "source": "contracts/src/deploy/33_cover_policy.rho:348",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-051"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": [
+        "T-COVER-POLICY"
+      ]
+    },
+    {
+      "component": "CoverPolicy",
+      "arm": "settle",
+      "source": "contracts/src/deploy/33_cover_policy.rho:404",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverPolicy",
+      "arm": "expire",
+      "source": "contracts/src/deploy/33_cover_policy.rho:424",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-053"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": [
+        "T-COVER-POLICY"
+      ]
+    },
+    {
+      "component": "CoverPolicy",
+      "arm": "attach",
+      "source": "contracts/src/deploy/33_cover_policy.rho:428",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [
+        "HZ-049"
+      ],
+      "findings": [],
+      "improvements": [],
+      "tests": [
+        "T-COVER-POLICY"
+      ]
+    },
+    {
+      "component": "CoverPolicy",
+      "arm": "info",
+      "source": "contracts/src/deploy/33_cover_policy.rho:434",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverToken",
+      "arm": "settle",
+      "source": "contracts/src/deploy/33_cover_policy.rho:319",
+      "visibility": "capability",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverToken",
+      "arm": "info",
+      "source": "contracts/src/deploy/33_cover_policy.rho:322",
+      "visibility": "capability",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "claimToken",
+      "arm": "pay",
+      "source": "contracts/src/deploy/33_cover_policy.rho:373",
+      "visibility": "capability",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "claimToken",
+      "arm": "info",
+      "source": "contracts/src/deploy/33_cover_policy.rho:378",
+      "visibility": "capability",
       "flow_rule": null,
       "flow_status": "unmapped",
       "lean_target": null,

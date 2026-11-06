@@ -1,4 +1,4 @@
-// CoverPool: operator-controlled facility purse for reserved cover.
+// CoverPool: facility purse, reserves, policies and private settlement capability.
 // Placeholders: __ROOT_URI__.
 new
   CoverPool, coverPoolState,
@@ -8,7 +8,9 @@ new
   deployId(`rho:rchain:deployId`),
   rootCh, c,
   resolveComponent, authOwner, authIsOwner,
-  paymentsCh, issuerCh, purseCh, ownerCh
+  paymentsCh, issuerCh, purseCh, ownerCh, bookCh, factoryCh, clockCh,
+  poolAssets, poolPolicyLookup, poolDepositCheck, poolBindCheck,
+  poolLossCheck, reservePolicy, depositPremium, reserveDebit, poolSpawnPolicy
 in {
   // @@INLINE:lib/Resolve.rho@@
   // @@INLINE:lib/Auth.rho@@
@@ -21,164 +23,665 @@ in {
       for (@(true, facilityPurse) <- purseCh) {
         @Payments!("platformOwner", *ownerCh) |
         for (@(true, ownerId) <- ownerCh) {
-                          coverPoolState!({
-                            "assetId": "REV",
-                            "operatorId": ownerId,
-                            "capital": 0,
-                            "premiumIn": 0,
-                            "claimsPaid": 0,
-                            "outstanding": 0,
-                            "capacity": 1000000,
-                            "solvencyBps": 10000,
-                            "policies": {},
-                            "status": "active"
-                          }) |
+          resolveComponent!("component:cover-book", *bookCh) |
+          for (@(true, CoverBook) <- bookCh) {
+            resolveComponent!("component:cover-policy-factory", *factoryCh) |
+            for (@(true, PolicyFactory) <- factoryCh) {
+              resolveComponent!("component:clock", *clockCh) |
+              for (@(true, Clock) <- clockCh) {
+                coverPoolState!({
+                  "assetId": "REV",
+                  "operatorId": ownerId,
+                  "capital": 0,
+                  "premiumIn": 0,
+                  "reserveTotal": 0,
+                  "reserves": {},
+                  "claimsPaid": 0,
+                  "outstanding": 0,
+                  "capacity": 1000000,
+                  "solvencyBps": 10000,
+                  "policies": {},
+                  "subjects": {},
+                  "losses": {},
+                  "status": "active"
+                }) |
 
-                          contract CoverPool(@"fund", dId, @payment, ret) = {
-                            new oCh, aCh in {
-                              authIsOwner!(*dId, ownerId, *oCh) |
-                              for (@o <- oCh) {
-                                match o {
-                                  (true, Nil) => {
-                                    @issuer!("getAmountOf", payment, *aCh) |
-                                    for (@a <- aCh) {
-                                      match a {
-                                        (true, amount) => {
-                                          @facilityPurse!("deposit", payment, *aCh) |
-                                          for (@_ <- aCh) {
-                                            for (@s <- coverPoolState) {
-                                              coverPoolState!(s.set(
-                                                "capital", s.get("capital") + amount)) |
-                                              ret!((true, amount))
+                contract poolAssets(@s, ret) = {
+                  ret!(s.get("capital") + s.get("premiumIn")
+                       + s.get("reserveTotal") - s.get("claimsPaid"))
+                } |
+
+                contract poolPolicyLookup(@s, @policyId, ret) = {
+                  match s.get("policies").get(policyId) {
+                    Nil => { ret!((false, "unknown policy")) }
+                    entry => { ret!((true, entry)) }
+                  }
+                } |
+
+                contract poolDepositCheck(@effect, @termsDeposit,
+                                          @effectiveDeposit, @deductible, ret) = {
+                  if (effect == "none") {
+                    if (effectiveDeposit == termsDeposit) {
+                      ret!((true, Nil))
+                    } else {
+                      ret!((false, "deposit"))
+                    }
+                  } else if (effect == "reduce_to_deductible") {
+                    if (deductible <= termsDeposit
+                        && effectiveDeposit == deductible) {
+                      ret!((true, Nil))
+                    } else {
+                      ret!((false, "deposit"))
+                    }
+                  } else if (effect == "remove") {
+                    if (effectiveDeposit == 0) {
+                      ret!((true, Nil))
+                    } else {
+                      ret!((false, "deposit"))
+                    }
+                  } else {
+                    ret!((false, "deposit"))
+                  }
+                } |
+
+                contract poolBindCheck(@subject, @offerId, @cap, ret) = {
+                  new oCh in {
+                    @CoverBook!("offer", offerId, *oCh) |
+                    for (@o <- oCh) {
+                      match o {
+                        (true, entry) => {
+                          if (entry.get("status") != "active") {
+                            ret!((false, "offer"))
+                          } else {
+                            new lCh, iCh, nowCh, dCh in {
+                              rl!(subject.get("listingUri"), *lCh) |
+                              for (Listing <- lCh) {
+                                Listing!("info", *iCh) |
+                                for (@li <- iCh) {
+                                  match li {
+                                    (true, listing) => {
+                                      @Clock!("now", *nowCh) |
+                                      for (@n <- nowCh) {
+                                        match n {
+                                          (true, now) => {
+                                            poolDepositCheck!(
+                                              entry.get("offer").get("depositEffect"),
+                                              subject.get("termsDeposit"),
+                                              subject.get("effectiveDeposit"),
+                                              entry.get("offer").get("deductible"),
+                                              *dCh) |
+                                            for (@d <- dCh) {
+                                              match d {
+                                                (true, Nil) => {
+                                                  if (entry.get("offer").get("subjectKind")
+                                                      != subject.get("subjectKind")) {
+                                                    ret!((false, "subject"))
+                                                  } else if (entry.get("publisherId")
+                                                             != subject.get("providerId")) {
+                                                    ret!((false, "publisher"))
+                                                  } else if (subject.get("insured")
+                                                             != subject.get("providerId")
+                                                             || subject.get("beneficiary")
+                                                                != subject.get("providerId")) {
+                                                    ret!((false, "roles"))
+                                                  } else if (subject.get("payer") != "insured"
+                                                             || subject.get("payerId")
+                                                                != subject.get("providerId")) {
+                                                    ret!((false, "payer"))
+                                                  } else if (cap < 1
+                                                             || cap > entry.get("offer").get("coverageCap")
+                                                             || cap <= entry.get("offer").get("deductible")) {
+                                                    ret!((false, "cap"))
+                                                  } else if (listing.get("status") != "active") {
+                                                    ret!((false, "listing inactive"))
+                                                  } else if (listing.get("providerId")
+                                                             != subject.get("providerId")) {
+                                                    ret!((false, "provider"))
+                                                  } else if (listing.get("termsHash")
+                                                             != subject.get("termsHash")) {
+                                                    ret!((false, "terms"))
+                                                  } else if (listing.get("terms").get("assetId")
+                                                             != entry.get("offer").get("assetId")) {
+                                                    ret!((false, "asset"))
+                                                  } else if (listing.get("terms").get("deposit")
+                                                             != subject.get("termsDeposit")) {
+                                                    ret!((false, "deposit"))
+                                                  } else if (entry.get("offer").get("deductible")
+                                                             != subject.get("deductible")) {
+                                                    ret!((false, "deductible"))
+                                                  } else {
+                                                    ret!((true, entry.get("offer"),
+                                                          entry.get("offerHash"),
+                                                          {
+                                                            "kind": "policy",
+                                                            "subjectKind": subject.get("subjectKind"),
+                                                            "subjectId": subject.get("subjectId"),
+                                                            "subjectKey": subject.get("subjectKind")
+                                                              ++ ":" ++ subject.get("subjectId"),
+                                                            "guestId": subject.get("guestId"),
+                                                            "providerId": subject.get("providerId"),
+                                                            "listingUri": subject.get("listingUri"),
+                                                            "termsHash": subject.get("termsHash"),
+                                                            "offerId": offerId,
+                                                            "offerHash": entry.get("offerHash"),
+                                                            "insured": subject.get("insured"),
+                                                            "beneficiary": subject.get("beneficiary"),
+                                                            "payer": subject.get("payer"),
+                                                            "payerId": subject.get("payerId"),
+                                                            "operatorId": ownerId,
+                                                            "assetId": entry.get("offer").get("assetId"),
+                                                            "depositEffect": entry.get("offer").get("depositEffect"),
+                                                            "deductible": entry.get("offer").get("deductible"),
+                                                            "termsDeposit": subject.get("termsDeposit"),
+                                                            "effectiveDeposit": subject.get("effectiveDeposit"),
+                                                            "premiumPaid": 0,
+                                                            "policyUri": "",
+                                                            "status": "active",
+                                                            "attachedSubject": "",
+                                                            "bindExpiresAtHeight": now
+                                                              + entry.get("offer").get("claimWindowBlocks"),
+                                                            "expiresAtHeight": 0,
+                                                            "claimIds": {},
+                                                            "lossIds": {}
+                                                          }))
+                                                  }
+                                                }
+                                                _ => { ret!(d) }
+                                              }
                                             }
                                           }
+                                          _ => { ret!(n) }
                                         }
-                                        _ => { ret!(a) }
                                       }
                                     }
+                                    _ => { ret!(li) }
                                   }
-                                  _ => { ret!(o) }
                                 }
                               }
                             }
-                          } |
+                          }
+                        }
+                        _ => { ret!(o) }
+                      }
+                    }
+                  }
+                } |
 
-                          contract CoverPool(@"premium", @payment, ret) = {
-                            new aCh in {
-                              @issuer!("getAmountOf", payment, *aCh) |
-                              for (@a <- aCh) {
-                                match a {
-                                  (true, amount) => {
-                                    @facilityPurse!("deposit", payment, *aCh) |
-                                    for (@_ <- aCh) {
-                                      for (@s <- coverPoolState) {
+                contract reservePolicy(@policyId, @meta, @cap, ret) = {
+                  for (@s <- coverPoolState) {
+                    if (s.get("status") != "active") {
+                      coverPoolState!(s) | ret!((false, "paused"))
+                    } else if (cap < 1) {
+                      coverPoolState!(s) | ret!((false, "cap"))
+                    } else if (s.get("policies").get(policyId) != Nil) {
+                      coverPoolState!(s) | ret!((false, "policy exists"))
+                    } else if (s.get("subjects").get(meta.get("subjectKey")) != Nil) {
+                      coverPoolState!(s) | ret!((false, "subject exists"))
+                    } else if (s.get("outstanding") + cap > s.get("capacity")) {
+                      coverPoolState!(s) | ret!((false, "capacity"))
+                    } else {
+                      new aCh in {
+                        poolAssets!(s, *aCh) |
+                        for (@assets <- aCh) {
+                          if (assets < s.get("solvencyBps")
+                                       * (s.get("outstanding") + cap) / 10000) {
+                            coverPoolState!(s) | ret!((false, "solvency"))
+                          } else {
+                            coverPoolState!(s.set(
+                              "outstanding", s.get("outstanding") + cap)
+                              .set("policies", s.get("policies").set(
+                                policyId,
+                                meta.set("policyId", policyId)
+                                  .set("cap", cap)
+                                  .set("remaining", cap)
+                                  .set("paid", 0)))
+                              .set("subjects", s.get("subjects").set(
+                                meta.get("subjectKey"), policyId))) |
+                            new npCh, wCh, dCh in {
+                              @issuer!("makeEmptyPurse", *npCh) |
+                              for (@npc <- npCh) {
+                                match npc {
+                                  (true, policyPurse) => {
+                                    @facilityPurse!("withdraw",
+                                                    (brand, cap), *wCh) |
+                                    for (@wc <- wCh) {
+                                      match wc {
+                                        (true, payment) => {
+                                          @policyPurse!("deposit",
+                                                        payment, *dCh) |
+                                          for (@_ <- dCh) {
+                                            ret!((true, policyPurse))
+                                          }
+                                        }
+                                        _ => { 1/0 }
+                                      }
+                                    }
+                                  }
+                                  _ => { 1/0 }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                } |
+
+                contract depositPremium(@payment, @expected, ret) = {
+                  new aCh, dCh in {
+                    @issuer!("getAmountOf", payment, *aCh) |
+                    for (@a <- aCh) {
+                      match a {
+                        (true, amount) => {
+                          if (amount != expected) {
+                            ret!((false, "premium"))
+                          } else {
+                            @facilityPurse!("deposit", payment, *dCh) |
+                            for (@_ <- dCh) {
+                              for (@s <- coverPoolState) {
+                                coverPoolState!(s.set(
+                                  "premiumIn", s.get("premiumIn") + amount)) |
+                                ret!((true, amount))
+                              }
+                            }
+                          }
+                        }
+                        _ => { ret!(a) }
+                      }
+                    }
+                  }
+                } |
+
+                contract reserveDebit(@payerId, @expected, ret) = {
+                  for (@s <- coverPoolState) {
+                    match s.get("reserves").get(payerId) {
+                      Nil => {
+                        coverPoolState!(s) | ret!((false, "reserve"))
+                      }
+                      available => {
+                        if (available < expected) {
+                          coverPoolState!(s) | ret!((false, "reserve"))
+                        } else {
+                          coverPoolState!(s.set(
+                            "reserves", s.get("reserves").set(
+                              payerId, available - expected))
+                            .set("reserveTotal",
+                                 s.get("reserveTotal") - expected)
+                            .set("premiumIn",
+                                 s.get("premiumIn") + expected)) |
+                          ret!((true, expected))
+                        }
+                      }
+                    }
+                  }
+                } |
+
+                contract poolLossCheck(@policyId, @losses, @lossId, @amount,
+                                       @assessed, @nonCoverRecovery, ret) = {
+                  match losses.get(lossId) {
+                    Nil => {
+                      if (amount < 1 || assessed < 1
+                          || nonCoverRecovery + amount > assessed) {
+                        ret!((false, "loss"))
+                      } else {
+                        ret!((true, losses.set(lossId, {
+                          "assessed": assessed,
+                          "nonCoverRecovery": nonCoverRecovery,
+                          "paid": amount,
+                          "policies": {}.set(policyId, amount)
+                        })))
+                      }
+                    }
+                    loss => {
+                      new maxCh in {
+                        if (nonCoverRecovery > loss.get("nonCoverRecovery")) {
+                          maxCh!(nonCoverRecovery)
+                        } else {
+                          maxCh!(loss.get("nonCoverRecovery"))
+                        } |
+                        for (@maxNcr <- maxCh) {
+                          if (maxNcr + loss.get("paid") + amount
+                              > loss.get("assessed")) {
+                            ret!((false, "loss"))
+                          } else {
+                            ret!((true, losses.set(lossId,
+                              loss.set("nonCoverRecovery", maxNcr)
+                                .set("paid", loss.get("paid") + amount)
+                                .set("policies",
+                                     loss.get("policies").set(policyId, amount)))))
+                          }
+                        }
+                      }
+                    }
+                  }
+                } |
+
+                contract poolSpawnPolicy(@policyId, @meta, @cap,
+                                         @attachKey, @policyPurse,
+                                         @premiumPaid, ret) = {
+                  new CoverSettle, fCh in {
+                    contract CoverSettle(@"attach", @subjectUri, @subjectId,
+                                         @expiresAtHeight, key, retS) = {
+                      if (*key != attachKey) {
+                        retS!((false, "key"))
+                      } else {
+                        for (@s <- coverPoolState) {
+                          match s.get("policies").get(policyId) {
+                            Nil => {
+                              coverPoolState!(s) |
+                              retS!((false, "unknown policy"))
+                            }
+                            entry => {
+                              coverPoolState!(s.set(
+                                "policies", s.get("policies").set(policyId,
+                                  entry.set("status", "attached")
+                                    .set("attachedSubject", subjectUri)
+                                    .set("expiresAtHeight", expiresAtHeight)))) |
+                              retS!((true, Nil))
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract CoverSettle(@"pay", @lossId, @amount, @assessed,
+                                         @nonCoverRecovery, retS) = {
+                      for (@s <- coverPoolState) {
+                        match s.get("policies").get(policyId) {
+                          Nil => {
+                            coverPoolState!(s) | retS!((false, "unknown policy"))
+                          }
+                          entry => {
+                            if (entry.get("status") != "active"
+                                && entry.get("status") != "attached") {
+                              coverPoolState!(s) | retS!((false, "closed"))
+                            } else if (amount < 1
+                                       || amount > entry.get("remaining")) {
+                              coverPoolState!(s) | retS!((false, "amount"))
+                            } else {
+                              new lCh in {
+                                poolLossCheck!(policyId, s.get("losses"),
+                                               lossId, amount, assessed,
+                                               nonCoverRecovery, *lCh) |
+                                for (@l <- lCh) {
+                                  match l {
+                                    (true, losses) => {
+                                      coverPoolState!(s.set(
+                                        "losses", losses)
+                                        .set("claimsPaid",
+                                             s.get("claimsPaid") + amount)
+                                        .set("outstanding",
+                                             s.get("outstanding") - amount)
+                                        .set("policies", s.get("policies").set(
+                                          policyId,
+                                          entry.set("paid",
+                                                    entry.get("paid") + amount)
+                                            .set("remaining",
+                                                 entry.get("remaining") - amount)))) |
+                                      retS!((true, amount))
+                                    }
+                                    _ => {
+                                      coverPoolState!(s) | retS!(l)
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract CoverSettle(@"settle", @payment, retS) = {
+                      new aCh, dCh in {
+                        @issuer!("getAmountOf", payment, *aCh) |
+                        for (@a <- aCh) {
+                          match a {
+                            (true, returned) => {
+                              for (@s <- coverPoolState) {
+                                match s.get("policies").get(policyId) {
+                                  Nil => {
+                                    coverPoolState!(s) |
+                                    retS!((false, "unknown policy"))
+                                  }
+                                  entry => {
+                                    if (entry.get("paid") + returned != cap) {
+                                      coverPoolState!(s) |
+                                      retS!((false, "amount"))
+                                    } else {
+                                      @facilityPurse!("deposit",
+                                                      payment, *dCh) |
+                                      for (@_ <- dCh) {
                                         coverPoolState!(s.set(
-                                          "premiumIn",
-                                          s.get("premiumIn") + amount)) |
+                                          "outstanding",
+                                          s.get("outstanding") - returned)
+                                          .set("policies",
+                                               s.get("policies").set(policyId,
+                                                 entry.set("remaining", 0)
+                                                   .set("status", "settled")))) |
+                                        retS!((true, returned))
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                            _ => { retS!(a) }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract CoverSettle(@"settleEmpty", retS) = {
+                      for (@s <- coverPoolState) {
+                        match s.get("policies").get(policyId) {
+                          Nil => {
+                            coverPoolState!(s) | retS!((false, "unknown policy"))
+                          }
+                          entry => {
+                            if (entry.get("paid") != cap) {
+                              coverPoolState!(s) | retS!((false, "amount"))
+                            } else {
+                              coverPoolState!(s.set(
+                                "policies", s.get("policies").set(policyId,
+                                  entry.set("remaining", 0)
+                                    .set("status", "settled")))) |
+                              retS!((true, 0))
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    @PolicyFactory!("spawn",
+                                   meta.set("cap", cap)
+                                       .set("premiumPaid", premiumPaid),
+                                   *CoverSettle, policyPurse, Payments, Clock,
+                                   *fCh) |
+                    for (@f <- fCh) {
+                      match f {
+                        (true, policyUri) => {
+                          for (@s <- coverPoolState) {
+                            match s.get("policies").get(policyId) {
+                              Nil => {
+                                coverPoolState!(s) | ret!((false, "policy"))
+                              }
+                              entry => {
+                                coverPoolState!(s.set(
+                                  "policies", s.get("policies").set(policyId,
+                                    entry.set("premiumPaid", premiumPaid)
+                                      .set("policyUri", policyUri)))) |
+                                ret!((true, policyId, policyUri))
+                              }
+                            }
+                          }
+                        }
+                        _ => { 1/0 }
+                      }
+                    }
+                  }
+                } |
+
+                contract CoverPool(@"fund", dId, @payment, ret) = {
+                  new oCh, aCh, dCh in {
+                    authIsOwner!(*dId, ownerId, *oCh) |
+                    for (@o <- oCh) {
+                      match o {
+                        (true, Nil) => {
+                          @issuer!("getAmountOf", payment, *aCh) |
+                          for (@a <- aCh) {
+                            match a {
+                              (true, amount) => {
+                                @facilityPurse!("deposit", payment, *dCh) |
+                                for (@_ <- dCh) {
+                                  for (@s <- coverPoolState) {
+                                    coverPoolState!(s.set(
+                                      "capital",
+                                      s.get("capital") + amount)) |
+                                    ret!((true, amount))
+                                  }
+                                }
+                              }
+                              _ => { ret!(a) }
+                            }
+                          }
+                        }
+                        _ => { ret!(o) }
+                      }
+                    }
+                  }
+                } |
+
+                contract CoverPool(@"premium", @payment, ret) = {
+                  new aCh, dCh in {
+                    @issuer!("getAmountOf", payment, *aCh) |
+                    for (@a <- aCh) {
+                      match a {
+                        (true, amount) => {
+                          @facilityPurse!("deposit", payment, *dCh) |
+                          for (@_ <- dCh) {
+                            for (@s <- coverPoolState) {
+                              coverPoolState!(s.set(
+                                "premiumIn",
+                                s.get("premiumIn") + amount)) |
+                              ret!((true, amount))
+                            }
+                          }
+                        }
+                        _ => { ret!(a) }
+                      }
+                    }
+                  }
+                } |
+
+                contract CoverPool(@"reserve", dId, @payerId, @payment, ret) = {
+                  new oCh, aCh, dCh in {
+                    authIsOwner!(*dId, payerId, *oCh) |
+                    for (@o <- oCh) {
+                      match o {
+                        (true, Nil) => {
+                          @issuer!("getAmountOf", payment, *aCh) |
+                          for (@a <- aCh) {
+                            match a {
+                              (true, amount) => {
+                                @facilityPurse!("deposit", payment, *dCh) |
+                                for (@_ <- dCh) {
+                                  for (@s <- coverPoolState) {
+                                    match s.get("reserves").get(payerId) {
+                                      Nil => {
+                                        coverPoolState!(s.set(
+                                          "reserves",
+                                          s.get("reserves").set(payerId, amount))
+                                          .set("reserveTotal",
+                                               s.get("reserveTotal") + amount)) |
+                                        ret!((true, amount))
+                                      }
+                                      current => {
+                                        coverPoolState!(s.set(
+                                          "reserves",
+                                          s.get("reserves").set(
+                                            payerId, current + amount))
+                                          .set("reserveTotal",
+                                               s.get("reserveTotal") + amount)) |
                                         ret!((true, amount))
                                       }
                                     }
                                   }
-                                  _ => { ret!(a) }
                                 }
                               }
+                              _ => { ret!(a) }
                             }
-                          } |
+                          }
+                        }
+                        _ => { ret!(o) }
+                      }
+                    }
+                  }
+                } |
 
-                          contract CoverPool(@"allocate", dId, @policyId, @cap,
-                                             ret) = {
-                            new oCh in {
-                              authIsOwner!(*dId, ownerId, *oCh) |
-                              for (@o <- oCh) {
-                                match o {
-                                  (true, Nil) => {
-                                    for (@s <- coverPoolState) {
-                                      if (s.get("status") != "active") {
-                                        coverPoolState!(s) | ret!((false, "paused"))
-                                      } else if (cap < 1) {
-                                        coverPoolState!(s) | ret!((false, "cap"))
-                                      } else if (s.get("policies").get(policyId) != Nil) {
-                                        coverPoolState!(s) |
-                                        ret!((false, "policy exists"))
-                                      } else if (s.get("outstanding") + cap
-                                                 > s.get("capacity")) {
-                                        coverPoolState!(s) |
-                                        ret!((false, "capacity"))
-                                      } else if (s.get("capital") + s.get("premiumIn")
-                                                 - s.get("claimsPaid")
-                                                 - s.get("outstanding")
-                                                 < s.get("solvencyBps")
-                                                   * (s.get("outstanding") + cap) / 10000) {
-                                        coverPoolState!(s) |
-                                        ret!((false, "solvency"))
-                                      } else {
-                                        coverPoolState!(s.set(
-                                          "outstanding", s.get("outstanding") + cap)
-                                          .set("policies",
-                                               s.get("policies").set(policyId, cap))) |
-                                        new npCh, wCh, dCh in {
-                                          @issuer!("makeEmptyPurse", *npCh) |
-                                          for (@npc <- npCh) {
-                                            match npc {
-                                              (true, policyPurse) => {
-                                                @facilityPurse!("withdraw",
-                                                                (brand, cap), *wCh) |
-                                                for (@wc <- wCh) {
-                                                  match wc {
-                                                    (true, payment) => {
-                                                      @policyPurse!("deposit",
-                                                                    payment, *dCh) |
-                                                      for (@_ <- dCh) {
-                                                        ret!((true, policyPurse))
-                                                      }
-                                                    }
-                                                    _ => { 1/0 }
-                                                  }
-                                                }
-                                              }
-                                              _ => { 1/0 }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                  _ => { ret!(o) }
-                                }
-                              }
-                            }
-                          } |
+                contract CoverPool(@"allocate", dId, @policyId, @cap, ret) = {
+                  new oCh, mCh in {
+                    authIsOwner!(*dId, ownerId, *oCh) |
+                    for (@o <- oCh) {
+                      match o {
+                        (true, Nil) => {
+                          mCh!(({"kind": "manual", "policyId": policyId,
+                                 "subjectKey": "manual:" ++ policyId})) |
+                          for (@meta <- mCh) {
+                            reservePolicy!(policyId, meta, cap, *ret)
+                          }
+                        }
+                        _ => { ret!(o) }
+                      }
+                    }
+                  }
+                } |
 
-                          contract CoverPool(@"release", dId, @policyId,
-                                             @payment, @paidAmount, ret) = {
-                            new oCh, aCh in {
-                              authIsOwner!(*dId, ownerId, *oCh) |
-                              for (@o <- oCh) {
-                                match o {
-                                  (true, Nil) => {
+                contract CoverPool(@"bind", dId, @subject, @offerId, @cap,
+                                   @payment, @policyId, @attachKey, ret) = {
+                  new oCh in {
+                    authIsOwner!(*dId, subject.get("payerId"), *oCh) |
+                    for (@o <- oCh) {
+                      match o {
+                        (true, Nil) => {
+                          new chkCh in {
+                            poolBindCheck!(subject, offerId, cap, *chkCh) |
+                            for (@chk <- chkCh) {
+                              match chk {
+                                (true, offer, offerHash, meta) => {
+                                  new aCh in {
                                     @issuer!("getAmountOf", payment, *aCh) |
                                     for (@a <- aCh) {
                                       match a {
                                         (true, amount) => {
-                                          @facilityPurse!("deposit", payment, *aCh) |
-                                          for (@_ <- aCh) {
-                                            for (@s <- coverPoolState) {
-                                              match s.get("policies").get(policyId) {
-                                                Nil => {
-                                                  coverPoolState!(s) |
-                                                  ret!((false, "unknown policy"))
-                                                }
-                                                cap => {
-                                                  coverPoolState!(s.set(
-                                                    "outstanding",
-                                                    s.get("outstanding") - cap)
-                                                    .set("claimsPaid",
-                                                         s.get("claimsPaid")
-                                                         + paidAmount)
-                                                    .set("policies",
-                                                         s.get("policies").delete(
-                                                           policyId))) |
-                                                  ret!((true, amount))
+                                          if (amount != offer.get("premiumTotal")) {
+                                            ret!((false, "premium"))
+                                          } else {
+                                            new rCh in {
+                                              reservePolicy!(policyId, meta,
+                                                             cap, *rCh) |
+                                              for (@r <- rCh) {
+                                                match r {
+                                                  (true, purse) => {
+                                                    new dCh in {
+                                                      depositPremium!(payment,
+                                                        offer.get("premiumTotal"),
+                                                        *dCh) |
+                                                      for (@d <- dCh) {
+                                                        match d {
+                                                          (true, paid) => {
+                                                            poolSpawnPolicy!(
+                                                              policyId, meta, cap,
+                                                              attachKey, purse,
+                                                              paid, *ret)
+                                                          }
+                                                          _ => { 1/0 }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                  _ => { ret!(r) }
                                                 }
                                               }
                                             }
@@ -188,71 +691,212 @@ in {
                                       }
                                     }
                                   }
-                                  _ => { ret!(o) }
                                 }
+                                _ => { ret!(chk) }
                               }
                             }
-                          } |
+                          }
+                        }
+                        _ => { ret!(o) }
+                      }
+                    }
+                  }
+                } |
 
-                          contract CoverPool(@"close", dId, @policyId,
-                                             @paidAmount, ret) = {
-                            new oCh in {
-                              authIsOwner!(*dId, ownerId, *oCh) |
-                              for (@o <- oCh) {
-                                match o {
-                                  (true, Nil) => {
-                                    for (@s <- coverPoolState) {
-                                      match s.get("policies").get(policyId) {
-                                        Nil => {
-                                          coverPoolState!(s) |
-                                          ret!((false, "unknown policy"))
-                                        }
-                                        cap => {
-                                          coverPoolState!(s.set(
-                                            "outstanding", s.get("outstanding") - cap)
-                                            .set("claimsPaid",
-                                                 s.get("claimsPaid") + paidAmount)
-                                            .set("policies",
-                                                 s.get("policies").delete(policyId))) |
-                                          ret!((true, Nil))
+                contract CoverPool(@"bindReserved", dId, @subject, @offerId,
+                                   @cap, @policyId, @attachKey, ret) = {
+                  new oCh, gCh in {
+                    authOwner!(*dId, *gCh) |
+                    for (@g <- gCh) {
+                      match g {
+                        (true, guestId) => {
+                          if (guestId != subject.get("guestId")) {
+                            ret!((false, "guest"))
+                          } else {
+                            new chkCh in {
+                              poolBindCheck!(subject, offerId, cap, *chkCh) |
+                              for (@chk <- chkCh) {
+                                match chk {
+                                  (true, offer, offerHash, meta) => {
+                                    new balCh in {
+                                      for (@s <<- coverPoolState) {
+                                        balCh!(s.get("reserves").get(
+                                                 subject.get("payerId")))
+                                      } |
+                                      for (@bal <- balCh) {
+                                        match bal {
+                                          Nil => { ret!((false, "reserve")) }
+                                          available => {
+                                            if (available < offer.get("premiumTotal")) {
+                                              ret!((false, "reserve"))
+                                            } else {
+                                              new rCh in {
+                                                reservePolicy!(policyId, meta,
+                                                               cap, *rCh) |
+                                                for (@r <- rCh) {
+                                                  match r {
+                                                    (true, purse) => {
+                                                      new dCh in {
+                                                        reserveDebit!(
+                                                          subject.get("payerId"),
+                                                          offer.get("premiumTotal"),
+                                                          *dCh) |
+                                                        for (@d <- dCh) {
+                                                          match d {
+                                                            (true, paid) => {
+                                                              poolSpawnPolicy!(
+                                                                policyId, meta,
+                                                                cap, attachKey,
+                                                                purse, paid, *ret)
+                                                            }
+                                                            _ => { 1/0 }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                    _ => { ret!(r) }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
                                         }
                                       }
                                     }
                                   }
-                                  _ => { ret!(o) }
+                                  _ => { ret!(chk) }
                                 }
                               }
                             }
-                          } |
+                          }
+                        }
+                        _ => { ret!(g) }
+                      }
+                    }
+                  }
+                } |
 
-                          contract CoverPool(@"info", ret) = {
-                            for (@s <<- coverPoolState) { ret!((true, s)) }
-                          } |
-
-                          contract CoverPool(@"solvency", ret) = {
-                            for (@s <<- coverPoolState) {
-                              match (s.get("capital") + s.get("premiumIn")
-                                     - s.get("claimsPaid")
-                                     - s.get("outstanding")) {
-                                cash => {
-                                  ret!((true, {
-                                    "cash": cash,
-                                    "outstanding": s.get("outstanding"),
-                                    "solvent": cash >= s.get("solvencyBps")
-                                      * s.get("outstanding") / 10000
-                                  }))
+                contract CoverPool(@"release", dId, @policyId,
+                                   @payment, @paidAmount, ret) = {
+                  new oCh, aCh, dCh in {
+                    authIsOwner!(*dId, ownerId, *oCh) |
+                    for (@o <- oCh) {
+                      match o {
+                        (true, Nil) => {
+                          @issuer!("getAmountOf", payment, *aCh) |
+                          for (@a <- aCh) {
+                            match a {
+                              (true, amount) => {
+                                @facilityPurse!("deposit", payment, *dCh) |
+                                for (@_ <- dCh) {
+                                  for (@s <- coverPoolState) {
+                                    match s.get("policies").get(policyId) {
+                                      Nil => {
+                                        coverPoolState!(s) |
+                                        ret!((false, "unknown policy"))
+                                      }
+                                      entry => {
+                                        coverPoolState!(s.set(
+                                          "outstanding",
+                                          s.get("outstanding") - entry.get("cap"))
+                                          .set("claimsPaid",
+                                               s.get("claimsPaid") + paidAmount)
+                                          .set("policies",
+                                               s.get("policies").delete(policyId))
+                                          .set("subjects",
+                                               s.get("subjects").delete(
+                                                 entry.get("subjectKey")))) |
+                                        ret!((true, amount))
+                                      }
+                                    }
+                                  }
                                 }
                               }
+                              _ => { ret!(a) }
                             }
-                          } |
+                          }
+                        }
+                        _ => { ret!(o) }
+                      }
+                    }
+                  }
+                } |
 
-          rl!(`__ROOT_URI__`, *rootCh) |
-          for (Root <- rootCh) {
-            rs!(bundle+{*CoverPool}, *c) |
-            for (@uri <- c) {
-              Root!("register", "component:cover-pool", uri, 1,
-                    "cover", *deployerId, *c) |
-              for (@_ <- c) { deployId!([uri]) }
+                contract CoverPool(@"close", dId, @policyId,
+                                   @paidAmount, ret) = {
+                  new oCh in {
+                    authIsOwner!(*dId, ownerId, *oCh) |
+                    for (@o <- oCh) {
+                      match o {
+                        (true, Nil) => {
+                          for (@s <- coverPoolState) {
+                            match s.get("policies").get(policyId) {
+                              Nil => {
+                                coverPoolState!(s) |
+                                ret!((false, "unknown policy"))
+                              }
+                              entry => {
+                                coverPoolState!(s.set(
+                                  "outstanding",
+                                  s.get("outstanding") - entry.get("cap"))
+                                  .set("claimsPaid",
+                                       s.get("claimsPaid") + paidAmount)
+                                  .set("policies",
+                                       s.get("policies").delete(policyId))
+                                  .set("subjects",
+                                       s.get("subjects").delete(
+                                         entry.get("subjectKey")))) |
+                                ret!((true, Nil))
+                              }
+                            }
+                          }
+                        }
+                        _ => { ret!(o) }
+                      }
+                    }
+                  }
+                } |
+
+                contract CoverPool(@"policy", @policyId, ret) = {
+                  for (@s <<- coverPoolState) {
+                    match s.get("policies").get(policyId) {
+                      Nil => { ret!((false, "unknown policy")) }
+                      entry => { ret!((true, entry)) }
+                    }
+                  }
+                } |
+
+                contract CoverPool(@"info", ret) = {
+                  for (@s <<- coverPoolState) { ret!((true, s)) }
+                } |
+
+                contract CoverPool(@"solvency", ret) = {
+                  for (@s <<- coverPoolState) {
+                    new aCh in {
+                      poolAssets!(s, *aCh) |
+                      for (@assets <- aCh) {
+                        ret!((true, {
+                          "assets": assets,
+                          "cash": assets - s.get("outstanding"),
+                          "outstanding": s.get("outstanding"),
+                          "solvent": assets >= s.get("solvencyBps")
+                            * s.get("outstanding") / 10000
+                        }))
+                      }
+                    }
+                  }
+                } |
+
+                rl!(`__ROOT_URI__`, *rootCh) |
+                for (Root <- rootCh) {
+                  rs!(bundle+{*CoverPool}, *c) |
+                  for (@uri <- c) {
+                    Root!("register", "component:cover-pool", uri, 1,
+                          "cover", *deployerId, *c) |
+                    for (@_ <- c) { deployId!([uri]) }
+                  }
+                }
+              }
             }
           }
         }

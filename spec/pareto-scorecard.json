@@ -15,13 +15,13 @@
   ],
   "trust_count": 3,
   "metrics": {
-    "deploy_terms": 16,
-    "components": 24,
+    "deploy_terms": 17,
+    "components": 25,
     "state_cell_types": 12,
     "bytes_max": 28402,
-    "arm_declarations": 133,
+    "arm_declarations": 152,
     "root_resolve_sites": 4,
-    "registry_lookup_sites": 37
+    "registry_lookup_sites": 39
   },
   "candidates": [
     {
@@ -30,7 +30,7 @@
       "coverage_total": 30,
       "trust": 3,
       "bytes_max": 28402,
-      "components": 24,
+      "components": 25,
       "state_cell_types": 12,
       "measured": true
     },

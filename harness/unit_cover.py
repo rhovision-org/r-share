@@ -151,8 +151,9 @@ def main() -> int:
         pool, "allocate", f'*dId, "policy:cover:over", 1000001'), "capacity")
     solvency = actors.invoke(pool, "solvency")[1]
     expect("free cash after reserve", solvency.get("cash"),
-           before.get("capital") + before.get("premiumIn") + 200
-           - before.get("outstanding") - 100)
+           before.get("capital") + before.get("premiumIn")
+           + before.get("reserveTotal", 0) - before.get("claimsPaid", 0)
+           + 200 - before.get("outstanding") - 100)
     expect("pool solvent", solvency.get("solvent"), True)
     return 0
 

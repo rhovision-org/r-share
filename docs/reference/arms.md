@@ -345,18 +345,53 @@ platform owner.
 ```
 CoverPool("fund", dId, @payment, ret) -> (true, amount)
 CoverPool("premium", @payment, ret) -> (true, amount)
+CoverPool("reserve", dId, @payerId, @payment, ret) -> (true, amount)
 CoverPool("allocate", dId, @policyId, @cap, ret)
   -> (true, policyPurse) | (false, "paused" | "cap" | "policy exists" |
                                    "capacity" | "solvency")
+CoverPool("bind", dId, @subject, @offerId, @cap, @payment, @policyId,
+          @attachKey, ret) -> (true, policyId, policyUri)
+CoverPool("bindReserved", dId, @subject, @offerId, @cap, @policyId,
+          @attachKey, ret) -> (true, policyId, policyUri)
+CoverPool("policy", @policyId, ret) -> (true, entry) | (false, "unknown policy")
 CoverPool("release", dId, @policyId, @payment, @paidAmount, ret)
   -> (true, amount) | (false, "unknown policy")
 CoverPool("close", dId, @policyId, @paidAmount, ret)
   -> (true, Nil) | (false, "unknown policy")
 CoverPool("info", ret) -> (true, state)
-CoverPool("solvency", ret) -> (true, {cash, outstanding, solvent})
+CoverPool("solvency", ret) -> (true, {assets, cash, outstanding, solvent})
 ```
 
-`allocate` moves the cap from the facility purse into a per-policy purse and
-reserves it against capacity and solvency. `release` returns the unused purse
-balance; `close` closes a fully paid policy. All pool mutations except the
-permissionless premium deposit are operator-gated.
+`reserve` prefunds a provider/platform reserve. `bind` and `bindReserved` validate
+an active offer and listing, reserve the cap, create a per-policy purse and call
+`CoverPolicyFactory("spawn", ...)`. `bind` takes an exact premium payment;
+`bindReserved` debits the payer reserve and authenticates the guest. The private
+`CoverSettle` capability created in the same call records loss-ledger payouts and
+measures the returned cover at settlement. `cash` is free cash
+(`assets - outstanding`). All pool mutations except the permissionless premium
+deposit and reserve-funded bind are operator- or payer-gated.
+
+## Cover policy — `33_cover_policy.rho`
+
+```
+CoverPolicyFactory("spawn", @spec, @settleCh, @purse, @payments, @clock, ret)
+  -> (true, policyUri)
+CoverPolicy("pay", dId, @claimId, @lossId, @amount, @assessed,
+            @nonCoverRecovery, @evidenceHash, ret) -> (true, amount)
+CoverPolicy("authorize", dId, @claimId, @lossId, @amount, @assessed,
+            @nonCoverRecovery, @evidenceHash, ret) -> (true, claimToken)
+CoverPolicy("settle", dId, ret) -> (true, Nil)
+CoverPolicy("expire", ret) -> (true, Nil) | (false, "too early")
+CoverPolicy("attach", @subjectUri, @subjectId, @expiresAtHeight, @key, ret)
+  -> (true, releaseToken)
+CoverPolicy("info", ret) -> (true, redactedState)
+CoverToken("settle", ret) -> (true, Nil)
+CoverToken("info", ret) -> (true, redactedState)
+claimToken("pay", ret) -> (true, amount)
+claimToken("info", ret) -> (true, fixedClaim)
+```
+
+`pay` is the operator/manual path for an unattached policy. Attached payouts use
+`authorize`: the operator mints a fixed claim token, attaches it to the booking,
+and the booking calls it once. The release token authorizes settlement only, not
+payout. No purse, attach key or token name appears in `info`.

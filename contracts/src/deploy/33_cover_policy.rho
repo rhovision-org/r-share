@@ -1,0 +1,452 @@
+// CoverPolicyFactory: per-policy purse, release token and claim token.
+// Placeholders: __ROOT_URI__.
+new
+  CoverPolicyFactory,
+  rl(`rho:registry:lookup`),
+  rs(`rho:registry:insertArbitrary`),
+  deployerId(`rho:rchain:deployerId`),
+  deployId(`rho:rchain:deployId`),
+  rootCh, c,
+  authOwner, authIsOwner
+in {
+  // @@INLINE:lib/Auth.rho@@
+
+  contract CoverPolicyFactory(@"spawn", @spec, @settleCh,
+                               @purse, @payments, @clock, ret) = {
+    new CoverPolicy, CoverToken, policyState, uCh,
+        coverPolicyNow, coverPolicyAuth, coverPolicyPayments,
+        coverPolicyPay, coverPolicySettle,
+        coverPolicyAttach, coverPolicyExpire in {
+      policyState!({
+        "policyId": spec.get("policyId"),
+        "subjectKind": spec.get("subjectKind"),
+        "subjectId": spec.get("subjectId"),
+        "subjectKey": spec.get("subjectKey"),
+        "guestId": spec.get("guestId"),
+        "providerId": spec.get("providerId"),
+        "offerId": spec.get("offerId"),
+        "offerHash": spec.get("offerHash"),
+        "listingUri": spec.get("listingUri"),
+        "termsHash": spec.get("termsHash"),
+        "insured": spec.get("insured"),
+        "beneficiary": spec.get("beneficiary"),
+        "payer": spec.get("payer"),
+        "payerId": spec.get("payerId"),
+        "operatorId": spec.get("operatorId"),
+        "assetId": spec.get("assetId"),
+        "premiumPaid": spec.get("premiumPaid"),
+        "cap": spec.get("cap"),
+        "deductible": spec.get("deductible"),
+        "depositEffect": spec.get("depositEffect"),
+        "effectiveDeposit": spec.get("effectiveDeposit"),
+        "termsDeposit": spec.get("termsDeposit"),
+        "status": "active",
+        "subjectUri": "",
+        "paid": 0,
+        "claims": {},
+        "bindExpiresAtHeight": spec.get("bindExpiresAtHeight"),
+        "expiresAtHeight": spec.get("bindExpiresAtHeight"),
+        "attachedAtHeight": 0
+      }) |
+
+      contract coverPolicyNow(retNow) = {
+        new nCh in {
+          @clock!("now", *nCh) |
+          for (@n <- nCh) { retNow!(n) }
+        }
+      } |
+
+      contract coverPolicyAuth(dId, retAuth) = {
+        for (@s <<- policyState) {
+          authIsOwner!(*dId, s.get("operatorId"), *retAuth)
+        }
+      } |
+
+      contract coverPolicyPayments(retPayments) = {
+        retPayments!((true, payments))
+      } |
+
+      contract coverPolicyPay(@claimId, @lossId, @amount, @assessed,
+                              @nonCoverRecovery, @evidenceHash, retP) = {
+        for (@s <- policyState) {
+          match s.get("claims").get(claimId) {
+            Nil => {
+              new nowCh in {
+                coverPolicyNow!(*nowCh) |
+                for (@n <- nowCh) {
+                  match n {
+                    (true, now) => {
+                      if (s.get("status") != "active"
+                          && s.get("status") != "attached") {
+                        policyState!(s) | retP!((false, "closed"))
+                      } else if (now > s.get("expiresAtHeight")) {
+                        policyState!(s) | retP!((false, "expired"))
+                      } else if (amount < 1
+                                 || s.get("paid") + amount > s.get("cap")) {
+                        policyState!(s) | retP!((false, "amount"))
+                      } else if (nonCoverRecovery + amount > assessed) {
+                        policyState!(s) | retP!((false, "loss"))
+                      } else {
+                        new pCh in {
+                          coverPolicyPayments!(*pCh) |
+                          for (@p <- pCh) {
+                            match p {
+                              (true, Payments) => {
+                                new fCh in {
+                                  @Payments!("depositFacet",
+                                             s.get("beneficiary"),
+                                             "REV", *fCh) |
+                                  for (@f <- fCh) {
+                                    match f {
+                                      (true, facet) => {
+                                        new sCh in {
+                                          @settleCh!("pay", lossId, amount,
+                                                     assessed, nonCoverRecovery,
+                                                     *sCh) |
+                                          for (@sc <- sCh) {
+                                            match sc {
+                                              (true, paid) => {
+                                                new iCh in {
+                                                  @Payments!("issuer", "REV",
+                                                             *iCh) |
+                                                  for (@i <- iCh) {
+                                                    match i {
+                                                      (true, brand, issuer) => {
+                                                        new wCh, dCh in {
+                                                          @purse!("withdraw",
+                                                                  (brand, amount),
+                                                                  *wCh) |
+                                                          for (@w <- wCh) {
+                                                            match w {
+                                                              (true, payment) => {
+                                                                @facet!("deposit",
+                                                                        payment,
+                                                                        *dCh) |
+                                                                for (@_ <- dCh) {
+                                                                  policyState!(
+                                                                    s.set("paid",
+                                                                          s.get("paid") + amount)
+                                                                     .set("claims",
+                                                                          s.get("claims").set(
+                                                                            claimId, {
+                                                                              "lossId": lossId,
+                                                                              "assessed": assessed,
+                                                                              "depositPart": nonCoverRecovery,
+                                                                              "coverPart": amount,
+                                                                              "nonCoverRecovery": nonCoverRecovery,
+                                                                              "evidenceHash": evidenceHash,
+                                                                              "atHeight": now,
+                                                                              "status": "paid"
+                                                                            }))) |
+                                                                  retP!((true, amount))
+                                                                }
+                                                              }
+                                                              _ => { 1/0 }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                      _ => { retP!(i) }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                              _ => { policyState!(s) | retP!(sc) }
+                                            }
+                                          }
+                                        }
+                                      }
+                                      _ => { policyState!(s) | retP!((false, "beneficiary")) }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { policyState!(s) | retP!((false, "payments")) }
+                            }
+                          }
+                        }
+                      }
+                    }
+                    _ => { policyState!(s) | retP!(n) }
+                  }
+                }
+              }
+            }
+            prior => {
+              policyState!(s) |
+              retP!((true, prior.get("coverPart")))
+            }
+          }
+        }
+      } |
+
+      contract coverPolicySettle(@newStatus, retS) = {
+        for (@s <- policyState) {
+          if (s.get("status") == "settled"
+              || s.get("status") == "expired") {
+            policyState!(s) | retS!((true, Nil))
+          } else {
+            new nowCh in {
+              coverPolicyNow!(*nowCh) |
+              for (@n <- nowCh) {
+                match n {
+                  (true, now) => {
+                    new remCh in {
+                      remCh!(s.get("cap") - s.get("paid")) |
+                      for (@remaining <- remCh) {
+                        if (remaining < 1) {
+                          new eCh in {
+                            @settleCh!("settleEmpty", *eCh) |
+                            for (@e <- eCh) {
+                              match e {
+                                (true, Nil) => {
+                                  policyState!(s.set("status", newStatus)) |
+                                  retS!((true, Nil))
+                                }
+                                _ => { policyState!(s) | retS!(e) }
+                              }
+                            }
+                          }
+                        } else {
+                          new pCh in {
+                            coverPolicyPayments!(*pCh) |
+                            for (@p <- pCh) {
+                              match p {
+                                (true, Payments) => {
+                                  new iCh in {
+                                    @Payments!("issuer", "REV", *iCh) |
+                                    for (@i <- iCh) {
+                                      match i {
+                                        (true, brand, issuer) => {
+                                          new wCh, scCh in {
+                                            @purse!("withdraw",
+                                                    (brand, remaining), *wCh) |
+                                            for (@w <- wCh) {
+                                              match w {
+                                                (true, payment) => {
+                                                  @settleCh!("settle",
+                                                             payment, *scCh) |
+                                                  for (@sc <- scCh) {
+                                                    match sc {
+                                                      (true, returned) => {
+                                                        policyState!(
+                                                          s.set("status", newStatus)) |
+                                                        retS!((true, returned))
+                                                      }
+                                                      _ => { 1/0 }
+                                                    }
+                                                  }
+                                                }
+                                                _ => { 1/0 }
+                                              }
+                                            }
+                                          }
+                                        }
+                                        _ => { retS!(i) }
+                                      }
+                                    }
+                                  }
+                                }
+                                _ => { retS!(p) }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                  _ => { policyState!(s) | retS!(n) }
+                }
+              }
+            }
+          }
+        }
+      } |
+
+      contract coverPolicyAttach(@subjectUri, @subjectId,
+                                 @expiresAtHeight, key, retA) = {
+        for (@s <- policyState) {
+          if (s.get("status") == "settled"
+              || s.get("status") == "expired") {
+            policyState!(s) | retA!((false, "closed"))
+          } else if (s.get("status") == "attached") {
+            policyState!(s) | retA!((true, *CoverToken))
+          } else {
+            new aCh in {
+              @settleCh!("attach", subjectUri, subjectId,
+                         expiresAtHeight, *key, *aCh) |
+              for (@a <- aCh) {
+                match a {
+                  (true, Nil) => {
+                    policyState!(s.set("status", "attached")
+                                  .set("subjectUri", subjectUri)
+                                  .set("expiresAtHeight", expiresAtHeight)) |
+                    retA!((true, *CoverToken))
+                  }
+                  _ => { policyState!(s) | retA!(a) }
+                }
+              }
+            }
+          }
+        }
+      } |
+
+      contract coverPolicyExpire(retE) = {
+        for (@s <<- policyState) {
+          if (s.get("status") == "settled"
+              || s.get("status") == "expired") {
+            retE!((true, Nil))
+          } else {
+            new nowCh in {
+              coverPolicyNow!(*nowCh) |
+              for (@n <- nowCh) {
+                match n {
+                  (true, now) => {
+                    if (now < s.get("expiresAtHeight")) {
+                      retE!((false, "too early"))
+                    } else {
+                      coverPolicySettle!("expired", *retE)
+                    }
+                  }
+                  _ => { retE!(n) }
+                }
+              }
+            }
+          }
+        }
+      } |
+
+      contract CoverToken(@"settle", retT) = {
+        coverPolicySettle!("settled", *retT)
+      } |
+      contract CoverToken(@"info", retT) = {
+        for (@s <<- policyState) { retT!((true, s)) }
+      } |
+
+      contract CoverPolicy(@"pay", dId, @claimId, @lossId, @amount,
+                           @assessed, @nonCoverRecovery, @evidenceHash, retP) = {
+        new oCh in {
+          coverPolicyAuth!(*dId, *oCh) |
+          for (@o <- oCh) {
+            match o {
+              (true, Nil) => {
+                for (@s <<- policyState) {
+                  if (s.get("subjectUri") != "") {
+                    retP!((false, "attached"))
+                  } else {
+                    coverPolicyPay!(claimId, lossId, amount, assessed,
+                                    nonCoverRecovery, evidenceHash, *retP)
+                  }
+                }
+              }
+              _ => { retP!(o) }
+            }
+          }
+        }
+      } |
+
+      contract CoverPolicy(@"authorize", dId, @claimId, @lossId, @amount,
+                           @assessed, @nonCoverRecovery, @evidenceHash, retA) = {
+        new oCh in {
+          coverPolicyAuth!(*dId, *oCh) |
+          for (@o <- oCh) {
+            match o {
+              (true, Nil) => {
+                new nowCh in {
+                  coverPolicyNow!(*nowCh) |
+                  for (@n <- nowCh) {
+                    match n {
+                      (true, now) => {
+                        for (@s <<- policyState) {
+                          if (s.get("status") != "active"
+                              && s.get("status") != "attached") {
+                            retA!((false, "closed"))
+                          } else if (now > s.get("expiresAtHeight")) {
+                            retA!((false, "expired"))
+                          } else if (amount < 1
+                                     || s.get("paid") + amount > s.get("cap")) {
+                            retA!((false, "amount"))
+                          } else if (nonCoverRecovery + amount > assessed) {
+                            retA!((false, "loss"))
+                          } else {
+                            new claimToken in {
+                              contract claimToken(@"pay", retT) = {
+                                coverPolicyPay!(claimId, lossId, amount,
+                                                assessed, nonCoverRecovery,
+                                                evidenceHash, *retT)
+                              } |
+                              contract claimToken(@"info", retT) = {
+                                retT!((true, {
+                                  "claimId": claimId,
+                                  "lossId": lossId,
+                                  "amount": amount,
+                                  "assessed": assessed,
+                                  "nonCoverRecovery": nonCoverRecovery,
+                                  "evidenceHash": evidenceHash
+                                }))
+                              } |
+                              retA!((true, *claimToken))
+                            }
+                          }
+                        }
+                      }
+                      _ => { retA!(n) }
+                    }
+                  }
+                }
+              }
+              _ => { retA!(o) }
+            }
+          }
+        }
+      } |
+
+      contract CoverPolicy(@"settle", dId, retS) = {
+        new oCh in {
+          coverPolicyAuth!(*dId, *oCh) |
+          for (@o <- oCh) {
+            match o {
+              (true, Nil) => {
+                for (@s <<- policyState) {
+                  if (s.get("subjectUri") != "") {
+                    retS!((false, "attached"))
+                  } else {
+                    coverPolicySettle!("settled", *retS)
+                  }
+                }
+              }
+              _ => { retS!(o) }
+            }
+          }
+        }
+      } |
+
+      contract CoverPolicy(@"expire", retE) = {
+        coverPolicyExpire!(*retE)
+      } |
+
+      contract CoverPolicy(@"attach", @subjectUri, @subjectId,
+                           @expiresAtHeight, key, retA) = {
+        coverPolicyAttach!(subjectUri, subjectId, expiresAtHeight,
+                           *key, *retA)
+      } |
+
+      contract CoverPolicy(@"info", retI) = {
+        for (@s <<- policyState) { retI!((true, s)) }
+      } |
+
+      rs!(bundle+{*CoverPolicy}, *uCh) |
+      for (@uri <- uCh) { ret!((true, uri)) }
+    }
+  } |
+
+  rl!(`__ROOT_URI__`, *rootCh) |
+  for (Root <- rootCh) {
+    rs!(bundle+{*CoverPolicyFactory}, *c) |
+    for (@uri <- c) {
+      Root!("register", "component:cover-policy-factory", uri, 1,
+            "cover", *deployerId, *c) |
+      for (@_ <- c) { deployId!([uri]) }
+    }
+  }
+}

@@ -201,13 +201,24 @@
         "Payments"
       ]
     },
+    "CoverPolicyFactory": {
+      "file": "33_cover_policy.rho",
+      "state_cells": [],
+      "depends_on": [
+        "Payments",
+        "Clock"
+      ]
+    },
     "CoverPool": {
       "file": "32_cover_pool.rho",
       "state_cells": [
         "coverPoolState"
       ],
       "depends_on": [
-        "Payments"
+        "Payments",
+        "Clock",
+        "CoverBook",
+        "CoverPolicyFactory"
       ]
     }
   }
