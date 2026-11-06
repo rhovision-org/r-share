@@ -1,5 +1,5 @@
 schema: rshare.arms/v1
-total: 152
+total: 164
 arms:
 - component: AdminGuard
   arm: verify
@@ -280,9 +280,9 @@ arms:
   lean_target: null
   audit_disposition: cornerstone
   rationale: null
-- component: BookingContractFactory
+- component: BookingFactory
   arm: create
-  source: contracts/src/deploy/22_booking_contract.rho:38
+  source: contracts/src/deploy/22_booking_contract.rho:14
   visibility: public
   flow_rule: null
   flow_status: unmapped
@@ -1369,3 +1369,111 @@ arms:
   lean_target: null
   audit_disposition: unmapped
   rationale: Fixed claim metadata.
+- component: BookingInstanceFactory
+  arm: spawn
+  source: contracts/src/deploy/34_booking_instance.rho:38
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Creates one booking instance after guest auth and hold verification.
+- component: BookingContract
+  arm: attachCover
+  source: contracts/src/deploy/34_booking_instance.rho:482
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Attaches the covered policy to the booking and records the cover state.
+- component: BookingContract
+  arm: attachClaim
+  source: contracts/src/deploy/34_booking_instance.rho:523
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Operator-attached fixed claim token for an adjudicated loss.
+- component: GuestLedger
+  arm: bookWithCover
+  source: contracts/src/deploy/23_guest_ledger.rho:475
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Thin dispatcher to the atomic covered booking flow.
+- component: CoverGuestLedger
+  arm: book
+  source: contracts/src/deploy/24_guest_ledger_cover.rho:277
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Atomic acquire, reserve bind, Bond, booking and attach.
+- component: CoverSettle
+  arm: settleKey
+  source: contracts/src/deploy/32_cover_pool.rho:497
+  visibility: capability
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Key-gated settlement for the attached booking.
+- component: CoverSettle
+  arm: settleKeyEmpty
+  source: contracts/src/deploy/32_cover_pool.rho:541
+  visibility: capability
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Key-gated settlement for a fully paid attached policy.
+- component: CoverPolicy
+  arm: settleKey
+  source: contracts/src/deploy/33_cover_policy.rho:501
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Booking release path; forwards the settleToken key to the pool.
+- component: coverTokenCell
+  arm: get
+  source: contracts/src/deploy/34_booking_instance.rho:108
+  visibility: capability
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Private release-token cell read.
+- component: coverTokenCell
+  arm: set
+  source: contracts/src/deploy/34_booking_instance.rho:111
+  visibility: capability
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Private release-token cell write.
+- component: claimTokenCell
+  arm: get
+  source: contracts/src/deploy/34_booking_instance.rho:119
+  visibility: capability
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Private claim-token cell read.
+- component: claimTokenCell
+  arm: set
+  source: contracts/src/deploy/34_booking_instance.rho:122
+  visibility: capability
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Private claim-token cell write.

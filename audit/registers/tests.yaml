@@ -1,5 +1,5 @@
 schema: rshare.tests/v1
-total: 19
+total: 20
 tests:
 - id: T-RESET
   name: reset safety
@@ -96,3 +96,8 @@ tests:
   file: harness/unit_cover_policy.py
   status: passing
   focus: reserve, bind/bindReserved, exact premium, pay/settle/expire, loss ledger, release token, redaction
+- id: T-COVER-BOOKING
+  name: atomic covered booking
+  file: harness/unit_cover_booking.py
+  status: passing
+  focus: reduced deposit, bind, Bond, attach, claim, deposit settlement, cover close

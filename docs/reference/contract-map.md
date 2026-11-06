@@ -26,8 +26,10 @@ per object. The arm signatures are in the [arm reference](arms.md); the install 
 | `14_listing_contract.rho` | ListingFactory, ListingContract (per-listing allocator; plus the internal ListingContractFactory) |
 | `15_bond.rho` | BondFactory, Bond |
 | `20_booking.rho` | GuestBook |
-| `22_booking_contract.rho` | BookingContractFactory, BookingContract |
+| `22_booking_contract.rho` | BookingContractFactory |
+| `34_booking_instance.rho` | BookingInstanceFactory, BookingContract |
 | `23_guest_ledger.rho` | GuestLedgerFactory, GuestLedger |
+| `24_guest_ledger_cover.rho` | GuestLedgerCover |
 
 ## Components
 
@@ -57,7 +59,9 @@ per object. The arm signatures are in the [arm reference](arms.md); the install 
 | GuestLedgerFactory | `23_guest_ledger.rho` | none | stateless |
 | GuestLedger | `23_guest_ledger.rho` | `ledgerState` | one per guest |
 | BookingContractFactory | `22_booking_contract.rho` | none | stateless |
-| BookingContract | `22_booking_contract.rho` | `bookingState` | one per booking |
+| BookingContract | `34_booking_instance.rho` | `bookingState`, `bookingCoverState` |
+| BookingInstanceFactory | `34_booking_instance.rho` | — | per-booking instance factory |
+| GuestLedgerCover | `24_guest_ledger_cover.rho` | — | atomic covered booking flow | one per booking |
 
 ## Dependencies
 

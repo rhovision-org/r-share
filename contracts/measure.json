@@ -6,7 +6,7 @@
     "per_file": {
       "22_booking_contract.rho": 32768,
       "14_listing_contract.rho": 28672,
-      "23_guest_ledger.rho": 12288
+      "23_guest_ledger.rho": 14336
     }
   },
   "terms": {
@@ -61,14 +61,19 @@
       "contracts": 5
     },
     "22_booking_contract.rho": {
-      "bytes": 28402,
-      "depth": 39,
-      "contracts": 24
+      "bytes": 1112,
+      "depth": 11,
+      "contracts": 2
     },
     "23_guest_ledger.rho": {
-      "bytes": 10958,
-      "depth": 33,
+      "bytes": 12504,
+      "depth": 38,
       "contracts": 24
+    },
+    "24_guest_ledger_cover.rho": {
+      "bytes": 9478,
+      "depth": 27,
+      "contracts": 15
     },
     "30_cover_terms.rho": {
       "bytes": 4699,
@@ -81,14 +86,19 @@
       "contracts": 4
     },
     "32_cover_pool.rho": {
-      "bytes": 18836,
+      "bytes": 20107,
       "depth": 32,
       "contracts": 14
     },
     "33_cover_policy.rho": {
-      "bytes": 9184,
+      "bytes": 10441,
       "depth": 37,
-      "contracts": 13
+      "contracts": 14
+    },
+    "34_booking_instance.rho": {
+      "bytes": 34193,
+      "depth": 42,
+      "contracts": 33
     },
     "40_payments.rho": {
       "bytes": 5487,

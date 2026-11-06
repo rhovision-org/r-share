@@ -391,7 +391,33 @@ claimToken("pay", ret) -> (true, amount)
 claimToken("info", ret) -> (true, fixedClaim)
 ```
 
-`pay` is the operator/manual path for an unattached policy. Attached payouts use
-`authorize`: the operator mints a fixed claim token, attaches it to the booking,
-and the booking calls it once. The release token authorizes settlement only, not
-payout. No purse, attach key or token name appears in `info`.
+`pay` is the operator/manual adjudication path; it can settle an attached policy.
+`authorize` remains available for a fixed claim token. `settleKey` is the booking's
+release path and requires the booking's `settleToken` key. The release token
+authorizes settlement only, not payout. No purse, attach key or token name appears
+in `info`.
+
+## Covered booking — `23_guest_ledger.rho`, `24_guest_ledger_cover.rho`,
+## `34_booking_instance.rho`
+
+```
+GuestLedger("bookWithCover", dId, @listingUri, @unitSlots, @opId,
+            @expectedTermsHash, @offerId, @policyId, ret)
+  -> (true, bookingId, bookingUri) | (false, reason)
+CoverGuestLedger("book", dId, @guestId, @listingUri, @unitSlots, @opId,
+                 @expectedTermsHash, @offerId, @policyId, ret)
+  -> (true, bookingId, bookingUri) | (false, reason)
+BookingContract("attachCover", dId, @policyUri, @policyId, ret)
+  -> (true, Nil) | (false, reason)
+BookingContract("attachClaim", dId, @claimId, claimToken, ret)
+  -> (true, Nil) | (false, reason)
+```
+
+`bookWithCover` is a thin guest-auth/gate/dispatch arm. The atomic flow validates
+the active offer and listing, acquires slots, creates `releaseToken` and
+`settleToken`, binds reserved cover, creates the Bond for `rent + effectiveDeposit`,
+creates the booking, and attaches the policy in one deploy. Any failure after bind
+is `1/0`, so slots, reserve, premium, Bond and booking roll back together.
+The booking info merges a redacted `cover` map; no token, key or purse is included.
+Cover payout is operator-adjudicated; the booking verifies the policy `paid` amount
+before paying the deposit part and closes the policy with its settle key.

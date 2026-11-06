@@ -6,7 +6,7 @@
     "per_file": {
       "22_booking_contract.rho": 32768,
       "14_listing_contract.rho": 28672,
-      "23_guest_ledger.rho": 12288
+      "23_guest_ledger.rho": 14336
     }
   },
   "components": {
@@ -125,13 +125,17 @@
         "ListingContract",
         "Clock",
         "BookingContractFactory",
-        "BondFactory"
+        "BondFactory",
+        "GuestLedgerCover"
       ]
     },
     "BookingContract": {
-      "file": "22_booking_contract.rho",
+      "file": "34_booking_instance.rho",
       "state_cells": [
-        "bookingState"
+        "bookingState",
+        "bookingCoverState",
+        "coverTokenCell",
+        "claimTokenCell"
       ],
       "depends_on": [
         "ListingContract",
@@ -152,8 +156,7 @@
       "file": "22_booking_contract.rho",
       "state_cells": [],
       "depends_on": [
-        "AdminGuard",
-        "ListingContract"
+        "BookingInstanceFactory"
       ]
     },
     "Terms": {
@@ -219,6 +222,30 @@
         "Clock",
         "CoverBook",
         "CoverPolicyFactory"
+      ]
+    },
+    "BookingInstanceFactory": {
+      "file": "34_booking_instance.rho",
+      "state_cells": [],
+      "depends_on": [
+        "ListingContract",
+        "Remedy",
+        "Clock",
+        "AdminGuard",
+        "Bond",
+        "Payments"
+      ]
+    },
+    "GuestLedgerCover": {
+      "file": "24_guest_ledger_cover.rho",
+      "state_cells": [],
+      "depends_on": [
+        "CoverBook",
+        "CoverPool",
+        "Clock",
+        "BondFactory",
+        "BookingContractFactory",
+        "ListingFactory"
       ]
     }
   }

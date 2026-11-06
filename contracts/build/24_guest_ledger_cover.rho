@@ -1,0 +1,434 @@
+// CoverGuestLedger: acquire, bind, Bond, booking and attach in one deploy.
+// Placeholders: __ROOT_URI__.
+new
+  CoverGuestLedger,
+  rl(`rho:registry:lookup`),
+  rs(`rho:registry:insertArbitrary`),
+  deployerId(`rho:rchain:deployerId`),
+  deployId(`rho:rchain:deployId`),
+  rootCh, c, ack,
+  resolveComponent,
+  coverListing, coverOffer, coverNow, coverAcquire, coverRelease,
+  coverPool, coverBondFactory, coverBookingFactory, coverStatus,
+  coverBind, coverBond, coverBook, coverAttach
+in {
+contract resolveComponent(@key, ret) = {
+  new rCh, Root, kCh in {
+    rl!(`__ROOT_URI__`, *rCh) |
+    for (Root <- rCh) {
+      Root!("resolve", key, 1, *kCh) |
+      for (@r <- kCh) {
+        match r {
+          (true, uri, _) => {
+            new cCh in {
+              rl!(uri, *cCh) |
+              for (C <- cCh) { ret!((true, *C)) }
+            }
+          }
+          _ => { ret!((false, "unavailable", key)) }
+        }
+      }
+    }
+  }
+} |
+
+  contract coverListing(@uri, ret) = {
+    new cCh in {
+      rl!(uri, *cCh) |
+      for (Listing <- cCh) { Listing!("info", *ret) }
+    }
+  } |
+
+  contract coverOffer(@offerId, ret) = {
+    new cCh, oCh in {
+      resolveComponent!("component:cover-book", *cCh) |
+      for (@(true, CoverBook) <- cCh) {
+        @CoverBook!("offer", offerId, *oCh) |
+        for (@o <- oCh) {
+          match o {
+            (true, entry) => {
+              match entry.get("offer") {
+                offer => { ret!((true, entry, offer)) }
+              }
+            }
+            _ => { ret!(o) }
+          }
+        }
+      }
+    }
+  } |
+
+  contract coverNow(ret) = {
+    new cCh, nCh in {
+      resolveComponent!("component:clock", *cCh) |
+      for (@(true, Clock) <- cCh) {
+        @Clock!("now", *nCh) |
+        for (@n <- nCh) { ret!(n) }
+      }
+    }
+  } |
+
+  contract coverAcquire(@listingUri, @bookingId, @slots, @until,
+                        releaseToken, ret) = {
+    new cCh in {
+      rl!(listingUri, *cCh) |
+      for (Listing <- cCh) {
+        Listing!("acquire", bookingId, slots, until, *releaseToken, *ret)
+      }
+    }
+  } |
+
+  contract coverRelease(@listingUri, @slots, releaseToken, ret) = {
+    new cCh in {
+      rl!(listingUri, *cCh) |
+      for (Listing <- cCh) {
+        Listing!("release", slots, *releaseToken, *ret)
+      }
+    }
+  } |
+
+  contract coverPool(ret) = {
+    resolveComponent!("component:cover-pool", *ret)
+  } |
+  contract coverBondFactory(ret) = {
+    resolveComponent!("component:bond-factory", *ret)
+  } |
+  contract coverBookingFactory(ret) = {
+    resolveComponent!("component:booking-factory", *ret)
+  } |
+  contract coverStatus(@instant, ret) = {
+    if (instant == true) { ret!("confirmed") } else { ret!("requested") }
+  } |
+
+  contract coverBind(dId, @ctx, releaseToken, settleToken, ret) = {
+    new pCh in {
+      coverPool!(*pCh) |
+      for (@p <- pCh) {
+        match p {
+          (true, Pool) => {
+            new subjectCh in {
+              subjectCh!({
+                "subjectKind": "booking",
+                "subjectId": ctx.get("bookingId"),
+                "guestId": ctx.get("guestId"),
+                "providerId": ctx.get("providerId"),
+                "listingUri": ctx.get("listingUri"),
+                "termsHash": ctx.get("listing").get("termsHash"),
+                "insured": ctx.get("providerId"),
+                "beneficiary": ctx.get("providerId"),
+                "payer": "insured",
+                "payerId": ctx.get("providerId"),
+                "termsDeposit": ctx.get("termsDeposit"),
+                "effectiveDeposit": ctx.get("effectiveDeposit"),
+                "deductible": ctx.get("deductible")
+              }) |
+              for (@subject <- subjectCh) {
+                new bCh in {
+                  @Pool!("bindReserved", *dId, subject, ctx.get("offerId"),
+                         ctx.get("cap"), ctx.get("policyId"),
+                         *settleToken, *bCh) |
+                  for (@br <- bCh) {
+                    match br {
+                      (true, _pid, policyUri) => {
+                        coverBond!(*dId, ctx, policyUri, *releaseToken,
+                                   *settleToken, *ret)
+                      }
+                      _ => {
+                        new rCh in {
+                          coverRelease!(ctx.get("listingUri"),
+                                        ctx.get("unitSlots"),
+                                        *releaseToken, *rCh) |
+                          for (@_ <- rCh) { ret!(br) }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          _ => { ret!((false, "cover pool")) }
+        }
+      }
+    }
+  } |
+
+  contract coverBond(dId, @ctx, @policyUri, releaseToken, settleToken, ret) = {
+    new fCh in {
+      coverBondFactory!(*fCh) |
+      for (@f <- fCh) {
+        match f {
+          (true, BondFactory) => {
+            new bondCh in {
+              @BondFactory!("createFromAccount", *dId,
+                            ctx.get("listing").get("terms").get("assetId"),
+                            ctx.get("rent") + ctx.get("effectiveDeposit"),
+                            *settleToken, *bondCh) |
+              for (@bond <- bondCh) {
+                match bond {
+                  (true, bondUri) => {
+                    coverBook!(*dId, ctx, policyUri, bondUri, *releaseToken,
+                               *settleToken, *ret)
+                  }
+                  _ => { 1/0 }
+                }
+              }
+            }
+          }
+          _ => { 1/0 }
+        }
+      }
+    }
+  } |
+
+  contract coverBook(dId, @ctx, @policyUri, @bondUri,
+                     releaseToken, settleToken, ret) = {
+    new cfCh in {
+      if (ctx.get("instant") == true) {
+        new cCh in {
+          rl!(ctx.get("listingUri"), *cCh) |
+          for (Listing <- cCh) {
+            Listing!("confirm", ctx.get("unitSlots"), *releaseToken, *cfCh)
+          }
+        }
+      } else {
+        cfCh!((true, Nil))
+      } |
+      for (@cf <- cfCh) {
+        match cf {
+          (true, Nil) => {
+            new statusCh in {
+              coverStatus!(ctx.get("instant"), *statusCh) |
+              for (@initialStatus <- statusCh) {
+                new dataCh in {
+                  dataCh!({
+                    "status": initialStatus,
+                    "bookingId": ctx.get("bookingId"),
+                    "guestId": ctx.get("guestId"),
+                    "providerId": ctx.get("providerId"),
+                    "listingId": ctx.get("listing").get("listingId"),
+                    "listingUri": ctx.get("listingUri"),
+                    "kind": ctx.get("listing").get("kind"),
+                    "unitSlots": ctx.get("unitSlots"),
+                    "assetId": ctx.get("listing").get("terms").get("assetId"),
+                    "rent": ctx.get("rent"),
+                    "deposit": ctx.get("effectiveDeposit"),
+                    "feeBps": ctx.get("listing").get("terms").get("feeBps"),
+                    "holdUntilHeight": ctx.get("until"),
+                    "checkInHeight": ctx.get("checkIn"),
+                    "checkOutHeight": ctx.get("checkOut"),
+                    "cancellation": ctx.get("listing").get("terms"),
+                    "admins": ctx.get("listing").get("admins"),
+                    "threshold": ctx.get("listing").get("threshold"),
+                    "instantBook": ctx.get("instant"),
+                    "cover": {
+                      "policyUri": policyUri,
+                      "policyId": ctx.get("policyId"),
+                      "offerId": ctx.get("offerId"),
+                      "cap": ctx.get("cap"),
+                      "deductible": ctx.get("deductible"),
+                      "effectiveDeposit": ctx.get("effectiveDeposit"),
+                      "termsDeposit": ctx.get("termsDeposit"),
+                      "mode": ctx.get("mode"),
+                      "status": "pending",
+                      "claimId": "",
+                      "lossId": "",
+                      "depositPart": 0,
+                      "coverPart": 0,
+                      "coverExpiresAtHeight": ctx.get("coverExpiresAtHeight")
+                    }
+                  }) |
+                  for (@data <- dataCh) {
+                    new bfCh in {
+                      coverBookingFactory!(*bfCh) |
+                      for (@bf <- bfCh) {
+                        match bf {
+                          (true, BookingFactory) => {
+                            new bookingCh in {
+                              @BookingFactory!("create", *dId, data,
+                                               *releaseToken, bondUri,
+                                               *settleToken, *bookingCh) |
+                              for (@booking <- bookingCh) {
+                                match booking {
+                                  (true, bookingUri) => {
+                                    coverAttach!(*dId, ctx, policyUri,
+                                                 bookingUri, *ret)
+                                  }
+                                  _ => { 1/0 }
+                                }
+                              }
+                            }
+                          }
+                          _ => { 1/0 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          _ => { 1/0 }
+        }
+      }
+    }
+  } |
+
+  contract coverAttach(dId, @ctx, @policyUri, @bookingUri, ret) = {
+    new cCh, atCh in {
+      rl!(bookingUri, *cCh) |
+      for (BookingContract <- cCh) {
+        BookingContract!("attachCover", *dId, policyUri,
+                         ctx.get("policyId"), *atCh) |
+        for (@at <- atCh) {
+          match at {
+            (true, Nil) => {
+              ret!((true, ctx.get("bookingId"), bookingUri))
+            }
+            _ => { 1/0 }
+          }
+        }
+      }
+    }
+  } |
+
+  contract CoverGuestLedger(@"book", dId, @guestId, @listingUri,
+                            @unitSlots, @opId, @expectedTermsHash,
+                            @offerId, @policyId, ret) = {
+    new lCh in {
+      coverListing!(listingUri, *lCh) |
+      for (@li <- lCh) {
+        match li {
+          (true, listing) => {
+            if (listing.get("status") != "active") {
+              ret!((false, "listing inactive"))
+            } else if (expectedTermsHash != Nil
+                       && listing.get("termsHash") != expectedTermsHash) {
+              ret!((false, "terms"))
+            } else {
+              new oCh in {
+                coverOffer!(offerId, *oCh) |
+                for (@o <- oCh) {
+                  match o {
+                    (true, entry, offer) => {
+                      if (entry.get("status") != "active") {
+                        ret!((false, "offer"))
+                      } else if (offer.get("subjectKind") != "booking") {
+                        ret!((false, "subject"))
+                      } else if (entry.get("publisherId")
+                                 != listing.get("providerId")) {
+                        ret!((false, "publisher"))
+                      } else if (offer.get("payer") != "insured"
+                                 || offer.get("insuredRole") != "provider"
+                                 || offer.get("beneficiaryRole") != "provider") {
+                        ret!((false, "payer"))
+                      } else if (offer.get("assetId")
+                                 != listing.get("terms").get("assetId")) {
+                        ret!((false, "asset"))
+                      } else if (offer.get("depositEffect") != "none"
+                                 && offer.get("depositEffect") != "reduce_to_deductible"
+                                 && offer.get("depositEffect") != "remove") {
+                        ret!((false, "deposit"))
+                      } else if (offer.get("deductible")
+                                 > listing.get("terms").get("deposit")) {
+                        ret!((false, "deposit"))
+                      } else {
+                        new nowCh, acqCh, releaseToken, settleToken in {
+                          coverNow!(*nowCh) |
+                          for (@n <- nowCh) {
+                            match n {
+                              (true, now) => {
+                                new effectiveCh in {
+                                  if (offer.get("depositEffect") == "none") {
+                                    effectiveCh!(listing.get("terms").get("deposit"))
+                                  } else if (offer.get("depositEffect") == "reduce_to_deductible") {
+                                    effectiveCh!(offer.get("deductible"))
+                                  } else {
+                                    effectiveCh!(0)
+                                  } |
+                                  for (@effectiveDeposit <- effectiveCh) {
+                                    new bookingIdCh in {
+                                      bookingIdCh!(guestId ++ ":" ++ opId) |
+                                      for (@bookingId <- bookingIdCh) {
+                                        coverAcquire!(listingUri, bookingId,
+                                          unitSlots,
+                                          now + listing.get("terms").get("holdBlocks"),
+                                          *releaseToken, *acqCh) |
+                                        for (@acq <- acqCh) {
+                                          match acq {
+                                            (true, summary) => {
+                                              new ctxCh in {
+                                                ctxCh!({
+                                                  "guestId": guestId,
+                                                  "providerId": listing.get("providerId"),
+                                                  "listingUri": listingUri,
+                                                  "listing": listing,
+                                                  "unitSlots": unitSlots,
+                                                  "bookingId": bookingId,
+                                                  "offerId": offerId,
+                                                  "policyId": policyId,
+                                                  "cap": offer.get("coverageCap"),
+                                                  "deductible": offer.get("deductible"),
+                                                  "effectiveDeposit": effectiveDeposit,
+                                                  "termsDeposit": listing.get("terms").get("deposit"),
+                                                  "mode": offer.get("depositEffect"),
+                                                  "rent": summary.get("rent"),
+                                                  "checkIn": summary.get("checkIn"),
+                                                  "checkOut": summary.get("checkOut"),
+                                                  "now": now,
+                                                  "until": now + listing.get("terms").get("holdBlocks"),
+                                                  "instant": listing.get("terms").get("instantBook"),
+                                                  "coverExpiresAtHeight": summary.get("checkOut")
+                                                    + offer.get("claimWindowBlocks")
+                                                    + listing.get("terms").get("disputeWindowBlocks")
+                                                    + 1
+                                                }) |
+                                                for (@ctx <- ctxCh) {
+                                                  coverBind!(*dId, ctx,
+                                                    *releaseToken,
+                                                    *settleToken, *ret)
+                                                }
+                                              }
+                                            }
+                                            _ => {
+                                              new relCh in {
+                                                coverRelease!(listingUri, unitSlots,
+                                                  *releaseToken, *relCh) |
+                                                for (@_ <- relCh) { ret!(acq) }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { ret!(n) }
+                            }
+                          }
+                        }
+                      }
+                    }
+                    _ => { ret!(o) }
+                  }
+                }
+              }
+            }
+          }
+          _ => { ret!(li) }
+        }
+      }
+    }
+  } |
+
+  rl!(`__ROOT_URI__`, *rootCh) |
+  for (Root <- rootCh) {
+    rs!(bundle+{*CoverGuestLedger}, *c) |
+    for (@uri <- c) {
+      Root!("register", "component:guest-ledger-cover", uri, 1,
+            "cover", *deployerId, *ack) |
+      for (@_ <- ack) { deployId!([uri]) }
+    }
+  }
+}

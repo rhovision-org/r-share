@@ -537,6 +537,77 @@ contract authIsOwner(dId, @ownerId, ret) = {
                       }
                     } |
 
+                    contract CoverSettle(@"settleKey", key, @payment, retS) = {
+                      if (*key != attachKey) {
+                        retS!((false, "key"))
+                      } else {
+                        new aCh, dCh in {
+                          @issuer!("getAmountOf", payment, *aCh) |
+                          for (@a <- aCh) {
+                            match a {
+                              (true, returned) => {
+                                for (@s <- coverPoolState) {
+                                  match s.get("policies").get(policyId) {
+                                    Nil => {
+                                      coverPoolState!(s) |
+                                      retS!((false, "unknown policy"))
+                                    }
+                                    entry => {
+                                      if (entry.get("paid") + returned != cap) {
+                                        coverPoolState!(s) |
+                                        retS!((false, "amount"))
+                                      } else {
+                                        @facilityPurse!("deposit",
+                                                        payment, *dCh) |
+                                        for (@_ <- dCh) {
+                                          coverPoolState!(s.set(
+                                            "outstanding",
+                                            s.get("outstanding") - returned)
+                                            .set("policies",
+                                                 s.get("policies").set(policyId,
+                                                   entry.set("remaining", 0)
+                                                     .set("status", "settled")))) |
+                                          retS!((true, returned))
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                              _ => { retS!(a) }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
+                    contract CoverSettle(@"settleKeyEmpty", key, retS) = {
+                      if (*key != attachKey) {
+                        retS!((false, "key"))
+                      } else {
+                        for (@s <- coverPoolState) {
+                          match s.get("policies").get(policyId) {
+                            Nil => {
+                              coverPoolState!(s) |
+                              retS!((false, "unknown policy"))
+                            }
+                            entry => {
+                              if (entry.get("paid") != cap) {
+                                coverPoolState!(s) |
+                                retS!((false, "amount"))
+                              } else {
+                                coverPoolState!(s.set(
+                                  "policies", s.get("policies").set(policyId,
+                                    entry.set("remaining", 0)
+                                      .set("status", "settled")))) |
+                                retS!((true, 0))
+                              }
+                            }
+                          }
+                        }
+                      }
+                    } |
+
                     @PolicyFactory!("spawn",
                                    meta.set("cap", cap)
                                        .set("premiumPaid", premiumPaid),

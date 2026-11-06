@@ -102,6 +102,13 @@ def booking_term(
         "admins": [],
         "threshold": 1,
         "instantBook": instant_book,
+        "cover": {
+            "policyUri": "", "policyId": "", "offerId": "",
+            "cap": 0, "deductible": 0, "effectiveDeposit": 0,
+            "termsDeposit": 0, "mode": "none", "status": "none",
+            "claimId": "", "lossId": "", "depositPart": 0,
+            "coverPart": 0, "coverExpiresAtHeight": 0,
+        },
     }
     return f"""
 new rl(`rho:registry:lookup`), rootCh, rCh, bfCh, bCh,

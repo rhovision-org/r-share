@@ -341,7 +341,14 @@ in {
                         "cancellation": listing.get("terms"),
                         "admins": listing.get("admins"),
                         "threshold": listing.get("threshold"),
-                        "instantBook": listing.get("terms").get("instantBook")
+                        "instantBook": listing.get("terms").get("instantBook"),
+                        "cover": {
+                          "policyUri": "", "policyId": "", "offerId": "",
+                          "cap": 0, "deductible": 0, "effectiveDeposit": 0,
+                          "termsDeposit": 0, "mode": "none", "status": "none",
+                          "claimId": "", "lossId": "", "depositPart": 0,
+                          "coverPart": 0, "coverExpiresAtHeight": 0
+                        }
                       }) |
                       for (@data <- dCh) {
                         new cCh in {
@@ -440,6 +447,100 @@ in {
                                                             *ledgerState, *dId2, guestId,
                                                             listingUri, unitSlots, opId,
                                                             expectedTermsHash, *ret2)
+                                                        }
+                                                        (true, entry) => {
+                                                          if (entry.get("ok") == true) {
+                                                            ret2!((true,
+                                                                   entry.get("bookingId"),
+                                                                   entry.get("uri")))
+                                                          } else {
+                                                            ret2!((false,
+                                                                   entry.get("reason")))
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                                _ => { ret2!((false, "paused")) }
+                                              }
+                                            }
+                                          }
+                                        }
+                                        _ => { ret2!(v2) }
+                                      }
+                                    }
+                                  }
+                                } |
+                                contract GuestLedger(@"bookWithCover", dId2,
+                                                    @listingUri, @unitSlots,
+                                                    @opId, @expectedTermsHash,
+                                                    @offerId, @policyId, ret2) = {
+                                  new o2 in {
+                                    authIsOwner!(*dId2, guestId, *o2) |
+                                    for (@v2 <- o2) {
+                                      match v2 {
+                                        (true, Nil) => {
+                                          new gateCh in {
+                                            GuestLedgerGate!(*gateCh) |
+                                            for (@g <- gateCh) {
+                                              match g {
+                                                (true, Nil) => {
+                                                  new svCh in {
+                                                    GuestLedgerReserve!(
+                                                      *ledgerState, opId, *svCh) |
+                                                    for (@reserved <- svCh) {
+                                                      match reserved {
+                                                        (false, reason) => {
+                                                          ret2!((false, reason))
+                                                        }
+                                                        (true, Nil) => {
+                                                          new fCh, resCh in {
+                                                            ledgerResolve!(
+                                                              "component:guest-ledger-cover",
+                                                              *fCh) |
+                                                            for (@f <- fCh) {
+                                                              match f {
+                                                                (true, Cover) => {
+                                                                  @Cover!("book",
+                                                                    *dId2, guestId,
+                                                                    listingUri,
+                                                                    unitSlots, opId,
+                                                                    expectedTermsHash,
+                                                                    offerId,
+                                                                    policyId,
+                                                                    *resCh) |
+                                                                  for (@cr <- resCh) {
+                                                                    match cr {
+                                                                      (true, bookingId,
+                                                                       bookingUri) => {
+                                                                        GuestLedgerFinish!(
+                                                                          *ledgerState,
+                                                                          opId,
+                                                                          {"pending": false,
+                                                                           "ok": true,
+                                                                           "bookingId": bookingId,
+                                                                           "uri": bookingUri}) |
+                                                                        ret2!(cr)
+                                                                      }
+                                                                      _ => {
+                                                                        GuestLedgerDrop!(
+                                                                          *ledgerState,
+                                                                          opId) |
+                                                                        ret2!(cr)
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                                _ => {
+                                                                  GuestLedgerDrop!(
+                                                                    *ledgerState,
+                                                                    opId) |
+                                                                  ret2!((false, "cover"))
+                                                                }
+                                                              }
+                                                            }
+                                                          }
                                                         }
                                                         (true, entry) => {
                                                           if (entry.get("ok") == true) {

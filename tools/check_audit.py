@@ -77,8 +77,8 @@ def main() -> int:
     improvement_ids = ids(improvements, "improvements", problems)
     test_ids = ids(tests, "tests", problems)
 
-    if len(arms) != 152:
-        problems.append(f"arms: expected 152, found {len(arms)}")
+    if len(arms) != 164:
+        problems.append(f"arms: expected 164, found {len(arms)}")
     if len({(a.get('component'), a.get('arm')) for a in arms}) != len(arms):
         problems.append("arms: duplicate component/arm pair")
 

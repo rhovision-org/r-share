@@ -1,9 +1,11 @@
 # Two-sided cover
 
-> **Status:** Partial implementation. `CoverTerms`, `CoverBook`, `CoverPool` and the
-> Phase 1a `CoverPolicy`/`CoverSettle` capability are implemented and tested on the isolated
-> devnet. Booking/deposit integration (`bookWithCover`, `attachCover`, claim settlement) is
-> Phase 1b and remains design. Client types are not implemented.
+> **Status:** Partial implementation. `CoverTerms`, `CoverBook`, `CoverPool`, the
+> `CoverPolicy`/`CoverSettle` capabilities and the atomic `bookWithCover`/`attachCover`
+> booking flow are implemented and tested on the isolated devnet. Claim adjudication is
+> operator-authorized; the fixed claim-token primitive is implemented but the booking path
+> currently pays through the operator. Client types and the platform-funded/guest-paid
+> variants are not implemented.
 
 ## Purpose
 

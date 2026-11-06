@@ -37,8 +37,10 @@ ORDER = [
     "13_unit.rho",
     "14_listing_contract.rho",
     "15_bond.rho",
+    "34_booking_instance.rho",
     "22_booking_contract.rho",
     "23_guest_ledger.rho",
+    "24_guest_ledger_cover.rho",
     "20_booking.rho",
 ]
 

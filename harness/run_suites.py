@@ -48,6 +48,7 @@ SUITES = {
     "bond_refusals": "unit_bond_refusals.py",
     "cover": "unit_cover.py",
     "cover_policy": "unit_cover_policy.py",
+    "cover_booking": "unit_cover_booking.py",
 }
 DEFAULT = ["root", "payments", "lifecycle", "claims", "pricing", "guestbook",
            "booking", "pause", "allocator", "admin", "events", "generality",
@@ -55,7 +56,7 @@ DEFAULT = ["root", "payments", "lifecycle", "claims", "pricing", "guestbook",
            "reset_safety", "settle_release", "no_show_contest", "event_timing",
            "admin_keys", "pause_scope", "cell_liveness", "factory_auth",
            "provider_index", "cutoffs", "bond_refusals", "cover",
-           "cover_policy"]
+           "cover_policy", "cover_booking"]
 
 
 def run(name: str) -> dict:

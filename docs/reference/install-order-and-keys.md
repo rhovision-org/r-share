@@ -25,13 +25,17 @@ account after `40_payments.rho`.
 | 12 | `13_unit.rho` | `component:unit-factory` |
 | 13 | `14_listing_contract.rho` | `component:listing-factory` |
 | 14 | `15_bond.rho` | `component:bond-factory` |
-| 15 | `22_booking_contract.rho` | `component:booking-factory` |
-| 16 | `23_guest_ledger.rho` | `component:guest-ledger-factory` |
-| 17 | `20_booking.rho` | `component:guest-book` |
+| 15 | `34_booking_instance.rho` | `component:booking-instance-factory` |
+| 16 | `22_booking_contract.rho` | `component:booking-factory` |
+| 17 | `23_guest_ledger.rho` | `component:guest-ledger-factory` |
+| 18 | `24_guest_ledger_cover.rho` | `component:guest-ledger-cover` |
+| 19 | `20_booking.rho` | `component:guest-book` |
+---|---|
 
 `20_booking` comes last because GuestBook resolves the guest-ledger factory at runtime;
-`22_booking_contract` comes before the ledger because GuestLedger resolves the booking
-factory. The old `21_booking` pass-through is gone.
+`34_booking_instance` comes before `22_booking_contract` because the booking factory
+resolves the instance factory; `24_guest_ledger_cover` follows the ledger because the
+ledger dispatches covered bookings to it. The old `21_booking` pass-through is gone.
 
 ## Placeholders
 
@@ -64,6 +68,8 @@ component:listing-factory
 component:bond-factory
 component:booking-factory
 component:guest-ledger-factory
+component:booking-instance-factory
+component:guest-ledger-cover
 component:guest-book
 component:cover-terms
 component:cover-book
