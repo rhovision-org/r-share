@@ -1,6 +1,6 @@
 {
   "deploy_terms": 20,
-  "bytes_total": 195579,
+  "bytes_total": 195655,
   "bytes_max": 36277,
   "depth_max": 44,
   "contracts_max": 35,
@@ -42,9 +42,9 @@
       "contracts": 10
     },
     "13_unit.rho": {
-      "bytes": 4117,
-      "depth": 20,
-      "contracts": 8
+      "bytes": 4193,
+      "depth": 19,
+      "contracts": 9
     },
     "14_listing_contract.rho": {
       "bytes": 28657,

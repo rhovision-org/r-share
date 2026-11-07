@@ -41,9 +41,9 @@
       "contracts": 10
     },
     "13_unit.rho": {
-      "bytes": 4117,
-      "depth": 20,
-      "contracts": 8
+      "bytes": 4193,
+      "depth": 19,
+      "contracts": 9
     },
     "14_listing_contract.rho": {
       "bytes": 28657,
