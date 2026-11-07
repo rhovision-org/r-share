@@ -353,7 +353,8 @@ CoverPool("allocate", dId, @policyId, @cap, ret)
 CoverPool("bind", dId, @subject, @offerId, @cap, @payment, @policyId,
           @attachKey, ret) -> (true, policyId, policyUri)
 CoverPool("bindReserved", dId, @subject, @offerId, @cap, @policyId,
-          @attachKey, ret) -> (true, policyId, policyUri)
+          @attachKey, @unitSlots, releaseToken, ret)
+  -> (true, policyId, policyUri) | (false, "hold" | "guest" | "reserve")
 CoverPool("policy", @policyId, ret) -> (true, entry) | (false, "unknown policy")
 CoverPool("release", dId, @policyId, @payment, @paidAmount, ret)
   -> (true, amount) | (false, "unknown policy" | "attached" | "amount")
@@ -371,7 +372,8 @@ CoverPool("resume", dId, ret) -> (true, Nil)
 without changing the reserve. `configure`, `pause` and `resume` are operator-only. `bind` and `bindReserved` validate
 an active offer and listing, reserve the cap, create a per-policy purse and call
 `CoverPolicyFactory("spawn", ...)`. `bind` takes an exact premium payment;
-`bindReserved` debits the payer reserve and authenticates the guest. The private
+`bindReserved` debits the payer reserve, authenticates the guest, and requires a live
+`Listing("verifyHold")` for the booking id, slot set and release token. The private
 `CoverSettle` capability created in the same call records loss-ledger payouts and
 measures the returned cover at settlement. `cash` is free cash
 (`assets - outstanding`). All pool mutations except the permissionless premium

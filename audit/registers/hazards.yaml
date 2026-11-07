@@ -1473,11 +1473,12 @@ hazards:
   severity: S2
   likelihood: L2
   risk: high
-  controls: reserve cap and expiry bound the drain; a live Listing.verifyHold proof is still owed
+  controls: bindReserved calls Listing.verifyHold for the booking id, unit slots and release token before any reserve debit; reserve cap and expiry remain secondary bounds
   findings: []
-  tests: []
+  tests:
+  - T-COVER-POLICY
   lean: null
-  disposition: open
+  disposition: mitigate
   owner: cover
   evidence:
   - contracts/src/deploy/32_cover_pool.rho

@@ -9,7 +9,7 @@ new
   rootCh, c,
   resolveComponent, authOwner, authIsOwner,
   paymentsCh, issuerCh, purseCh, ownerCh, bookCh, factoryCh, clockCh,
-  poolAssets, poolCanPay, poolPolicyLookup, poolDepositCheck, poolBindCheck,
+  poolAssets, poolCanPay, poolPolicyLookup, poolHoldCheck, poolDepositCheck, poolBindCheck,
   poolLossCheck, poolPay, reservePolicy, depositPremium, reserveDebit, poolSpawnPolicy
 in {
   // @@INLINE:lib/Resolve.rho@@
@@ -66,6 +66,16 @@ in {
                   match s.get("policies").get(policyId) {
                     Nil => { ret!((false, "unknown policy")) }
                     entry => { ret!((true, entry)) }
+                  }
+                } |
+                contract poolHoldCheck(@listingUri, @bookingId, @unitSlots,
+                                       releaseToken, ret) = {
+                  new lCh in {
+                    rl!(listingUri, *lCh) |
+                    for (Listing <- lCh) {
+                      Listing!("verifyHold", bookingId, unitSlots,
+                               *releaseToken, *ret)
+                    }
                   }
                 } |
 
@@ -821,7 +831,8 @@ in {
                 } |
 
                 contract CoverPool(@"bindReserved", dId, @subject, @offerId,
-                                   @cap, @policyId, @attachKey, ret) = {
+                                   @cap, @policyId, @attachKey, @unitSlots,
+                                   releaseToken, ret) = {
                   new oCh, gCh in {
                     authOwner!(*dId, *gCh) |
                     for (@g <- gCh) {
@@ -830,58 +841,70 @@ in {
                           if (guestId != subject.get("guestId")) {
                             ret!((false, "guest"))
                           } else {
-                            new chkCh in {
-                              poolBindCheck!(subject, offerId, cap, *chkCh) |
-                              for (@chk <- chkCh) {
-                                match chk {
-                                  (true, offer, offerHash, meta) => {
-                                    new balCh in {
-                                      for (@s <<- coverPoolState) {
-                                        balCh!(s.get("reserves").get(
-                                                 subject.get("payerId")))
-                                      } |
-                                      for (@bal <- balCh) {
-                                        match bal {
-                                          Nil => { ret!((false, "reserve")) }
-                                          available => {
-                                            if (available < offer.get("premiumTotal")) {
-                                              ret!((false, "reserve"))
-                                            } else {
-                                              new rCh in {
-                                                reservePolicy!(policyId, meta,
-                                                               cap, *rCh) |
-                                                for (@r <- rCh) {
-                                                  match r {
-                                                    (true, purse) => {
-                                                      new dCh in {
-                                                        reserveDebit!(
-                                                          subject.get("payerId"),
-                                                          offer.get("premiumTotal"),
-                                                          *dCh) |
-                                                        for (@d <- dCh) {
-                                                          match d {
-                                                            (true, paid) => {
-                                                              poolSpawnPolicy!(
-                                                                policyId, meta,
-                                                                cap, attachKey,
-                                                                purse, paid, *ret)
+                            new hCh in {
+                              poolHoldCheck!(subject.get("listingUri"),
+                                             subject.get("subjectId"),
+                                             unitSlots, *releaseToken, *hCh) |
+                              for (@h <- hCh) {
+                                match h {
+                                  (true, Nil) => {
+                                    new chkCh in {
+                                      poolBindCheck!(subject, offerId, cap, *chkCh) |
+                                      for (@chk <- chkCh) {
+                                        match chk {
+                                          (true, offer, offerHash, meta) => {
+                                            new balCh in {
+                                              for (@s <<- coverPoolState) {
+                                                balCh!(s.get("reserves").get(
+                                                         subject.get("payerId")))
+                                              } |
+                                              for (@bal <- balCh) {
+                                                match bal {
+                                                  Nil => { ret!((false, "reserve")) }
+                                                  available => {
+                                                    if (available < offer.get("premiumTotal")) {
+                                                      ret!((false, "reserve"))
+                                                    } else {
+                                                      new rCh in {
+                                                        reservePolicy!(policyId, meta,
+                                                                       cap, *rCh) |
+                                                        for (@r <- rCh) {
+                                                          match r {
+                                                            (true, purse) => {
+                                                              new dCh in {
+                                                                reserveDebit!(
+                                                                  subject.get("payerId"),
+                                                                  offer.get("premiumTotal"),
+                                                                  *dCh) |
+                                                                for (@d <- dCh) {
+                                                                  match d {
+                                                                    (true, paid) => {
+                                                                      poolSpawnPolicy!(
+                                                                        policyId, meta,
+                                                                        cap, attachKey,
+                                                                        purse, paid, *ret)
+                                                                    }
+                                                                    _ => { 1/0 }
+                                                                  }
+                                                                }
+                                                              }
                                                             }
-                                                            _ => { 1/0 }
+                                                            _ => { ret!(r) }
                                                           }
                                                         }
                                                       }
                                                     }
-                                                    _ => { ret!(r) }
                                                   }
                                                 }
                                               }
                                             }
                                           }
+                                          _ => { ret!(chk) }
                                         }
                                       }
                                     }
                                   }
-                                  _ => { ret!(chk) }
+                                  _ => { ret!((false, "hold")) }
                                 }
                               }
                             }

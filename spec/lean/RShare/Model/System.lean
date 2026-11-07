@@ -50,6 +50,7 @@ structure Boundary where
   ertpPurseAtomic : Bool
   operatorSettleTrusted : Bool
   nodeDeployAtomic : Bool
+  bindReservedRequiresHold : Bool
 
 def boundary : Boundary :=
   { providerActiveCheckedByLedger := true
@@ -62,7 +63,8 @@ def boundary : Boundary :=
     claimTokenUnforgeable := true
     ertpPurseAtomic := true
     operatorSettleTrusted := true
-    nodeDeployAtomic := true }
+    nodeDeployAtomic := true
+    bindReservedRequiresHold := true }
 
 /-- A caller can hold free slots without a booking; the hold is bounded by the unit's
 `maxHoldBlocks`, so the grief is temporary. -/

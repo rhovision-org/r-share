@@ -126,7 +126,8 @@ contract resolveComponent(@key, ret) = {
                 new bCh in {
                   @Pool!("bindReserved", *dId, subject, ctx.get("offerId"),
                          ctx.get("cap"), ctx.get("policyId"),
-                         *settleToken, *bCh) |
+                         *settleToken, ctx.get("unitSlots"),
+                         *releaseToken, *bCh) |
                   for (@br <- bCh) {
                     match br {
                       (true, _pid, policyUri) => {

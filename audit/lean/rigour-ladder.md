@@ -31,9 +31,9 @@ is not a proof.
 - Resolve the duplicate S-numbering in favour of `INV-###` IDs that map to
   `spec/invariants.md`.
 
-At baseline: 63 theorems in source, 38 audited. The L0/L1 and no-show pass now names all
-72 source theorems. The flow manifest has 35 rules over 31 arms; 119 public arms remain in
-the inventory, with the rest explicitly unmapped.
+At the current baseline: 94 registered theorems, all named in the axiom audit. The flow
+manifest has 43 rules over 39 arms; the remaining public arms stay in the inventory as
+explicitly unmapped.
 
 ## L1 — executable model and bounded checks
 
@@ -52,17 +52,24 @@ Add local theorems over the existing model:
 
 ## L2 — concurrency, cells, deploy atomicity, linearizability
 
-New `Linear/Concurrency.lean` and `Linear/Deploy.lean`:
+Implemented in `Linear/Concurrency.lean` and `Linear/Deploy.lean`:
 
-- `commit_commute`, `run_disjoint_commute`;
-- `single_cell_linearizable`, `disjoint_cells_linearizable`;
+- `run_append`, `commit_commute`, `run_disjoint_commute`;
+- `disjoint_cells_linearizable` (permuting disjoint commit blocks preserves the result);
 - `commit_preserves_wf`, `run_failure_no_leak`, `deploy_atomic_rollback` (node atomicity is
   an explicit assumption);
 - `held_across_external_call_unsafe`: a counterexample for HZ-011;
 - `external_read_then_commit_safe`: revalidation after a pure read is sound.
 
+`single_cell_linearizable` is deliberately omitted: under the current serial `run` it is
+definitional, and a `run s h ops = run s h ops` theorem would be vacuous. The substantive
+result is `disjoint_cells_linearizable`.
+
 The deployed `acquire` is not a single commit; its tie remains `assumption`/`owed` until the
-contract is restructured or the model is changed to the take/await/put pattern.
+contract is restructured or the model is changed to the take/await/put pattern. `Model/Cover`
+adds 13 cover theorems: fixed token, one-time pay, attached-only payout, attached expiry,
+idempotent terminal settle, claim freeze and dispute refusal. ERTP and token unforgeability
+remain assumptions.
 
 ## L3 — admin thresholds and ERTP conservation
 

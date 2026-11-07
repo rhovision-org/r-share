@@ -1,6 +1,6 @@
 {
   "deploy_terms": 19,
-  "bytes_total": 177450,
+  "bytes_total": 177944,
   "bytes_max": 33475,
   "depth_max": 42,
   "contracts_max": 35,
@@ -8,7 +8,7 @@
   "state_cell_types": 14,
   "arm_declarations": 163,
   "root_resolve_sites": 4,
-  "registry_lookup_sites": 48,
+  "registry_lookup_sites": 49,
   "registry_insert_sites": 28,
   "terms_detail": {
     "00_root.rho": {
@@ -72,7 +72,7 @@
       "contracts": 24
     },
     "24_guest_ledger_cover.rho": {
-      "bytes": 9563,
+      "bytes": 9600,
       "depth": 27,
       "contracts": 15
     },
@@ -87,9 +87,9 @@
       "contracts": 4
     },
     "32_cover_pool.rho": {
-      "bytes": 22308,
-      "depth": 32,
-      "contracts": 16
+      "bytes": 22765,
+      "depth": 36,
+      "contracts": 17
     },
     "33_cover_policy.rho": {
       "bytes": 10469,

@@ -14,11 +14,14 @@
 | `RShare/Basic.lean` | amounts, heights, division helpers |
 | `RShare/Linear/Cell.lean` | one-value cells, `peek`/`take`/`put`/`commit`, well-formedness, D1–D3 rejection theorems |
 | `RShare/Linear/Protocol.lean` | pure helper, caller-token, delegated and await-then-commit protocols |
+| `RShare/Linear/Concurrency.lean` | atomic commit blocks, disjoint-cell commutation, permutation invariance, `disjoint_cells_linearizable` |
+| `RShare/Linear/Deploy.lean` | all-or-none deploy wrapper, rollback, commit well-formedness, the hold-across-external-call counterexample |
 | `RShare/Model/Allocator.lean` | per-listing allocation: one reservation append, single-owner slots, bounded holds, token-gated confirm/release, token-free projections |
 | `RShare/Model/Booking.lean` | status graph, terminal stickiness, every status has a path to a terminal |
 | `RShare/Model/Bond.lean` | single-use pay, bucket conservation |
 | `RShare/Model/Remedy.lean` | fee, full refund, no-show and deposit-split conservation |
 | `RShare/Model/Ledger.lean` | reserve/finish/drop replay shape |
+| `RShare/Model/Cover.lean` | cover policy/binding state machine, fixed claim token, one-time pay, attached expiry, idempotent terminal settle, claim freeze, dispute refusal |
 | `RShare/Model/System.lean` | composition aliases and the explicit boundary |
 | `RShare/Invariants.lean` | stable S-names for the flow manifest |
 | `RShare/Emit.lean` | deterministic vectors consumed by the suites |
@@ -39,10 +42,21 @@ Two operations on the same cell are ordered by the cell; two operations on diffe
 do not interact. The old multi-slot hold loop is deleted: the contract no longer has a state
 in which unit A is held and unit B is not.
 
-The model does **not** claim the node's Rholang reduction or scheduler. The deployed
-`acquire` now checks ShareAdmin pause and ProviderContract status; those checks are not
-proved as a refinement of the model. A caller can still hold free slots without a booking;
-that grief is bounded by `maxHoldBlocks`. These are stated as boundary assumptions.
+The model does **not** claim the node's Rholang reduction or scheduler. `Linear/Concurrency`
+proves that commit-only traces on disjoint cells commute; `disjoint_cells_linearizable`
+proves that permuting disjoint commit blocks preserves the result. It does not prove the
+deployed `acquire` is a single commit; `held_across_external_call_unsafe` is the explicit
+counterexample for the take/await/put window, and the acquire tie remains an assumption.
+
+The deployed `acquire` now checks ShareAdmin pause and ProviderContract status; those checks
+are not proved as a refinement of the model. A caller can still hold free slots without a
+booking; that grief is bounded by `maxHoldBlocks`. `bindReserved` now requires a live
+`Listing("verifyHold")`; the deployment tie is recorded as `bindReservedRequiresHold` in the
+boundary, not proved.
+
+The cover model proves claim-token and terminal-settle properties. ERTP purse atomicity,
+claim-token unforgeability, operator trust, node deploy atomicity and Rholang refinement are
+boundary assumptions, not theorems.
 
 Two further boundaries: the allocator model abstracts the schedule/lead/duration/window
 checks that `UnitFactory.slotScan` performs on the deployed term; those are covered by the
@@ -69,12 +83,12 @@ turns those warnings into failures.
 
 ## Audit baseline
 
-At the remediation baseline the Lean source has 72 theorems and all 72 are named in the
-axiom audit. The flow manifest now has 35 rules over 31 arms, every `proved-model` target is
-a theorem, and `make check-flows-strict` reports zero warnings. `System.disjoint_cells_commute`
-and `provider_pause_not_structural` were removed; the acquire boundary is an explicit
-assumption. No rule claims `proved-tied`. The theorem registry and proof ladder are in
-`audit/registers/theorems.yaml` and `audit/lean/rigour-ladder.md`.
+The theorem registry now has 94 theorems, all named in the axiom audit. The flow manifest
+has 43 rules over 39 arms, every `proved-model` target is a theorem, and
+`make check-flows-strict` reports zero warnings. `System.disjoint_cells_commute` and
+`provider_pause_not_structural` were removed; the acquire and cover deployment ties are
+explicit assumptions. No rule claims `proved-tied`. The theorem registry and proof ladder are
+in `audit/registers/theorems.yaml` and `audit/lean/rigour-ladder.md`.
 
 ## Run it
 

@@ -25,6 +25,22 @@ contracts and the build.
 - A bare-variable send such as `state!s` is not accepted. Write `state!(s)`.
 - An unmatched `for` is silence, not an error. Match reply shapes exhaustively.
 
+## `match` semantics
+
+- `if`/`else` is sugar for `match` on booleans. A refactor between them is neutral only while
+  every case remains total.
+- An unmatched `match` is **silence**, not an error. Every match over a cell or reply value
+  must end in `_`, `false`, or `Nil` that reposts the cell and replies.
+- First matching case wins in written source order. Preserve refusal order.
+- A pattern that binds the same variable twice never matches.
+- `map.get(k)` returns `Nil` for an absent key; `Nil` and a stored `Nil` are indistinguishable.
+- `list.nth(i)` out of bounds aborts the deploy. Keep the `i < length` guard.
+- There are no match guards and no or-patterns. Range, membership and `||` checks stay
+  `if/else` or a flat `else if` chain.
+- A single-arm `match e { x => ... }` is the idiomatic `let`; do not rewrite it.
+- List patterns have static arity; `["held", ...]` variants need separate cases.
+- `<-` consumes and `<<-` peeks. Do not move that boundary during a match refactor.
+
 ## Time
 
 - `rho:block:data` returns `(blockNumber, senderBytes, timestampMs)`.

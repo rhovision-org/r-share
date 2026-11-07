@@ -90,37 +90,77 @@ def bind_term(pool_uri: str, subject: dict, offer_id: str, cap: int,
               policy_id: str, attach: bool = False,
               attach_expiry: int = 1_000_000) -> str:
     subject_id = subject["subjectId"]
+    listing_uri = subject["listingUri"]
+    unit_slots = subject["unitSlots"]
+    until = subject["until"]
+    wire_subject = {key: value for key, value in subject.items()
+                    if key not in ("unitSlots", "until")}
     attach_block = "deployId!([r])" if not attach else f"""
-              rl!(policyUri, *polCh) |
-              for (Pol <- polCh) {{
-                Pol!("attach", subjectId, subjectId, {attach_expiry}, *attachKey, *tokCh) |
-                for (@a <- tokCh) {{
-                  match a {{
-                    (true, Nil) => {{ deployId!([(true, policyId, policyUri)]) }}
-                    _ => {{ deployId!([a]) }}
+                  rl!(policyUri, *polCh) |
+                  for (Pol <- polCh) {{
+                    Pol!("attach", subjectId, subjectId, {attach_expiry}, *attachKey, *tokCh) |
+                    for (@a <- tokCh) {{
+                      match a {{
+                        (true, Nil) => {{ deployId!([(true, policyId, policyUri)]) }}
+                        _ => {{ deployId!([a]) }}
+                      }}
+                    }}
                   }}
-                }}
-              }}
 """
     return f"""
 new rl(`rho:registry:lookup`), rootCh, pCh, ret, bCh, polCh, tokCh, infoCh,
-    deployerId(`rho:rchain:deployerId`), deployId(`rho:rchain:deployId`),
-    attachKey, subjectId, policyUri in {{
+    lCh, acqCh, relCh, deployerId(`rho:rchain:deployerId`),
+    deployId(`rho:rchain:deployId`), attachKey, subjectId, policyUri,
+    releaseToken in {{
   subjectId!({json.dumps(subject_id)}) |
   for (@subjectId <- subjectId) {{
-    rl!(`{pool_uri}`, *pCh) |
-    for (Pool <- pCh) {{
-      Pool!("bindReserved", *deployerId, {rho_map(subject)},
-            "{offer_id}", {cap}, "{policy_id}", *attachKey, *ret) |
-      for (@r <- ret) {{
-        match r {{
-          (true, policyId, policyUri) => {{
-            {attach_block}
+    rl!(`{listing_uri}`, *lCh) |
+    for (Listing <- lCh) {{
+      Listing!("acquire", subjectId, {json.dumps(unit_slots)}, {until},
+               *releaseToken, *acqCh) |
+      for (@a <- acqCh) {{
+        match a {{
+          (true, _) => {{
+            rl!(`{pool_uri}`, *pCh) |
+            for (Pool <- pCh) {{
+              Pool!("bindReserved", *deployerId, {rho_map(wire_subject)},
+                    "{offer_id}", {cap}, "{policy_id}", *attachKey,
+                    {json.dumps(unit_slots)}, *releaseToken, *ret) |
+              for (@r <- ret) {{
+                Listing!("release", {json.dumps(unit_slots)}, *releaseToken, *relCh) |
+                for (@_ <- relCh) {{
+                  match r {{
+                    (true, policyId, policyUri) => {{
+                      {attach_block}
+                    }}
+                    _ => {{ deployId!([r]) }}
+                  }}
+                }}
+              }}
+            }}
           }}
-          _ => {{ deployId!([r]) }}
+          _ => {{ deployId!([a]) }}
         }}
       }}
     }}
+  }}
+}}
+"""
+
+
+def bind_no_hold_term(pool_uri: str, subject: dict, offer_id: str,
+                      cap: int, policy_id: str) -> str:
+    wire_subject = {key: value for key, value in subject.items()
+                    if key not in ("unitSlots", "until")}
+    return f"""
+new rl(`rho:registry:lookup`), pCh, ret, deployerId(`rho:rchain:deployerId`),
+    deployId(`rho:rchain:deployId`), attachKey, releaseToken in {{
+  rl!(`{pool_uri}`, *pCh) |
+  for (Pool <- pCh) {{
+    Pool!("bindReserved", *deployerId, {rho_map(wire_subject)},
+          "{offer_id}", {cap}, "{policy_id}", *attachKey,
+          {json.dumps(subject["unitSlots"])}, *releaseToken, *ret) |
+    for (@r <- ret) {{ deployId!([r]) }}
   }}
 }}
 """
@@ -163,7 +203,7 @@ def main() -> int:
     if not actors.require_profile("cover-demo"):
         return 2
 
-    market = market_fixture.Market("coverpolicy").setup()
+    market = market_fixture.Market("coverpolicy", slot_lead=0).setup()
     provider = market.provider
     guest = market.guest
     provider_id = actors.address(provider)
@@ -220,6 +260,8 @@ def main() -> int:
         "termsDeposit": market.deposit,
         "effectiveDeposit": offer["deductible"],
         "deductible": offer["deductible"],
+        "unitSlots": market.unit_slots(),
+        "until": market.end,
     }
 
     policy_id = f"policy:{time.time_ns()}"
@@ -231,6 +273,16 @@ def main() -> int:
     bind_reply = single(bind_reply)
     expect_ok("bind reserved policy", bind_reply)
     policy_uri = bind_reply[2]
+
+    reserve_hold_before = info(pool).get("reserves").get(provider_id)
+    bad_subject = dict(subject)
+    bad_subject["subjectId"] = f"{guest_id}:op:no-hold:{time.time_ns()}"
+    expect_refusal("bindReserved requires a live hold", single(one(
+        bind_no_hold_term(pool, bad_subject, offer["offerId"], 200,
+                          f"policy:{time.time_ns()}"),
+        key=guest, phlo_limit=4_000_000)), "hold")
+    expect("no-hold bind keeps reserve", info(pool).get("reserves").get(provider_id),
+           reserve_hold_before)
 
     entry = actors.invoke(pool, "policy", f'"{policy_id}"')[1]
     expect("policy status", entry.get("status"), "active")
