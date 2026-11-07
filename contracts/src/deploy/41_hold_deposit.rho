@@ -12,6 +12,7 @@ new
   paymentsCh, issuerCh, purseCh, clockCh,
   holdEscrowState,
   holdDepositTo, holdRefuse, holdHeld, holdHeldSlots, settleGo, settlePay,
+  verifyOrForfeit,
   resolveComponent
 in {
   // @@INLINE:lib/Resolve.rho@@
@@ -137,26 +138,48 @@ in {
                             }
                           } |
 
-                          contract settleGo(@s, @rec, @bookingId, @mode, ret2) = {
-                            new nCh in {
-                              @Clock!("now", *nCh) |
-                              for (@n <- nCh) {
-                                match n {
-                                  (true, now) => {
-                                    if (mode == "release"
-                                        && now >= rec.get("until")) {
-                                      settlePay!(s, bookingId,
-                                                 rec.get("providerId"),
-                                                 rec.get("amount"), *ret2)
-                                    } else {
-                                      settlePay!(s, bookingId,
-                                                 rec.get("payerId"),
-                                                 rec.get("amount"), *ret2)
+                          contract settleGo(@s, @rec, @bookingId,
+                                            @payeeId, ret2) = {
+                            settlePay!(s, bookingId, payeeId,
+                                       rec.get("amount"), *ret2)
+                          } |
+
+                          contract verifyOrForfeit(@s, @rec, @bookingId,
+                                                   releaseToken, ret2) = {
+                            new fCh, vCh in {
+                              resolveComponent!("component:booking-factory",
+                                                *fCh) |
+                              for (@f <- fCh) {
+                                match f {
+                                  (true, BookingFactory) => {
+                                    @BookingFactory!("verify", bookingId,
+                                      rec.get("unitSlots"), *releaseToken,
+                                      *vCh) |
+                                    for (@v <- vCh) {
+                                      match v {
+                                        (true, bookingKey) => {
+                                          if (bookingKey
+                                              == rec.get("listingKey")) {
+                                            settleGo!(s, rec, bookingId,
+                                                      rec.get("payerId"),
+                                                      *ret2)
+                                          } else {
+                                            settleGo!(s, rec, bookingId,
+                                                      rec.get("providerId"),
+                                                      *ret2)
+                                          }
+                                        }
+                                        _ => {
+                                          settleGo!(s, rec, bookingId,
+                                                    rec.get("providerId"),
+                                                    *ret2)
+                                        }
+                                      }
                                     }
                                   }
                                   _ => {
-                                    holdEscrowState!(s) |
-                                    ret2!((false, "clock"))
+                                    settleGo!(s, rec, bookingId,
+                                              rec.get("providerId"), *ret2)
                                   }
                                 }
                               }
@@ -297,8 +320,28 @@ in {
                                                       ret!((false, "held"))
                                                     }
                                                     (true, false) => {
-                                                      settleGo!(s, rec, bookingId,
-                                                                mode, *ret)
+                                                      new nCh in {
+                                                        @Clock!("now", *nCh) |
+                                                        for (@n <- nCh) {
+                                                          match n {
+                                                            (true, now) => {
+                                                              if (now >= rec.get("until")) {
+                                                                verifyOrForfeit!(s, rec,
+                                                                  bookingId,
+                                                                  *releaseToken, *ret)
+                                                              } else {
+                                                                settleGo!(s, rec, bookingId,
+                                                                  rec.get("payerId"),
+                                                                  *ret)
+                                                              }
+                                                            }
+                                                            _ => {
+                                                              holdEscrowState!(s) |
+                                                              ret!((false, "clock"))
+                                                            }
+                                                          }
+                                                        }
+                                                      }
                                                     }
                                                     _ => {
                                                       holdEscrowState!(s) |
@@ -341,7 +384,8 @@ in {
                                                     if (bookingKey
                                                         == rec.get("listingKey")) {
                                                       settleGo!(s, rec, bookingId,
-                                                                mode, *ret)
+                                                                rec.get("payerId"),
+                                                                *ret)
                                                     } else {
                                                       holdEscrowState!(s) |
                                                       ret!((false, "listing"))

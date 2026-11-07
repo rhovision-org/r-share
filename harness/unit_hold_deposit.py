@@ -81,7 +81,8 @@ def refund_flow() -> None:
     print("  deposit is held, refused while held, refunded after release")
     market = market_fixture.Market("hold-refund", instant_book=False).setup()
     booking_id = f"{actors.address(market.guest)}:hold:{time.time_ns()}"
-    result = one(acquire_term(market, booking_id, market.price), key=market.guest)
+    result = one(acquire_term(market, booking_id, market.price),
+                 key=market.guest, phlo_limit=4_000_000)
     expect("acquire", result[0][0], True)
     expect_refusal("settle while held", result[1], "held")
     expect_ok("release", result[2])
@@ -94,7 +95,7 @@ def confirm_gate() -> None:
     market = market_fixture.Market("hold-confirm", instant_book=True).setup()
     booking_id = f"{actors.address(market.guest)}:hold:{time.time_ns()}"
     result = one(acquire_term(market, booking_id, market.price, "confirm"),
-                 key=market.guest)
+                 key=market.guest, phlo_limit=4_000_000)
     expect("acquire", result[0][0], True)
     expect_refusal("confirm without booking", result[1], "booking")
     states = market.slot_states()
@@ -109,7 +110,7 @@ def wrong_amount() -> None:
     market = market_fixture.Market("hold-amount", instant_book=False).setup()
     booking_id = f"{actors.address(market.guest)}:hold:{time.time_ns()}"
     result = one(acquire_term(market, booking_id, market.price - 1, "none"),
-                 key=market.guest)
+                 key=market.guest, phlo_limit=4_000_000)
     expect_refusal("short deposit", result, "amount")
     states = market.slot_states()
     for slot in states.values():

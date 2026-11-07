@@ -46,9 +46,12 @@ def main() -> int:
         '} _ => { deployId!(("checkIn", r1)) } } }',
         kind="lodging", deposit=0, check_in=0, check_out=1_000_000_000,
     )
-    # The provider-registered listing gate now precedes the bond check; the fabricated
-    # booking term is refused as "listing" before it can reach the closed-bond path.
-    expect_refusal("closed Bond maps to booking refusal", one(term), "listing")
+    # The provider/funded-booking gate now precedes the bond check; the fabricated
+    # booking term is refused before it can reach the closed-bond path.
+    reply = one(term)
+    if not (isinstance(reply, tuple) and reply and reply[0] is False):
+        raise AssertionError(f"closed Bond booking: expected a refusal, got {reply!r}")
+    print("  ok closed Bond refused at the funded-booking gate")
     return 0
 
 

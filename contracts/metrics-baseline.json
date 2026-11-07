@@ -1,6 +1,6 @@
 {
   "deploy_terms": 20,
-  "bytes_total": 195360,
+  "bytes_total": 196016,
   "bytes_max": 36195,
   "depth_max": 44,
   "contracts_max": 35,
@@ -107,9 +107,9 @@
       "contracts": 6
     },
     "41_hold_deposit.rho": {
-      "bytes": 6997,
-      "depth": 33,
-      "contracts": 8
+      "bytes": 7653,
+      "depth": 38,
+      "contracts": 9
     }
   }
 }

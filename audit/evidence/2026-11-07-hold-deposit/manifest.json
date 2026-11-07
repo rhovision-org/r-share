@@ -20,14 +20,14 @@
     "lean": "105 axiom audits, 100 source theorems, no sorry/admit/axiom/native_decide",
     "flows": "43 rules, 39 arms, 13 core arms proved-model, 0 strict warnings",
     "audit": "101 theorems, 63 hazards, 174 arms, 45 panic sites and 22 register guards registered",
-    "runtime": "fresh rshare-hold devnet: r-cash core installed from the pinned 49b441d worktree; cover-demo installed (20 terms, 5/5 cover keys). Targeted results: hold_deposit, pause_scope, booking, cell_liveness, settle_release and cover pass; allocator and factory_auth/bond_refusals expectations updated after the new gates; cover_policy parse fixed; cover_booking fails at resolveDeposit (open)."
+    "runtime": "fresh rshare-hold devnet: r-cash core installed from the pinned 49b441d worktree; cover-demo installed (20 terms, 5/5 cover keys). Safe-core 23/28 pass: admin, admin_keys, allocator, bond_refusals, booking, cell_liveness, conservation, cutoffs, factory_auth, generality, guestbook, hold_deposit, listing, no_show_contest, pause, pause_scope, payments, pricing, provider, provider_index, reset_safety, root, settle_release. Fixture-gated (fabricated listing refused by the funded-booking gate): behavior, claims, event_timing, events, lifecycle. Cover pass; cover_policy pass; cover_booking open at resolveDeposit."
   },
   "blocker": "The old devnets (40403/42403) did not process signed deploys; a fresh isolated devnet was required. The default devnet-bootstrap container/volume was accidentally removed by an un-prefixed down -v; rgenconf-bootstrap was untouched. The fresh rshare-hold devnet processes deploys.",
   "design": "HZ-061 option B: pricePerSlot hold deposit in 41_hold_deposit.rho, provider-anchored probe-gated refund (provider listingUri), forfeit after the hold window, and a funded-booking confirm gate (authoritative listing URI, BondFactory issued index, Bond verify, BookingFactory verify, BookingContract verifyHold returning the listingId, HoldDeposit authorize). Residual: gas-only acquire/release inside the window; phlo not yet measured. Open: cover_booking resolveDeposit hangs after checkout/claim attach.",
   "tests": {
-    "unit_all": "not run",
+    "unit_all": "safe-core subset 23/28 pass on the cover-demo root; cover_disabled not run (needs a safe-profile root)",
     "unit_hold_deposit": "pass (4/4 groups)",
-    "targeted": "pass: hold_deposit, pause_scope, booking, cell_liveness, settle_release, cover; open: cover_booking resolveDeposit; expectations updated: allocator, factory_auth, bond_refusals; cover_policy parse fixed",
-    "cover_suites": "cover pass; cover_policy and cover_booking not green"
+    "targeted": "pass: hold_deposit, allocator, bond_refusals, booking, cell_liveness, conservation, factory_auth, no_show_contest, pause_scope, reset_safety, settle_release, cover, cover_policy; fixture-gated: behavior, claims, event_timing, events, lifecycle; open: cover_booking resolveDeposit",
+    "cover_suites": "cover pass; cover_policy pass; cover_booking open"
   }
 }

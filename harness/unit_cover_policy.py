@@ -127,7 +127,7 @@ new rl(`rho:registry:lookup`), rootCh, pCh, ret, bCh, polCh, tokCh, infoCh,
             for (Listing <- lCh) {{
               Listing!("acquire", subjectId, "{payer}",
                        {json.dumps(unit_slots)}, {until}, *releaseToken,
-                       *payment, *acqCh) |
+                       payment, *acqCh) |
               for (@a <- acqCh) {{
                 match a {{
                   (true, _) => {{
@@ -160,7 +160,6 @@ new rl(`rho:registry:lookup`), rootCh, pCh, ret, bCh, polCh, tokCh, infoCh,
                 }}
               }}
             }}
-          }}
       }}
     }}
   }}
@@ -223,7 +222,7 @@ def main() -> int:
     if not actors.require_profile("cover-demo"):
         return 2
 
-    market = market_fixture.Market("coverpolicy").setup()
+    market = market_fixture.Market("coverpolicy", slot_lead=800).setup()
     provider = market.provider
     guest = market.guest
     provider_id = actors.address(provider)

@@ -83,7 +83,7 @@ new rl(`rho:registry:lookup`), ch, ret,
 
 
 def invoke(uri: str, binding: str, args: str | None = None, key: str = "deployer",
-           phlo_limit: int = 2_000_000):
+           phlo_limit: int = 4_000_000):
     return one(call_term(uri, binding, args), key=key, phlo_limit=phlo_limit)
 
 

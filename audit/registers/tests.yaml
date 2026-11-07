@@ -24,8 +24,8 @@ tests:
 - id: T-EVENT
   name: event timing
   file: harness/unit_event_timing.py
-  status: passing
-  focus: redeem before event, settle before event, closeEvent before event, transfer cutoff
+  status: failing
+  focus: fixture is a fabricated listing that the funded-booking gate now refuses; rewrite on market_fixture before relying on this suite
 - id: T-ADMIN-KEYS
   name: admin key sets
   file: harness/unit_admin_keys.py
@@ -99,8 +99,8 @@ tests:
 - id: T-COVER-BOOKING
   name: atomic covered booking
   file: harness/unit_cover_booking.py
-  status: passing
-  focus: reduced deposit, bind, Bond, attach, claim, deposit settlement, cover close
+  status: failing
+  focus: reduced deposit, bind, Bond, attach, claim, deposit settlement, cover close; resolveDeposit after checkout/claim attach currently returns no reply
 - id: T-COVER-DISABLED
   name: safe profile cover disabled
   file: harness/unit_cover_disabled.py
@@ -109,5 +109,5 @@ tests:
 - id: T-HOLD-DEPOSIT
   name: refundable hold deposit and confirm gate
   file: harness/unit_hold_deposit.py
-  status: planned
-  focus: exact pricePerSlot deposit, refund gated on the listing probe, short-payment refusal, confirm without a funded booking refused, plain book still confirms
+  status: passing
+  focus: exact pricePerSlot deposit, probe-gated refund, short-payment refusal, confirm without a funded booking refused, plain book confirms; fresh rshare-hold devnet 43403

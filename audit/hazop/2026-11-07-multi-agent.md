@@ -98,12 +98,13 @@ deploy order; R24–R26 are mitigated by the cover guards and tests.
 2. **Runtime verification.** The old devnets (40403/42403) did not process signed deploys;
    a fresh isolated `rshare-hold` devnet on 43403 was required. r-cash core was installed
    from the pinned `49b441d` worktree (the current Rholphin checkout's root resolve is
-   inverted) and cover-demo installed cleanly (20 terms, 5/5 cover keys). Targeted results:
-   `hold_deposit`, `pause_scope`, `booking`, `cell_liveness`, `settle_release` and `cover`
-   pass; `allocator`, `factory_auth` and `bond_refusals` have updated expectations for the
-   new provider/bond/confirm gates; `cover_policy` had a test-term parse fixed. Open:
-   `cover_booking` hangs at `resolveDeposit` after checkout/claim attach, and no full
-   `unit-all` has run. Do not claim a full green run.
+   inverted) and cover-demo installed cleanly (20 terms, 5/5 cover keys). Safe-core
+   23/28 pass, including `hold_deposit`, `allocator`, `conservation`, `settle_release`,
+   `no_show_contest`, `reset_safety`, `factory_auth` and `bond_refusals`; `cover` and
+   `cover_policy` pass. The five failures (`behavior`, `claims`, `event_timing`, `events`,
+   `lifecycle`) are the fabricated `booking_fixture` terms, which the funded-booking gate
+   now refuses; that fixture needs a rewrite on `market_fixture`. Open: `cover_booking`
+   hangs at `resolveDeposit` after checkout/claim attach. Do not claim a full green run.
 3. **EX-8 rounding/config.** Deferred; operator-only and sub-atomic-unit in practice.
 4. **Helper extraction and `1/0` cleanup.** Remaining code-quality items, not safety
    regressions; converting `1/0` to refusals is a behavior change requiring per-site tests.
