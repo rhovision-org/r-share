@@ -142,9 +142,14 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
       rl!(`__ROOT_URI__`, *rCh) |
       for (Root <- rCh) {
         Root!("resolve", "component:payments", 1, *pCh) |
-        for (@(true, uri, _) <- pCh) {
-          rl!(uri, *cCh) |
-          for (Payments <- cCh) { ret!(*Payments) }
+        for (@r <- pCh) {
+          match r {
+            (true, uri, _) => {
+              rl!(uri, *cCh) |
+              for (Payments <- cCh) { ret!(*Payments) }
+            }
+            _ => { ret!(r) }
+          }
         }
       }
     }

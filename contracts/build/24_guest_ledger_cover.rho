@@ -42,17 +42,22 @@ contract resolveComponent(@key, ret) = {
   contract coverOffer(@offerId, ret) = {
     new cCh, oCh in {
       resolveComponent!("component:cover-book", *cCh) |
-      for (@(true, CoverBook) <- cCh) {
-        @CoverBook!("offer", offerId, *oCh) |
-        for (@o <- oCh) {
-          match o {
-            (true, entry) => {
-              match entry.get("offer") {
-                offer => { ret!((true, entry, offer)) }
+      for (@r <- cCh) {
+        match r {
+          (true, CoverBook) => {
+            @CoverBook!("offer", offerId, *oCh) |
+            for (@o <- oCh) {
+              match o {
+                (true, entry) => {
+                  match entry.get("offer") {
+                    offer => { ret!((true, entry, offer)) }
+                  }
+                }
+                _ => { ret!(o) }
               }
             }
-            _ => { ret!(o) }
           }
+          _ => { ret!(r) }
         }
       }
     }
@@ -61,9 +66,14 @@ contract resolveComponent(@key, ret) = {
   contract coverNow(ret) = {
     new cCh, nCh in {
       resolveComponent!("component:clock", *cCh) |
-      for (@(true, Clock) <- cCh) {
-        @Clock!("now", *nCh) |
-        for (@n <- nCh) { ret!(n) }
+      for (@r <- cCh) {
+        match r {
+          (true, Clock) => {
+            @Clock!("now", *nCh) |
+            for (@n <- nCh) { ret!(n) }
+          }
+          _ => { ret!(r) }
+        }
       }
     }
   } |

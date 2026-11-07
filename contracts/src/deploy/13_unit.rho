@@ -19,9 +19,14 @@ in {
       rl!(`__ROOT_URI__`, *rCh) |
       for (Root <- rCh) {
         Root!("resolve", "component:clock", 1, *uCh) |
-        for (@(true, uri, _) <- uCh) {
-          rl!(uri, *cCh) |
-          for (Clock <- cCh) { Clock!("now", *ret) }
+        for (@r <- uCh) {
+          match r {
+            (true, uri, _) => {
+              rl!(uri, *cCh) |
+              for (Clock <- cCh) { Clock!("now", *ret) }
+            }
+            _ => { ret!(r) }
+          }
         }
       }
     }
