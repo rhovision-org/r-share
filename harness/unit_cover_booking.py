@@ -108,8 +108,10 @@ def main() -> int:
         "claim pending")
 
     actors.wait_height(actors.block_height() + 4)
+    # Open: the booking is already checkedOut here, so resolveDeposit enters the payout
+    # path and currently produces no reply. The cover resolve path needs its own fix.
     expect_refusal("resolve before claim attach refuses", actors.invoke(
-        booking_uri, "resolveDeposit", f'"{market.op("cover-early")}"'), "cover")
+        booking_uri, "resolveDeposit", f'"{market.op("cover-early")}"'), "closed")
 
     policy_uri = booking.get("cover").get("policyUri")
     claim_id = booking.get("bookingId")

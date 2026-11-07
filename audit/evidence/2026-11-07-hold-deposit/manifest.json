@@ -1,10 +1,10 @@
 {
   "run_id": "2026-11-07-hold-deposit",
   "date": "2026-11-07",
-  "commit": "8a1aecf",
-  "branch": "master",
+  "commit": "fb8c3c5",
+  "branch": "main",
   "dirty": true,
-  "node": "default http://localhost:40403 and isolated cover http://localhost:42403 (both healthy; signed deploys not processed)",
+  "node": "fresh isolated rshare-hold devnet http://localhost:43403 (container rshare-hold-bootstrap); r-cash pinned worktree /tmp/rcash-pinned at 49b441d",
   "commands": [
     "make build",
     "make measure",
@@ -20,13 +20,14 @@
     "lean": "105 axiom audits, 100 source theorems, no sorry/admit/axiom/native_decide",
     "flows": "43 rules, 39 arms, 13 core arms proved-model, 0 strict warnings",
     "audit": "101 theorems, 63 hazards, 174 arms, 45 panic sites and 22 register guards registered",
-    "runtime": "not run: verify_rcash reports all three r-cash keys missing because a signed resolve deploy is not processed; both installs stopped in preflight, no deploy was submitted"
+    "runtime": "fresh rshare-hold devnet: r-cash core installed from the pinned 49b441d worktree; cover-demo installed (20 terms, 5/5 cover keys). Targeted results: hold_deposit, pause_scope, booking, cell_liveness, settle_release and cover pass; allocator and factory_auth/bond_refusals expectations updated after the new gates; cover_policy parse fixed; cover_booking fails at resolveDeposit (open)."
   },
-  "blocker": "Signed deploys are accepted but never reach processedwithsuccess; explore-deploy returns a block but signed deploy_and_wait hangs. Same NotProcessed symptom as 2026-11-06. No behavior suite was run; do not claim green.",
-  "design": "HZ-061 option B: pricePerSlot hold deposit in 41_hold_deposit.rho, provider-anchored probe-gated refund, forfeit after the hold window, and a funded-booking confirm gate (provider-registered listing URI, BondFactory issued index, Bond verify, BookingFactory verify, BookingContract verifyHold, HoldDeposit authorize). Residual: gas-only acquire/release inside the window; phlo not yet measured.",
+  "blocker": "The old devnets (40403/42403) did not process signed deploys; a fresh isolated devnet was required. The default devnet-bootstrap container/volume was accidentally removed by an un-prefixed down -v; rgenconf-bootstrap was untouched. The fresh rshare-hold devnet processes deploys.",
+  "design": "HZ-061 option B: pricePerSlot hold deposit in 41_hold_deposit.rho, provider-anchored probe-gated refund (provider listingUri), forfeit after the hold window, and a funded-booking confirm gate (authoritative listing URI, BondFactory issued index, Bond verify, BookingFactory verify, BookingContract verifyHold returning the listingId, HoldDeposit authorize). Residual: gas-only acquire/release inside the window; phlo not yet measured. Open: cover_booking resolveDeposit hangs after checkout/claim attach.",
   "tests": {
     "unit_all": "not run",
-    "unit_hold_deposit": "not run (planned; harness/unit_hold_deposit.py)",
-    "cover_suites": "not run"
+    "unit_hold_deposit": "pass (4/4 groups)",
+    "targeted": "pass: hold_deposit, pause_scope, booking, cell_liveness, settle_release, cover; open: cover_booking resolveDeposit; expectations updated: allocator, factory_auth, bond_refusals; cover_policy parse fixed",
+    "cover_suites": "cover pass; cover_policy and cover_booking not green"
   }
 }

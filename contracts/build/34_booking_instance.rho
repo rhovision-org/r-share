@@ -170,9 +170,6 @@ contract bookingResolve(@key, ret) = {
                     for (@au <- auCh) {
                       match au {
                         (true, authoritativeUri) => {
-                          if (authoritativeUri != data.get("listingUri")) {
-                            ret!((false, "listing"))
-                          } else {
       resolveComponent!("component:bond-factory", *fCh) |
       for (@f <- fCh) {
         match f {
@@ -188,9 +185,9 @@ contract bookingResolve(@key, ret) = {
                     for (@bv <- vCh) {
                       match bv {
                         (true, Nil) => {
-                          BookingInstanceFactory!("spawnChecked", *dId, data,
-                                                  *releaseToken, bondUri,
-                                                  *settleToken, ret)
+                          BookingInstanceFactory!("spawnChecked", *dId,
+                            data.set("listingUri", authoritativeUri),
+                            *releaseToken, bondUri, *settleToken, *ret)
                         }
                         _ => { ret!((false, "bond")) }
                       }
@@ -204,7 +201,6 @@ contract bookingResolve(@key, ret) = {
           _ => { ret!((false, "bond")) }
         }
       }
-                          }
                         }
                         _ => { ret!((false, "listing")) }
                       }
@@ -259,8 +255,7 @@ contract bookingResolve(@key, ret) = {
                       "listingId": data.get("listingId"),
                       "listingUri": data.get("listingUri"),
                       "termsHash": data.get("termsHash"),
-                      "listingKey": data.get("listingId") ++ ":"
-                        ++ data.get("termsHash"),
+                      "listingKey": data.get("listingId"),
                       "kind": data.get("kind"),
                       "unitSlots": data.get("unitSlots"),
                       "assetId": data.get("assetId"),
@@ -687,7 +682,7 @@ contract bookingResolve(@key, ret) = {
                       } else if (*passedToken != *releaseToken) {
                         ret2!((false, "not holder"))
                       } else {
-                        ret2!((true, data.get("listingKey")))
+                        ret2!((true, data.get("listingId")))
                       }
                     } |
                     contract BookingContract(@"attachCover", dId2, @policyUri,

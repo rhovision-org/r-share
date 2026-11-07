@@ -235,13 +235,11 @@ in {
                                          listing.get("terms").get("assetId"),
                                          listing.get("terms").get("pricePerSlot"),
                                          *hpCh) |
-                          for (@hp <- hpCh) {
-                            match hp {
-                              (true, payment) => {
+                          for (@(true, payment) <- hpCh) {
                                 new acqCh in {
                                   ledgerAcquire!(listingUri, bId, guestId,
                                                  unitSlots, untilHeight,
-                                                 *releaseToken, *payment,
+                                                 *releaseToken, payment,
                                                  *acqCh) |
                                   for (@acq <- acqCh) {
                                     match acq {
@@ -266,7 +264,7 @@ in {
                                                     guestId,
                                                     listing.get("terms").get(
                                                       "assetId"),
-                                                    *payment, *rfCh)
+                                                    payment, *rfCh)
                                                 }
                                                 _ => { rfCh!(p) }
                                               }
@@ -281,12 +279,6 @@ in {
                                     }
                                   }
                                 }
-                              }
-                              _ => {
-                                GuestLedgerDrop!(*ledgerState, opId) |
-                                ret!(hp)
-                              }
-                            }
                           }
                         }
                       }

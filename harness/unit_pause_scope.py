@@ -22,18 +22,13 @@ new rl(`rho:registry:lookup`), pCh, lCh, wCh, ret, releaseToken,
   rl!(`{payments}`, *pCh) |
   for (P <- pCh) {{
     P!("withdrawPayment", *dId, "REV", 1, *wCh) |
-    for (w <- wCh) {{
-      match w {{
-        (true, payment) => {{
-          rl!(`{market.listing_uri}`, *lCh) |
-          for (L <- lCh) {{
-            L!("acquire", "audit-pause", "{payer}",
-               {json.dumps(market.unit_slots())}, {until},
-               *releaseToken, *payment, *ret) |
-            for (@r <- ret) {{ deployId!(r) }}
-          }}
-        }}
-        _ => {{ deployId!(w) }}
+    for (@(true, payment) <- wCh) {{
+      rl!(`{market.listing_uri}`, *lCh) |
+      for (L <- lCh) {{
+        L!("acquire", "audit-pause", "{payer}",
+           {json.dumps(market.unit_slots())}, {until},
+           *releaseToken, payment, *ret) |
+        for (@r <- ret) {{ deployId!(r) }}
       }}
     }}
   }}

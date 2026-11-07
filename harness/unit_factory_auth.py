@@ -82,7 +82,7 @@ new rl(`rho:registry:lookup`), fCh, ret, releaseToken, settleToken,
   }}
 }}
 """
-    expect_refusal("direct factory without reservation", one(term), "reservation")
+    expect_refusal("direct factory without reservation", one(term), "listing")
     return 0
 
 

@@ -95,13 +95,15 @@ deploy order; R24–R26 are mitigated by the cover guards and tests.
    (`BookingFactory("verify")` + `BookingContract("verifyHold")` + `HoldDeposit("authorize")`).
    The residual (a funded caller can release inside the window at gas cost) is recorded in
    `2026-11-07-acquire-hold-proof.md`; the deposit is not a per-release fee.
-2. **Runtime verification.** Both running devnets accept `explore-deploy` but a signed
-   resolve deploy is not processed (`deploy_and_wait` hangs), so `verify_rcash` reports all
-   three keys missing and both install attempts stop in preflight. This is the same
-   `NotProcessed` blocker recorded on 2026-11-06; it is not an r-cash root or RShare contract
-   failure. No behavior suite has run against the latest contracts. A preflight fails an
-   RShare install early when r-cash is unreadable; the next run must confirm deploy
-   processing before any suite.
+2. **Runtime verification.** The old devnets (40403/42403) did not process signed deploys;
+   a fresh isolated `rshare-hold` devnet on 43403 was required. r-cash core was installed
+   from the pinned `49b441d` worktree (the current Rholphin checkout's root resolve is
+   inverted) and cover-demo installed cleanly (20 terms, 5/5 cover keys). Targeted results:
+   `hold_deposit`, `pause_scope`, `booking`, `cell_liveness`, `settle_release` and `cover`
+   pass; `allocator`, `factory_auth` and `bond_refusals` have updated expectations for the
+   new provider/bond/confirm gates; `cover_policy` had a test-term parse fixed. Open:
+   `cover_booking` hangs at `resolveDeposit` after checkout/claim attach, and no full
+   `unit-all` has run. Do not claim a full green run.
 3. **EX-8 rounding/config.** Deferred; operator-only and sub-atomic-unit in practice.
 4. **Helper extraction and `1/0` cleanup.** Remaining code-quality items, not safety
    regressions; converting `1/0` to refusals is a behavior change requiring per-site tests.

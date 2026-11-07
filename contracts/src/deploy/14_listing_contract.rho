@@ -73,17 +73,14 @@ in {
                 (true, providerId) => {
                   match act {
                     (true, true) => {
-                  new termsCh, admCh, holdCh in {
+                  new termsCh, admCh in {
                     listingResolve!("component:terms", *termsCh) |
                     listingResolve!("component:admin", *admCh) |
-                    listingResolve!("component:hold-deposit", *holdCh) |
-                    for (@tr <- termsCh; @ar <- admCh; @hd <- holdCh) {
+                    for (@tr <- termsCh; @ar <- admCh) {
                       match tr {
                         (true, Terms) => {
                           match ar {
                             (true, ShareAdmin) => {
-                              match hd {
-                                (true, HoldDeposit) => {
                               new tCh, hCh, aCh in {
                                 @Terms!("validate", kind, terms, *tCh) |
                                 @Terms!("hash", kind, terms, *hCh) |
@@ -100,7 +97,7 @@ in {
                                                   *dId, providerUri, providerId,
                                                   listingId, kind, terms,
                                                   termsHash, admins, threshold,
-                                                  *HoldDeposit, *lcCh) |
+                                                  *lcCh) |
                                                 for (@lr <- lcCh) {
                                                   match lr {
                                                     (true, listingUri) => {
@@ -133,9 +130,6 @@ in {
                                   }
                                 }
                               }
-                                }
-                                _ => { ret!(hd) }
-                              }
                             }
                             _ => { ret!(ar) }
                           }
@@ -161,12 +155,16 @@ in {
 
   contract ListingContractFactory(@"create", dId, @providerUri, @providerId,
                                   @listingId, @kind, @terms, @termsHash,
-                                  @admins, @threshold, HoldDeposit, ret) = {
-    new oCh in {
+                                  @admins, @threshold, ret) = {
+    new oCh, hdCh in {
       authIsOwner!(*dId, providerId, *oCh) |
       for (@v <- oCh) {
         match v {
           (true, Nil) => {
+            resolveComponent!("component:hold-deposit", *hdCh) |
+            for (@hd <- hdCh) {
+              match hd {
+                (true, HoldDeposit) => {
             new ListingContract, listingState, uCh,
                 allocUnit, allocSlot, allocSetSlot, allocMin, allocMax,
                 allocFreeSlots, allocCheckUnit, allocCheckUnits,
@@ -182,7 +180,7 @@ in {
                 "kind": kind,
                 "terms": terms,
                 "termsHash": termsHash,
-                "listingKey": listingId ++ ":" ++ termsHash,
+                "listingKey": listingId,
                 "status": "draft",
                 "units": {},
                 "slots": {},
@@ -1353,6 +1351,10 @@ in {
 
               rs!(bundle+{*ListingContract}, *uCh) |
               for (@uri <- uCh) { ret!((true, uri)) }
+            }
+                }
+                _ => { ret!(hd) }
+              }
             }
           }
           _ => { ret!(v) }

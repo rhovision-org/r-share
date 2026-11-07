@@ -46,8 +46,8 @@
       "contracts": 9
     },
     "14_listing_contract.rho": {
-      "bytes": 28657,
-      "depth": 37,
+      "bytes": 28615,
+      "depth": 39,
       "contracts": 35
     },
     "15_bond.rho": {
@@ -66,13 +66,13 @@
       "contracts": 2
     },
     "23_guest_ledger.rho": {
-      "bytes": 14289,
+      "bytes": 14207,
       "depth": 38,
       "contracts": 26
     },
     "24_guest_ledger_cover.rho": {
-      "bytes": 11572,
-      "depth": 32,
+      "bytes": 11538,
+      "depth": 30,
       "contracts": 19
     },
     "30_cover_terms.rho": {
@@ -96,17 +96,17 @@
       "contracts": 13
     },
     "34_booking_instance.rho": {
-      "bytes": 36277,
+      "bytes": 36195,
       "depth": 44,
       "contracts": 32
     },
     "40_payments.rho": {
-      "bytes": 6446,
+      "bytes": 6447,
       "depth": 23,
       "contracts": 6
     },
     "41_hold_deposit.rho": {
-      "bytes": 7053,
+      "bytes": 6997,
       "depth": 33,
       "contracts": 8
     }

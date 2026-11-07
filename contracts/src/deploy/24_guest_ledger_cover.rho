@@ -85,7 +85,7 @@ in {
       for (@p <- pCh) {
         match p {
           (true, Payments) => {
-            @Payments!("refundPayment", ownerId, assetId, payment, *ret)
+            @Payments!("refundPayment", ownerId, assetId, *payment, *ret)
           }
           _ => { ret!(p) }
         }
@@ -304,7 +304,7 @@ in {
                                 match booking {
                                   (true, bookingUri) => {
                                     if (ctx.get("instant") == true) {
-                                      new cCh2, hsCh in {
+                                      new cCh2, cfCh2, hsCh in {
                                         rl!(ctx.get("listingUri"), *cCh2) |
                                         for (Listing <- cCh2) {
                                           Listing!("confirm",
@@ -436,13 +436,11 @@ in {
                                             listing.get("terms").get("assetId"),
                                             listing.get("terms").get("pricePerSlot"),
                                             *hpCh) |
-                                          for (@hp <- hpCh) {
-                                            match hp {
-                                              (true, payment) => {
+                                          for (@(true, payment) <- hpCh) {
                                         coverAcquire!(listingUri, bookingId,
                                           guestId, unitSlots,
                                           now + listing.get("terms").get("holdBlocks"),
-                                          *releaseToken, *payment, *acqCh) |
+                                          *releaseToken, payment, *acqCh) |
                                         for (@acq <- acqCh) {
                                           match acq {
                                             (true, summary) => {
@@ -495,9 +493,6 @@ in {
                                             }
                                           }
                                         }
-                                              }
-                                              _ => { ret!(hp) }
-                                            }
                                           }
                                         }
                                       }

@@ -176,7 +176,7 @@ in {
       for (@f <- fCh) {
         match f {
           (true, facet) => {
-            @facet!("deposit", payment, *dCh) |
+            @facet!("deposit", *payment, *dCh) |
             for (@d <- dCh) {
               match d {
                 (true, _) => { ret!((true, Nil)) }

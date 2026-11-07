@@ -79,9 +79,8 @@ def token_gates() -> None:
     unit_slots = market.unit_slots()
     confirm = fresh_token_call(
         market.listing_uri, "confirm",
-        f'{json.dumps(booked[1])}, "{market.listing_uri}", '
-        f'{json.dumps(unit_slots)}')
-    expect_refusal("wrong token confirm", confirm, "slot lost")
+        f'{json.dumps(booked[1])}, {json.dumps(unit_slots)}')
+    expect_refusal("wrong token confirm", confirm, "not holder")
     release = fresh_token_call(
         market.listing_uri, "release", json.dumps(unit_slots))
     expect_refusal("wrong token release", release, "not holder")

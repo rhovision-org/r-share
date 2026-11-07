@@ -278,13 +278,11 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                          listing.get("terms").get("assetId"),
                                          listing.get("terms").get("pricePerSlot"),
                                          *hpCh) |
-                          for (@hp <- hpCh) {
-                            match hp {
-                              (true, payment) => {
+                          for (@(true, payment) <- hpCh) {
                                 new acqCh in {
                                   ledgerAcquire!(listingUri, bId, guestId,
                                                  unitSlots, untilHeight,
-                                                 *releaseToken, *payment,
+                                                 *releaseToken, payment,
                                                  *acqCh) |
                                   for (@acq <- acqCh) {
                                     match acq {
@@ -309,7 +307,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                                     guestId,
                                                     listing.get("terms").get(
                                                       "assetId"),
-                                                    *payment, *rfCh)
+                                                    payment, *rfCh)
                                                 }
                                                 _ => { rfCh!(p) }
                                               }
@@ -324,12 +322,6 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                     }
                                   }
                                 }
-                              }
-                              _ => {
-                                GuestLedgerDrop!(*ledgerState, opId) |
-                                ret!(hp)
-                              }
-                            }
                           }
                         }
                       }

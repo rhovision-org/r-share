@@ -94,15 +94,10 @@ def admin_literal(keys: dict, dev_single_key: bool) -> str:
     return "[" + ", ".join(f'"{key}".hexToBytes()' for key in distinct[:3]) + "]"
 
 
-def verify_rcash(root_uri: str) -> None:
+def verify_rcash(root_uri: str, required: list[str]) -> None:
     """Fail closed before a partial install when r-cash is missing a component."""
     sys.path.insert(0, str(ROOT / "harness"))
     import actors
-    required = [
-        "component:asset-resolver",
-        "component:payments",
-        "component:account-factory",
-    ]
     missing = []
     for key in required:
         try:
@@ -187,7 +182,14 @@ def main(argv: list[str] | None = None) -> int:
                          "run `make rcash-install` first")
 
     if not args.dry_run:
-        verify_rcash(rcash_root)
+        verify_rcash(
+            rcash_root,
+            rcash.get("required_components", [
+                "component:account-factory",
+                "component:asset-resolver",
+                "component:clock",
+            ]),
+        )
 
     common = {
         "__ADMINS__": admin_literal(keys, args.dev_single_key),

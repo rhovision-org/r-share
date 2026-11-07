@@ -27,14 +27,14 @@ def acquire_term(market: market_fixture.Market, booking_id: str, amount: int,
                   rl!(`{hold}`, *hdCh) |
                   for (H <- hdCh) {{
                     H!("settle", "{booking_id}", "release", *releaseToken, *s1) |
-                    for (s1v <- s1) {{
+                    for (@s1v <- s1) {{
                       rl!(`{market.listing_uri}`, *l2) |
                       for (L2 <- l2) {{
                         L2!("release", {slots}, *releaseToken, *relCh) |
-                        for (relv <- relCh) {{
+                        for (@relv <- relCh) {{
                           H!("settle", "{booking_id}", "release",
                             *releaseToken, *s2) |
-                          for (s2v <- s2) {{
+                          for (@s2v <- s2) {{
                             deployId!([r, s1v, relv, s2v])
                           }}
                         }}
@@ -45,12 +45,12 @@ def acquire_term(market: market_fixture.Market, booking_id: str, amount: int,
         "confirm": f"""
                   rl!(`{market.listing_uri}`, *l2) |
                   for (L2 <- l2) {{
-                    L2!("confirm", "{booking_id}", "{market.listing_uri}",
+                    L2!("confirm", "{booking_id}",
                        {slots}, *releaseToken, *cfCh) |
-                    for (cfv <- cfCh) {{ deployId!([r, cfv]) }}
+                    for (@cfv <- cfCh) {{ deployId!([r, cfv]) }}
                   }}
 """,
-        "none": "deployId!([r])",
+        "none": "deployId!(r)",
     }[action]
     return f"""
 new rl(`rho:registry:lookup`), payCh, wCh, lCh, l2, ret, cfCh, relCh,
@@ -59,22 +59,17 @@ new rl(`rho:registry:lookup`), payCh, wCh, lCh, l2, ret, cfCh, relCh,
   rl!(`{payments}`, *payCh) |
   for (P <- payCh) {{
     P!("withdrawPayment", *dId, "REV", {amount}, *wCh) |
-    for (w <- wCh) {{
-      match w {{
-        (true, payment) => {{
-          rl!(`{market.listing_uri}`, *lCh) |
-          for (L <- lCh) {{
-            L!("acquire", "{booking_id}", "{payer}",
-               {slots}, {until}, *releaseToken, *payment, *ret) |
-            for (r <- ret) {{
-              match r {{
-                (true, _) => {{{after}}}
-                _ => {{ deployId!([r]) }}
-              }}
-            }}
+    for (@(true, payment) <- wCh) {{
+      rl!(`{market.listing_uri}`, *lCh) |
+      for (L <- lCh) {{
+        L!("acquire", "{booking_id}", "{payer}",
+           {slots}, {until}, *releaseToken, payment, *ret) |
+        for (@r <- ret) {{
+          match r {{
+            (true, _) => {{{after}}}
+            _ => {{ deployId!(r) }}
           }}
         }}
-        _ => {{ deployId!([w]) }}
       }}
     }}
   }}
@@ -84,8 +79,7 @@ new rl(`rho:registry:lookup`), payCh, wCh, lCh, l2, ret, cfCh, relCh,
 
 def refund_flow() -> None:
     print("  deposit is held, refused while held, refunded after release")
-    market = market_fixture.Market("hold-refund", instant_book=False,
-                                   slot_lead=0).setup()
+    market = market_fixture.Market("hold-refund", instant_book=False).setup()
     booking_id = f"{actors.address(market.guest)}:hold:{time.time_ns()}"
     result = one(acquire_term(market, booking_id, market.price), key=market.guest)
     expect("acquire", result[0][0], True)
@@ -97,8 +91,7 @@ def refund_flow() -> None:
 
 def confirm_gate() -> None:
     print("  confirm without a genuine booking is refused")
-    market = market_fixture.Market("hold-confirm", instant_book=True,
-                                   slot_lead=0).setup()
+    market = market_fixture.Market("hold-confirm", instant_book=True).setup()
     booking_id = f"{actors.address(market.guest)}:hold:{time.time_ns()}"
     result = one(acquire_term(market, booking_id, market.price, "confirm"),
                  key=market.guest)
@@ -113,8 +106,7 @@ def confirm_gate() -> None:
 
 def wrong_amount() -> None:
     print("  a short payment is refused and moves no slot")
-    market = market_fixture.Market("hold-amount", instant_book=False,
-                                   slot_lead=0).setup()
+    market = market_fixture.Market("hold-amount", instant_book=False).setup()
     booking_id = f"{actors.address(market.guest)}:hold:{time.time_ns()}"
     result = one(acquire_term(market, booking_id, market.price - 1, "none"),
                  key=market.guest)
@@ -128,8 +120,7 @@ def wrong_amount() -> None:
 
 def plain_book_refund() -> None:
     print("  a normal instant book still confirms")
-    market = market_fixture.Market("hold-book", instant_book=True,
-                                   slot_lead=0).setup()
+    market = market_fixture.Market("hold-book", instant_book=True).setup()
     booked = market.book(market.op("book"))
     expect_ok("book", booked)
     info = market.booking_info(booked[2])

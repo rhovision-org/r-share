@@ -58,7 +58,7 @@ contract resolveComponent(@key, ret) = {
                               for (@f <- fCh) {
                                 match f {
                                   (true, facet) => {
-                                    @facet!("deposit", payment, *dCh) |
+                                    @facet!("deposit", *payment, *dCh) |
                                     for (@d <- dCh) {
                                       match d {
                                         (true, _) => { ret!((true, Nil)) }
@@ -73,7 +73,7 @@ contract resolveComponent(@key, ret) = {
                           } |
 
                           contract holdRefuse(payment, @reason, ret) = {
-                            ret!((false, reason, payment))
+                            ret!((false, reason, *payment))
                           } |
 
                           contract holdHeldSlots(@sm, @ids, @j, @bookingId, ret2) = {
@@ -187,22 +187,19 @@ contract resolveComponent(@key, ret) = {
                                                @providerId, @until,
                                                @unitSlots, @expected,
                                                payment, ret) = {
-                            if (payment == Nil) {
-                              ret!((false, "hold deposit"))
-                            } else {
-                              new aCh in {
-                                @issuer!("getAmountOf", payment, *aCh) |
+                            new aCh in {
+                                @issuer!("getAmountOf", *payment, *aCh) |
                                 for (@a <- aCh) {
                                   match a {
                                     (true, amount) => {
                                       if (amount != expected) {
-                                        holdRefuse!(payment, "amount", *ret)
+                                        holdRefuse!(*payment, "amount", *ret)
                                       } else {
                                         for (@s <- holdEscrowState) {
                                           match s.get("records").get(bookingId) {
                                             Nil => {
                                               new dCh in {
-                                                @purse!("deposit", payment, *dCh) |
+                                                @purse!("deposit", *payment, *dCh) |
                                                 for (@d <- dCh) {
                                                   match d {
                                                     (true, _) => {
@@ -227,18 +224,17 @@ contract resolveComponent(@key, ret) = {
                                             }
                                             _ => {
                                               holdEscrowState!(s) |
-                                              holdRefuse!(payment,
+                                              holdRefuse!(*payment,
                                                           "duplicate", *ret)
                                             }
                                           }
                                         }
                                       }
                                     }
-                                    _ => { holdRefuse!(payment, "amount", *ret) }
+                                    _ => { holdRefuse!(*payment, "amount", *ret) }
                                   }
                                 }
                               }
-                            }
                           } |
 
                           contract HoldDeposit(@"authorize", @listingKey,

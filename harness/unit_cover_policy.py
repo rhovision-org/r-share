@@ -122,9 +122,7 @@ new rl(`rho:registry:lookup`), rootCh, pCh, ret, bCh, polCh, tokCh, infoCh,
     rl!(`{payments}`, *payCh) |
     for (P <- payCh) {{
       P!("withdrawPayment", *deployerId, "REV", {hold_deposit}, *wCh) |
-      for (w <- wCh) {{
-        match w {{
-          (true, payment) => {{
+      for (@(true, payment) <- wCh) {{
             rl!(`{listing_uri}`, *lCh) |
             for (Listing <- lCh) {{
               Listing!("acquire", subjectId, "{payer}",
@@ -163,8 +161,6 @@ new rl(`rho:registry:lookup`), rootCh, pCh, ret, bCh, polCh, tokCh, infoCh,
               }}
             }}
           }}
-          _ => {{ deployId!(w) }}
-        }}
       }}
     }}
   }}
@@ -227,7 +223,7 @@ def main() -> int:
     if not actors.require_profile("cover-demo"):
         return 2
 
-    market = market_fixture.Market("coverpolicy", slot_lead=0).setup()
+    market = market_fixture.Market("coverpolicy").setup()
     provider = market.provider
     guest = market.guest
     provider_id = actors.address(provider)
