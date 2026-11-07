@@ -84,15 +84,18 @@ One policy per subject per side.
 ```
 policyId, subjectKind, subjectId, offerId, useCase, product, trigger,
 insured, beneficiary, payer, premiumPaid, coverageCap, deductible,
-status, claim, paid, ops, coverToken, rSurePolicyUri?, openedAtHeight
+status, claims, paid, ops, rSurePolicyUri?, openedAtHeight
 ```
 
 State: `bound -> active -> claimPending -> paid | denied | expired`; `active -> disputed ->
 arbitrated -> paid | denied`; `active -> cancelled` on the full-refund path. `paid`,
 `denied` and `expired` are terminal.
 
-`coverToken` is private to the policy closure. Only the booking subject contract may call
-`pay`; a guest or provider cannot pay itself.
+The claim capability is minted by the operator-authorized `CoverPolicy("authorize")`, fixes
+the claim id, loss id, amount, assessed loss and non-cover recovery, and is attached to the
+booking through `BookingContract("attachClaim")`. It is not included in policy state or
+`info`. An unattached policy may use the operator `pay` arm; a guest or provider cannot pay
+itself.
 
 ### CoverClaim
 
@@ -113,9 +116,13 @@ account; the pool resolves `Payments("issuer")`, keeps its purse private, and pa
 
 ```
 poolId, operatorId, assetId, capital, premiumIn, premiumRefunded,
-claimsPaid, feesOut, outstandingCover, capacity, solvencyBps,
+claimsPaid, feesOut, outstandingCover, capacity, solvencyBps, reserveCap,
 reserves, policies, paidFor, status, ops, nonce
 ```
+
+`CoverPool("configure", capacity, solvencyBps, reserveCap)` is operator-only. `pause` stops
+new binds and `resume` restores them. `reserve` refuses a deposit that would take a payer's
+reserve above `reserveCap`, returns the payment and leaves pool state unchanged.
 
 ## Claim and payout order
 
@@ -166,7 +173,10 @@ r-sure policy per booking is rejected in this design.
 - **C5 Pool solvency:** `cash >= solvencyBps * outstandingCover / 10000`; `pay` refuses
   `"solvency"` before moving value and the subject remains retryable.
 - **C6 Single terminal outcome:** a cover claim cannot reopen a terminal booking.
-- **C7 Token gate:** only the subject contract's `coverToken` can authorize a pool payout.
+- **C7 Token gate:** a fixed `CoverClaim` token, minted by the operator-authorized
+  `CoverPolicy("authorize")` and attached through `BookingContract("attachClaim")`, pays an
+  attached policy once for the fixed claim/loss/amount. The booking calls it through
+  `bcCoverPay`; no release capability can pay.
 - **C8 Premium floor:** `premiumTotal >= loadedPremium(expectedLoss, varianceBps, loadBps)`.
 - **C9 Liability share:** `approval.liability.shareBps` is an indemnity/co-insurance input,
   not an engineering-variance signal.

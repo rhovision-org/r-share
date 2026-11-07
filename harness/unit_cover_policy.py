@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CoverPolicy: reserve, bind, pay, settle, expire and the release token."""
+"""CoverPolicy: reserve, bind, pay, settle, expire and the claim token."""
 
 from __future__ import annotations
 
@@ -93,8 +93,11 @@ def bind_term(pool_uri: str, subject: dict, offer_id: str, cap: int,
               rl!(policyUri, *polCh) |
               for (Pol <- polCh) {{
                 Pol!("attach", subjectId, subjectId, 1000000, *attachKey, *tokCh) |
-                for (@(true, Token) <- tokCh) {{
-                  deployId!([(true, policyId, policyUri)])
+                for (@a <- tokCh) {{
+                  match a {{
+                    (true, Nil) => {{ deployId!([(true, policyId, policyUri)]) }}
+                    _ => {{ deployId!([a]) }}
+                  }}
                 }}
               }}
 """
@@ -183,6 +186,24 @@ def main() -> int:
         reserve_term(pool, provider, provider_id, 1000), key=provider, phlo_limit=4_000_000))
     expect("provider reserve", info(pool).get("reserves").get(provider_id),
            reserve_before + 1000)
+
+    reserve_after = info(pool).get("reserves").get(provider_id)
+    total_before = info(pool).get("reserveTotal")
+    cap_before = info(pool).get("reserveCap", 1_000_000)
+    provider_balance_before = actors.balance(provider)
+    expect_ok("configure reserve cap", actors.invoke(
+        pool, "configure", f"*dId, 1000000, 10000, {reserve_after + 1}"))
+    expect_refusal("reserve above cap", one(
+        reserve_term(pool, provider, provider_id, 2), key=provider,
+        phlo_limit=4_000_000), "reserve cap")
+    capped = info(pool)
+    expect("reserve cap keeps reserve", capped.get("reserves").get(provider_id),
+           reserve_after)
+    expect("reserve cap keeps total", capped.get("reserveTotal"), total_before)
+    expect("reserve cap refunds payer", actors.balance(provider),
+           provider_balance_before)
+    expect_ok("restore reserve cap", actors.invoke(
+        pool, "configure", f"*dId, 1000000, 10000, {cap_before or 1000000}"))
 
     subject = {
         "subjectKind": "booking",
@@ -276,7 +297,7 @@ def main() -> int:
     expect("expired returns cover", info(pool).get("outstanding"),
            pool_before.get("outstanding"))
 
-    # Attach returns the private release token; it is not in info.
+    # Attach marks the policy attached; no release capability is returned.
     policy3 = f"policy:{time.time_ns()}"
     subject3 = dict(subject)
     subject3["subjectId"] = f"{guest_id}:op:policy:{time.time_ns()}"
@@ -284,7 +305,7 @@ def main() -> int:
         bind_term(pool, subject3, offer["offerId"], 200, policy3, attach=True),
         key=guest, phlo_limit=4_000_000)
     attached = single(attached)
-    expect_ok("attach policy and release token", attached)
+    expect_ok("attach policy", attached)
     expect("attached policy id", attached[1], policy3)
     entry3 = actors.invoke(pool, "policy", f'"{policy3}"')[1]
     expect("attached status", entry3.get("status"), "attached")

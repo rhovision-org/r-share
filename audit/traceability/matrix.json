@@ -1,9 +1,9 @@
 {
   "schema": "rshare.traceability/v1",
   "summary": {
-    "arms": 164,
+    "arms": 163,
     "arms_with_flow_rule": 31,
-    "arms_with_hazard": 36,
+    "arms_with_hazard": 37,
     "hazards": 54,
     "findings": 21,
     "improvements": 23,
@@ -198,10 +198,19 @@
       "flow_rule": "B-claim",
       "flow_status": "owed",
       "lean_target": null,
-      "hazards": [],
+      "hazards": [
+        "HZ-042",
+        "HZ-051"
+      ],
       "findings": [],
-      "improvements": [],
-      "tests": []
+      "improvements": [
+        "R-023"
+      ],
+      "tests": [
+        "T-COVER-BOOKING",
+        "T-COVER-DISABLED",
+        "T-COVER-POLICY"
+      ]
     },
     {
       "component": "BookingContract",
@@ -2005,11 +2014,16 @@
       "flow_status": "unmapped",
       "lean_target": null,
       "hazards": [
+        "HZ-043",
         "HZ-052"
       ],
       "findings": [],
-      "improvements": [],
+      "improvements": [
+        "R-023"
+      ],
       "tests": [
+        "T-COVER-BOOKING",
+        "T-COVER-DISABLED",
         "T-COVER-POLICY"
       ]
     },
@@ -2067,7 +2081,11 @@
       "improvements": [
         "R-023"
       ],
-      "tests": []
+      "tests": [
+        "T-COVER-BOOKING",
+        "T-COVER-DISABLED",
+        "T-COVER-POLICY"
+      ]
     },
     {
       "component": "CoverPolicy",
@@ -2077,14 +2095,10 @@
       "flow_rule": null,
       "flow_status": "unmapped",
       "lean_target": null,
-      "hazards": [
-        "HZ-051"
-      ],
+      "hazards": [],
       "findings": [],
       "improvements": [],
-      "tests": [
-        "T-COVER-POLICY"
-      ]
+      "tests": []
     },
     {
       "component": "CoverPolicy",
@@ -2094,10 +2108,18 @@
       "flow_rule": null,
       "flow_status": "unmapped",
       "lean_target": null,
-      "hazards": [],
+      "hazards": [
+        "HZ-047"
+      ],
       "findings": [],
-      "improvements": [],
-      "tests": []
+      "improvements": [
+        "R-023"
+      ],
+      "tests": [
+        "T-COVER-BOOKING",
+        "T-COVER-DISABLED",
+        "T-COVER-POLICY"
+      ]
     },
     {
       "component": "CoverPolicy",
@@ -2138,32 +2160,6 @@
       "arm": "info",
       "source": "contracts/src/deploy/33_cover_policy.rho:434",
       "visibility": "public",
-      "flow_rule": null,
-      "flow_status": "unmapped",
-      "lean_target": null,
-      "hazards": [],
-      "findings": [],
-      "improvements": [],
-      "tests": []
-    },
-    {
-      "component": "CoverToken",
-      "arm": "settle",
-      "source": "contracts/src/deploy/33_cover_policy.rho:319",
-      "visibility": "capability",
-      "flow_rule": null,
-      "flow_status": "unmapped",
-      "lean_target": null,
-      "hazards": [],
-      "findings": [],
-      "improvements": [],
-      "tests": []
-    },
-    {
-      "component": "CoverToken",
-      "arm": "info",
-      "source": "contracts/src/deploy/33_cover_policy.rho:322",
-      "visibility": "capability",
       "flow_rule": null,
       "flow_status": "unmapped",
       "lean_target": null,
@@ -2252,7 +2248,11 @@
       "improvements": [
         "R-023"
       ],
-      "tests": []
+      "tests": [
+        "T-COVER-BOOKING",
+        "T-COVER-DISABLED",
+        "T-COVER-POLICY"
+      ]
     },
     {
       "component": "CoverGuestLedger",
@@ -2307,32 +2307,6 @@
       "tests": []
     },
     {
-      "component": "coverTokenCell",
-      "arm": "get",
-      "source": "contracts/src/deploy/34_booking_instance.rho:108",
-      "visibility": "capability",
-      "flow_rule": null,
-      "flow_status": "unmapped",
-      "lean_target": null,
-      "hazards": [],
-      "findings": [],
-      "improvements": [],
-      "tests": []
-    },
-    {
-      "component": "coverTokenCell",
-      "arm": "set",
-      "source": "contracts/src/deploy/34_booking_instance.rho:111",
-      "visibility": "capability",
-      "flow_rule": null,
-      "flow_status": "unmapped",
-      "lean_target": null,
-      "hazards": [],
-      "findings": [],
-      "improvements": [],
-      "tests": []
-    },
-    {
       "component": "claimTokenCell",
       "arm": "get",
       "source": "contracts/src/deploy/34_booking_instance.rho:119",
@@ -2350,6 +2324,45 @@
       "arm": "set",
       "source": "contracts/src/deploy/34_booking_instance.rho:122",
       "visibility": "capability",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverPool",
+      "arm": "configure",
+      "source": "contracts/src/deploy/32_cover_pool.rho:870",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverPool",
+      "arm": "pause",
+      "source": "contracts/src/deploy/32_cover_pool.rho:895",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "CoverPool",
+      "arm": "resume",
+      "source": "contracts/src/deploy/32_cover_pool.rho:912",
+      "visibility": "public",
       "flow_rule": null,
       "flow_status": "unmapped",
       "lean_target": null,

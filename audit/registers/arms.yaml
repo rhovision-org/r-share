@@ -1,5 +1,5 @@
 schema: rshare.arms/v1
-total: 164
+total: 163
 arms:
 - component: AdminGuard
   arm: verify
@@ -1278,7 +1278,7 @@ arms:
   flow_status: unmapped
   lean_target: null
   audit_disposition: unmapped
-  rationale: Creates a per-policy purse, release token and private settle channel.
+  rationale: Creates a per-policy purse and private settle channel; claims use a fixed token.
 - component: CoverPolicy
   arm: pay
   source: contracts/src/deploy/33_cover_policy.rho:326
@@ -1323,7 +1323,7 @@ arms:
   flow_status: unmapped
   lean_target: null
   audit_disposition: unmapped
-  rationale: Attaches to the booking with its settleToken key and returns the release token.
+  rationale: Attaches to the booking with its settleToken key; no release capability is returned.
 - component: CoverPolicy
   arm: info
   source: contracts/src/deploy/33_cover_policy.rho:434
@@ -1333,24 +1333,6 @@ arms:
   lean_target: null
   audit_disposition: unmapped
   rationale: Redacted policy metadata; no purse, key or token names.
-- component: CoverToken
-  arm: settle
-  source: contracts/src/deploy/33_cover_policy.rho:319
-  visibility: capability
-  flow_rule: null
-  flow_status: unmapped
-  lean_target: null
-  audit_disposition: unmapped
-  rationale: Release capability held by the booking; never authorizes payout.
-- component: CoverToken
-  arm: info
-  source: contracts/src/deploy/33_cover_policy.rho:322
-  visibility: capability
-  flow_rule: null
-  flow_status: unmapped
-  lean_target: null
-  audit_disposition: unmapped
-  rationale: Release token metadata.
 - component: claimToken
   arm: pay
   source: contracts/src/deploy/33_cover_policy.rho:373
@@ -1441,24 +1423,6 @@ arms:
   lean_target: null
   audit_disposition: unmapped
   rationale: Booking release path; forwards the settleToken key to the pool.
-- component: coverTokenCell
-  arm: get
-  source: contracts/src/deploy/34_booking_instance.rho:108
-  visibility: capability
-  flow_rule: null
-  flow_status: unmapped
-  lean_target: null
-  audit_disposition: unmapped
-  rationale: Private release-token cell read.
-- component: coverTokenCell
-  arm: set
-  source: contracts/src/deploy/34_booking_instance.rho:111
-  visibility: capability
-  flow_rule: null
-  flow_status: unmapped
-  lean_target: null
-  audit_disposition: unmapped
-  rationale: Private release-token cell write.
 - component: claimTokenCell
   arm: get
   source: contracts/src/deploy/34_booking_instance.rho:119
@@ -1477,3 +1441,30 @@ arms:
   lean_target: null
   audit_disposition: unmapped
   rationale: Private claim-token cell write.
+- component: CoverPool
+  arm: configure
+  source: contracts/src/deploy/32_cover_pool.rho:870
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Operator capacity, solvency ratio and reserve cap.
+- component: CoverPool
+  arm: pause
+  source: contracts/src/deploy/32_cover_pool.rho:895
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Operator stop for new binds.
+- component: CoverPool
+  arm: resume
+  source: contracts/src/deploy/32_cover_pool.rho:912
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Operator resume for new binds.

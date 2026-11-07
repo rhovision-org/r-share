@@ -1,12 +1,12 @@
 {
   "deploy_terms": 19,
-  "bytes_total": 177113,
-  "bytes_max": 34465,
+  "bytes_total": 179023,
+  "bytes_max": 34125,
   "depth_max": 42,
   "contracts_max": 35,
   "components": 27,
-  "state_cell_types": 15,
-  "arm_declarations": 164,
+  "state_cell_types": 14,
+  "arm_declarations": 163,
   "root_resolve_sites": 4,
   "registry_lookup_sites": 49,
   "registry_insert_sites": 28,
@@ -87,19 +87,19 @@
       "contracts": 4
     },
     "32_cover_pool.rho": {
-      "bytes": 20107,
+      "bytes": 22456,
       "depth": 32,
-      "contracts": 14
+      "contracts": 16
     },
     "33_cover_policy.rho": {
-      "bytes": 10441,
+      "bytes": 10342,
       "depth": 37,
-      "contracts": 14
+      "contracts": 13
     },
     "34_booking_instance.rho": {
-      "bytes": 34465,
+      "bytes": 34125,
       "depth": 42,
-      "contracts": 33
+      "contracts": 32
     },
     "40_payments.rho": {
       "bytes": 5487,

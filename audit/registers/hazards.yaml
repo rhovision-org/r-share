@@ -1010,7 +1010,7 @@ hazards:
   - spec/cover.md
 - id: HZ-042
   node: N15
-  arm: BookingContract@"claimCover"
+  arm: BookingContract@"claimDeposit"
   guide_word: more
   parameter: recovery
   deviation: deposit, provider cover and a guest waiver all pay the same loss
@@ -1034,7 +1034,7 @@ hazards:
   - spec/cover.md
 - id: HZ-043
   node: N05
-  arm: CoverPool@"pay"
+  arm: CoverSettle@"pay"
   guide_word: less
   parameter: solvency
   deviation: pool pays a claim after cash falls below the required solvency ratio
@@ -1120,7 +1120,7 @@ hazards:
   severity: S3
   likelihood: L2
   risk: high
-  controls: coverToken only callable inside terminal settlement; terminal check before pay; paidFor idempotency
+  controls: fixed claim token only callable from the attached booking's terminal settlement; terminal check before pay; paidFor idempotency
   findings: []
   tests: []
   lean: null
@@ -1130,7 +1130,7 @@ hazards:
   - spec/cover.md
 - id: HZ-047
   node: N05
-  arm: CoverPool@"refundPremium"
+  arm: CoverPolicy@"settle"
   guide_word: reverse
   parameter: premium refund
   deviation: premium is refunded after cover starts or after a claim is filed
@@ -1144,7 +1144,7 @@ hazards:
   severity: S2
   likelihood: L1
   risk: medium
-  controls: refund only before coverStartHeight and before a claim; once per policy; replay guard
+  controls: settle only while unattached and unclaimed; attached release uses settleKey; claim and settle are mutually exclusive; once per policy
   findings: []
   tests: []
   lean: null
@@ -1180,19 +1180,19 @@ hazards:
   node: N19
   arm: CoverPolicy@"attach"
   guide_word: other_than
-  parameter: release and claim capabilities
+  parameter: claim capability
   deviation: a policy token is exposed through a public channel or info map and can be replayed by the wrong party
   causes:
   - token returned to a deployer-visible channel
   - token or attach key included in info
   consequences:
-    on_chain: unauthorized release or payout
+    on_chain: unauthorized payout
     operational: loss of reserve
     safety: pool insolvency
   severity: S1
   likelihood: L2
   risk: high
-  controls: settleToken attach key; private reply channel; claim token operator-authorized; redacted info
+  controls: settleToken attach key; operator-authorized fixed claim token; private reply channel; redacted info
   findings: []
   tests:
   - T-COVER-POLICY
@@ -1229,7 +1229,7 @@ hazards:
   - spec/cover.md
 - id: HZ-051
   node: N19
-  arm: CoverPolicy@"authorize"
+  arm: BookingContract@"claimDeposit"
   guide_word: other_than
   parameter: remove-mode deductible
   deviation: cover pays the provider deductible instead of leaving it as first loss
@@ -1317,7 +1317,7 @@ hazards:
   severity: S2
   likelihood: L2
   risk: medium
-  controls: provider-published offer; paused/retired offers stop binds; reserve cap; expiry; monitor
+  controls: provider-published offer; paused/retired offers stop binds; enforced reserve cap; expiry; monitor
   findings: []
   tests:
   - T-COVER-POLICY

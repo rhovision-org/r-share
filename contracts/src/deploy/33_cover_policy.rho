@@ -1,4 +1,4 @@
-// CoverPolicyFactory: per-policy purse, release token and claim token.
+// CoverPolicyFactory: per-policy purse and claim token.
 // Placeholders: __ROOT_URI__.
 new
   CoverPolicyFactory,
@@ -13,7 +13,7 @@ in {
 
   contract CoverPolicyFactory(@"spawn", @spec, @settleCh,
                                @purse, @payments, @clock, ret) = {
-    new CoverPolicy, CoverToken, policyState, uCh,
+    new CoverPolicy, policyState, uCh,
         coverPolicyNow, coverPolicyAuth, coverPolicyPayments,
         coverPolicyPay, coverPolicySettle, coverPolicySettleKey,
         coverPolicyAttach, coverPolicyExpire in {
@@ -353,7 +353,7 @@ in {
               || s.get("status") == "expired") {
             policyState!(s) | retA!((false, "closed"))
           } else if (s.get("status") == "attached") {
-            policyState!(s) | retA!((true, *CoverToken))
+            policyState!(s) | retA!((true, Nil))
           } else {
             new aCh in {
               @settleCh!("attach", subjectUri, subjectId,
@@ -364,7 +364,7 @@ in {
                     policyState!(s.set("status", "attached")
                                   .set("subjectUri", subjectUri)
                                   .set("expiresAtHeight", expiresAtHeight)) |
-                    retA!((true, *CoverToken))
+                    retA!((true, Nil))
                   }
                   _ => { policyState!(s) | retA!(a) }
                 }
@@ -399,13 +399,6 @@ in {
         }
       } |
 
-      contract CoverToken(@"settle", retT) = {
-        coverPolicySettle!("settled", *retT)
-      } |
-      contract CoverToken(@"info", retT) = {
-        for (@s <<- policyState) { retT!((true, s)) }
-      } |
-
       contract CoverPolicy(@"pay", dId, @claimId, @lossId, @amount,
                            @assessed, @nonCoverRecovery, @evidenceHash, retP) = {
         new oCh in {
@@ -413,8 +406,14 @@ in {
           for (@o <- oCh) {
             match o {
               (true, Nil) => {
-                coverPolicyPay!(claimId, lossId, amount, assessed,
-                                nonCoverRecovery, evidenceHash, *retP)
+                for (@s <<- policyState) {
+                  if (s.get("subjectUri") != "") {
+                    retP!((false, "attached"))
+                  } else {
+                    coverPolicyPay!(claimId, lossId, amount, assessed,
+                                    nonCoverRecovery, evidenceHash, *retP)
+                  }
+                }
               }
               _ => { retP!(o) }
             }

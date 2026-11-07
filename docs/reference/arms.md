@@ -345,7 +345,8 @@ platform owner.
 ```
 CoverPool("fund", dId, @payment, ret) -> (true, amount)
 CoverPool("premium", @payment, ret) -> (true, amount)
-CoverPool("reserve", dId, @payerId, @payment, ret) -> (true, amount)
+CoverPool("reserve", dId, @payerId, @payment, ret)
+  -> (true, amount) | (false, "reserve cap")
 CoverPool("allocate", dId, @policyId, @cap, ret)
   -> (true, policyPurse) | (false, "paused" | "cap" | "policy exists" |
                                    "capacity" | "solvency")
@@ -360,9 +361,14 @@ CoverPool("close", dId, @policyId, @paidAmount, ret)
   -> (true, Nil) | (false, "unknown policy")
 CoverPool("info", ret) -> (true, state)
 CoverPool("solvency", ret) -> (true, {assets, cash, outstanding, solvent})
+CoverPool("configure", dId, @capacity, @solvencyBps, @reserveCap, ret)
+  -> (true, Nil) | (false, "config")
+CoverPool("pause", dId, ret) -> (true, Nil)
+CoverPool("resume", dId, ret) -> (true, Nil)
 ```
 
-`reserve` prefunds a provider/platform reserve. `bind` and `bindReserved` validate
+`reserve` prefunds a provider/platform reserve and refuses a deposit above `reserveCap`
+without changing the reserve. `configure`, `pause` and `resume` are operator-only. `bind` and `bindReserved` validate
 an active offer and listing, reserve the cap, create a per-policy purse and call
 `CoverPolicyFactory("spawn", ...)`. `bind` takes an exact premium payment;
 `bindReserved` debits the payer reserve and authenticates the guest. The private
@@ -377,25 +383,24 @@ deposit and reserve-funded bind are operator- or payer-gated.
 CoverPolicyFactory("spawn", @spec, @settleCh, @purse, @payments, @clock, ret)
   -> (true, policyUri)
 CoverPolicy("pay", dId, @claimId, @lossId, @amount, @assessed,
-            @nonCoverRecovery, @evidenceHash, ret) -> (true, amount)
+            @nonCoverRecovery, @evidenceHash, ret)
+  -> (true, amount) | (false, "attached")
 CoverPolicy("authorize", dId, @claimId, @lossId, @amount, @assessed,
             @nonCoverRecovery, @evidenceHash, ret) -> (true, claimToken)
 CoverPolicy("settle", dId, ret) -> (true, Nil)
 CoverPolicy("expire", ret) -> (true, Nil) | (false, "too early")
 CoverPolicy("attach", @subjectUri, @subjectId, @expiresAtHeight, @key, ret)
-  -> (true, releaseToken)
+  -> (true, Nil)
 CoverPolicy("info", ret) -> (true, redactedState)
-CoverToken("settle", ret) -> (true, Nil)
-CoverToken("info", ret) -> (true, redactedState)
 claimToken("pay", ret) -> (true, amount)
 claimToken("info", ret) -> (true, fixedClaim)
 ```
 
-`pay` is the operator/manual adjudication path; it can settle an attached policy.
-`authorize` remains available for a fixed claim token. `settleKey` is the booking's
-release path and requires the booking's `settleToken` key. The release token
-authorizes settlement only, not payout. No purse, attach key or token name appears
-in `info`.
+`pay` is the operator/manual adjudication path for an unattached policy only.
+`authorize` mints the fixed claim token used for an attached policy; the booking calls it
+through `attachClaim` and `bcCoverPay`, and it pays once. `settleKey` is the attached
+booking's release path and requires the booking's `settleToken` key. No purse, attach key
+or token name appears in `info`.
 
 ## Covered booking — `23_guest_ledger.rho`, `24_guest_ledger_cover.rho`,
 ## `34_booking_instance.rho`

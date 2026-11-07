@@ -414,8 +414,11 @@ improvements:
   breaking: true
   migration: new cover components and subject schema v3; Terms stays 20 fields; clean install, no in-place migration
   compatibility_window: cover policies coexist with cash-deposit bookings; old subjects keep current semantics
-  tests: []
+  tests:
+  - T-COVER-POLICY
+  - T-COVER-BOOKING
+  - T-COVER-DISABLED
   lean: null
   rollout_stage: cover-phase-1
   rollback: disable cover offers and keep the cash-deposit path; revert new components
-  status: proposed
+  status: implemented-experimental

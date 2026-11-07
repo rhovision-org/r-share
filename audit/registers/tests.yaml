@@ -95,7 +95,7 @@ tests:
   name: cover policy and settlement
   file: harness/unit_cover_policy.py
   status: passing
-  focus: reserve, bind/bindReserved, exact premium, pay/settle/expire, loss ledger, release token, redaction
+  focus: reserve and reserve cap, bind/bindReserved, exact premium, pay/settle/expire, loss ledger, fixed claim token, redaction
 - id: T-COVER-BOOKING
   name: atomic covered booking
   file: harness/unit_cover_booking.py

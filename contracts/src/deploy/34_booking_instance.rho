@@ -60,7 +60,7 @@ contract bookingResolve(@key, ret) = {
                                 && listing.get("listingId") == data.get("listingId")
                                 && listing.get("kind") == data.get("kind")) {
           new BookingContract, bookingState, bookingCoverState,
-              releaseStore, claimStore, coverTokenCell, claimTokenCell,
+              claimStore, claimTokenCell,
               uCh, bcPost, bcRefuse, bcReplay, bcRelease, bcConfirm, bcPlatform,
               bcSettleWith, bcSettleRent, bcCancelSettle, bcProviderCancel,
               bcSettleNoShow, bcDisputeSettle, bcCoverClose, bcCoverPay, bcCoverPaid, bcMin, bcMax, bcCoverSplit, bcClaimMax in {
@@ -102,20 +102,8 @@ contract bookingResolve(@key, ret) = {
                     }) |
 
                     bookingCoverState!(data.get("cover")) |
-                    releaseStore!(Nil) |
                     claimStore!(Nil) |
 
-                    contract coverTokenCell(@"get", ret2) = {
-                      for (@v <<- releaseStore) { ret2!((true, v)) }
-                    } |
-                    contract coverTokenCell(@"set", @v, ret2) = {
-                      for (@old <- releaseStore) {
-                        match old {
-                          Nil => { releaseStore!(v) | ret2!((true, Nil)) }
-                          _ => { releaseStore!(old) | ret2!((false, "set")) }
-                        }
-                      }
-                    } |
                     contract claimTokenCell(@"get", ret2) = {
                       for (@v <<- claimStore) { ret2!((true, v)) }
                     } |
