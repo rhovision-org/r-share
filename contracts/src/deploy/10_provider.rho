@@ -273,16 +273,11 @@ in {
                                                      st.get("threshold"), *vCh) |
                                         for (@v <- vCh) {
                                           match v {
-                                            (true, ok) => {
-                                              if (ok == false) {
-                                                providerState!(st) |
-                                                ret2!((false, "below threshold"))
-                                              } else {
-                                                providerState!(
-                                                  st.set("status", "paused")
-                                                    .set("nonce", nonce)) |
-                                                ret2!((true, Nil))
-                                              }
+                                            (true, true) => {
+                                              providerState!(
+                                                st.set("status", "paused")
+                                                  .set("nonce", nonce)) |
+                                              ret2!((true, Nil))
                                             }
                                             _ => {
                                               providerState!(st) |
@@ -312,26 +307,21 @@ in {
                                         } |
                                         for (@v <- vCh) {
                                           match v {
-                                            (true, ok) => {
-                                              if (ok == false) {
-                                                providerState!(st) |
-                                                ret2!((false, "below threshold"))
-                                              } else {
-                                                new avCh in {
-                                                  adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
-                                                  for (@av <- avCh) {
-                                                    match av {
-                                                      (true, Nil) => {
-                                                        providerState!(
-                                                          st.set("admins", newAdmins)
-                                                            .set("threshold", newThreshold)
-                                                            .set("nonce", nonce)) |
-                                                        ret2!((true, Nil))
-                                                      }
-                                                      _ => {
-                                                        providerState!(st) |
-                                                        ret2!(av)
-                                                      }
+                                            (true, true) => {
+                                              new avCh in {
+                                                adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
+                                                for (@av <- avCh) {
+                                                  match av {
+                                                    (true, Nil) => {
+                                                      providerState!(
+                                                        st.set("admins", newAdmins)
+                                                          .set("threshold", newThreshold)
+                                                          .set("nonce", nonce)) |
+                                                      ret2!((true, Nil))
+                                                    }
+                                                    _ => {
+                                                      providerState!(st) |
+                                                      ret2!(av)
                                                     }
                                                   }
                                                 }

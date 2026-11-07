@@ -345,12 +345,14 @@ contract resolveComponent(@key, ret) = {
                             match n {
                               (true, now) => {
                                 new effectiveCh in {
-                                  if (offer.get("depositEffect") == "none") {
-                                    effectiveCh!(listing.get("terms").get("deposit"))
-                                  } else if (offer.get("depositEffect") == "reduce_to_deductible") {
-                                    effectiveCh!(offer.get("deductible"))
-                                  } else {
-                                    effectiveCh!(0)
+                                  match offer.get("depositEffect") {
+                                    "none" => {
+                                      effectiveCh!(listing.get("terms").get("deposit"))
+                                    }
+                                    "reduce_to_deductible" => {
+                                      effectiveCh!(offer.get("deductible"))
+                                    }
+                                    _ => { effectiveCh!(0) }
                                   } |
                                   for (@effectiveDeposit <- effectiveCh) {
                                     new bookingIdCh in {

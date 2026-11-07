@@ -74,8 +74,9 @@ State: `draft -> active <-> paused -> retired`. `paused` blocks new binds; exist
 continue. `retired` is terminal for new binds.
 
 Validation: payer is the insured or platform; payer is never the counterparty; `d <=
-Terms.deposit`; cap > 0; deductible >= 0; premiumTotal >= premiumFloor; K-Asset/insurer
-pricing fields are present or explicitly `insurer-only`.
+Terms.deposit`; cap > 0; deductible >= 0; `premiumTotal > 0` and
+`premiumTotal >= premiumFloor`; K-Asset/insurer pricing fields are present or explicitly
+`insurer-only`.
 
 ### CoverPolicy
 
@@ -94,8 +95,9 @@ arbitrated -> paid | denied`; `active -> cancelled` on the full-refund path. `pa
 The claim capability is minted by the operator-authorized `CoverPolicy("authorize")`, fixes
 the claim id, loss id, amount, assessed loss and non-cover recovery, and is attached to the
 booking through `BookingContract("attachClaim")`. It is not included in policy state or
-`info`. An unattached policy may use the operator `pay` arm; a guest or provider cannot pay
-itself.
+`info`. `authorize` is attached-only and refuses a repeated `claimId`. An unattached policy
+may use the operator `pay` arm; a guest or provider cannot pay itself. `expire` refuses an
+attached policy; the booking's terminal settle closes it through `settleKey`.
 
 ### CoverClaim
 
@@ -122,7 +124,11 @@ reserves, policies, paidFor, status, ops, nonce
 
 `CoverPool("configure", capacity, solvencyBps, reserveCap)` is operator-only. `pause` stops
 new binds and `resume` restores them. `reserve` refuses a deposit that would take a payer's
-reserve above `reserveCap`, returns the payment and leaves pool state unchanged.
+reserve above `reserveCap`, returns the payment and leaves pool state unchanged. `release`
+and `close` refuse an attached policy, require the measured payment plus `entry.paid` to
+equal the cap, and derive `claimsPaid` from `entry.paid`, not a caller-supplied number. A
+missing pool entry is treated as already settled by `settleKey` so a booking terminal settle
+is idempotent.
 
 ## Claim and payout order
 
@@ -186,6 +192,16 @@ r-sure policy per booking is rejected in this design.
   point.
 - **C12 Disclosure:** a covered deposit must show the deductible, cap, exclusions and claim
   path before the guest books.
+- **C13 Claim freeze:** after a `claimDeposit`, a second deposit claim cannot overwrite the
+  loss; after `attachClaim`, the loss, deposit part and cover part are frozen.
+- **C14 Claim token:** an attached policy pays only through the operator-authorized fixed
+  claim token, once per claim, for the fixed amount.
+- **C15 Attached expiry:** an attached policy cannot be expired or settled outside the
+  booking's terminal settle; the booking closes it through `settleKey`.
+- **C16 Terminal settle idempotence:** a booking terminal settle treats a missing pool
+  entry as already settled and cannot be blocked by operator close/release.
+- **C17 Positive premium:** every active offer has `premiumTotal > 0`; zero-premium cover
+  cannot reserve capacity.
 
 ## Non-goals
 

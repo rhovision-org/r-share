@@ -93,6 +93,7 @@ contract resolveComponent(@key, ret) = {
         } else if (o.get("premiumFloor") == Nil || o.get("premiumFloor") < 0) {
           ret!((false, "premium"))
         } else if (o.get("premiumTotal") == Nil
+                   || o.get("premiumTotal") < 1
                    || o.get("premiumTotal") < o.get("premiumFloor")) {
           ret!((false, "premium"))
         } else if (o.get("claimWindowBlocks") == Nil

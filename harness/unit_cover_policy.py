@@ -87,12 +87,13 @@ def rho_map(value: dict) -> str:
 
 
 def bind_term(pool_uri: str, subject: dict, offer_id: str, cap: int,
-              policy_id: str, attach: bool = False) -> str:
+              policy_id: str, attach: bool = False,
+              attach_expiry: int = 1_000_000) -> str:
     subject_id = subject["subjectId"]
     attach_block = "deployId!([r])" if not attach else f"""
               rl!(policyUri, *polCh) |
               for (Pol <- polCh) {{
-                Pol!("attach", subjectId, subjectId, 1000000, *attachKey, *tokCh) |
+                Pol!("attach", subjectId, subjectId, {attach_expiry}, *attachKey, *tokCh) |
                 for (@a <- tokCh) {{
                   match a {{
                     (true, Nil) => {{ deployId!([(true, policyId, policyUri)]) }}
@@ -321,6 +322,20 @@ def main() -> int:
     expect("claim token paid cover", actors.balance(provider),
            provider_before + 30)
     expect("policy claim recorded", policy_info(attached[2]).get("paid"), 30)
+    expect_refusal("operator cannot close an attached policy", actors.invoke(
+        pool, "close", f'*dId, "{policy3}", 0'), "attached")
+
+    policy4 = f"policy:{time.time_ns()}"
+    subject4 = dict(subject)
+    subject4["subjectId"] = f"{guest_id}:op:policy:{time.time_ns()}"
+    attached4 = single(one(bind_term(
+        pool, subject4, offer["offerId"], 200, policy4, attach=True,
+        attach_expiry=actors.block_height() + 2), key=guest,
+        phlo_limit=4_000_000))
+    expect_ok("attach short-lived policy", attached4)
+    actors.wait_height(actors.block_height() + 6)
+    expect_refusal("expire refuses an attached policy", actors.invoke(
+        attached4[2], "expire", key=guest), "attached")
 
     # Refusals on bind.
     expect_refusal("unknown offer", single(one(bind_term(

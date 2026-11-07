@@ -155,37 +155,33 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
                       s.get("admins"), s.get("threshold"), *vCh) |
           for (@v <- vCh) {
             match v {
-              (true, ok) => {
-                if (ok == false) {
-                  adminState!(s) | ret!((false, "below threshold"))
-                } else {
-                  match action {
-                    "pauseAll" => {
-                      adminState!(s.set("pausedAll", true).set("nonce", nonce)) |
-                      ret!((true, Nil))
-                    }
-                    "resumeAll" => {
-                      adminState!(s.set("pausedAll", false).set("nonce", nonce)) |
-                      ret!((true, Nil))
-                    }
-                    "setAdmins" => {
-                      match args.nth(0) {
-                        newAdmins => {
-                          match args.nth(1) {
-                            newThreshold => {
-                              new avCh in {
-                                adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
-                                for (@av <- avCh) {
-                                  match av {
-                                    (true, Nil) => {
-                                      adminState!(s.set("admins", newAdmins)
-                                                   .set("threshold", newThreshold)
-                                                   .set("nonce", nonce)) |
-                                      ret!((true, Nil))
-                                    }
-                                    _ => {
-                                      adminState!(s) | ret!(av)
-                                    }
+              (true, true) => {
+                match action {
+                  "pauseAll" => {
+                    adminState!(s.set("pausedAll", true).set("nonce", nonce)) |
+                    ret!((true, Nil))
+                  }
+                  "resumeAll" => {
+                    adminState!(s.set("pausedAll", false).set("nonce", nonce)) |
+                    ret!((true, Nil))
+                  }
+                  "setAdmins" => {
+                    match args.nth(0) {
+                      newAdmins => {
+                        match args.nth(1) {
+                          newThreshold => {
+                            new avCh in {
+                              adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
+                              for (@av <- avCh) {
+                                match av {
+                                  (true, Nil) => {
+                                    adminState!(s.set("admins", newAdmins)
+                                                 .set("threshold", newThreshold)
+                                                 .set("nonce", nonce)) |
+                                    ret!((true, Nil))
+                                  }
+                                  _ => {
+                                    adminState!(s) | ret!(av)
                                   }
                                 }
                               }
@@ -194,27 +190,27 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
                         }
                       }
                     }
-                    "setThreshold" => {
-                      match args.nth(0) {
-                        newThreshold => {
-                          new avCh in {
-                            adminsValid!(s.get("admins"), newThreshold, 0, {}, *avCh) |
-                            for (@av <- avCh) {
-                              match av {
-                                (true, Nil) => {
-                                  adminState!(s.set("threshold", newThreshold)
-                                               .set("nonce", nonce)) |
-                                  ret!((true, Nil))
-                                }
-                                _ => { adminState!(s) | ret!(av) }
+                  }
+                  "setThreshold" => {
+                    match args.nth(0) {
+                      newThreshold => {
+                        new avCh in {
+                          adminsValid!(s.get("admins"), newThreshold, 0, {}, *avCh) |
+                          for (@av <- avCh) {
+                            match av {
+                              (true, Nil) => {
+                                adminState!(s.set("threshold", newThreshold)
+                                             .set("nonce", nonce)) |
+                                ret!((true, Nil))
                               }
+                              _ => { adminState!(s) | ret!(av) }
                             }
                           }
                         }
                       }
                     }
-                    _ => { adminState!(s) | ret!((false, "unknown action")) }
                   }
+                  _ => { adminState!(s) | ret!((false, "unknown action")) }
                 }
               }
               _ => { adminState!(s) | ret!((false, "below threshold")) }

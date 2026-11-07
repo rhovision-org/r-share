@@ -9,12 +9,19 @@ source_globs:
   - contracts/src/deploy/15_bond.rho
   - contracts/src/deploy/34_booking_instance.rho
   - contracts/src/deploy/04_remedy.rho
+  - contracts/src/deploy/32_cover_pool.rho
+  - contracts/src/deploy/33_cover_policy.rho
 invariants:
   S1: {statement: "acquisition is one reservation append", lean: RShare.Allocator.acquire_none_or_reservation, lean_status: proved-model}
   S2: {statement: "no slot has two owners", lean: RShare.Allocator.acquire_no_double_owner, lean_status: proved-model}
   S3: {statement: "a live hold refuses the whole set", lean: RShare.Allocator.acquire_refuses_occupied, lean_status: proved-model}
   S7: {statement: "the hold is bounded", lean: RShare.Allocator.acquire_bounded, lean_status: proved-model}
   S9: {statement: "a terminal booking has no outgoing step", lean: RShare.Booking.terminal_no_step, lean_status: proved-model}
+  C13: {statement: "a deposit claim is frozen after attach", lean: RShare.Cover.claimDeposit_frozen_after_attach, lean_status: proved-model}
+  C14: {statement: "a claim token pays at most once", lean: RShare.Cover.pay_once, lean_status: proved-model}
+  C15: {statement: "an attached policy cannot expire before a pending claim", lean: RShare.Cover.expire_cannot_precede_pending_claim, lean_status: proved-model}
+  C16: {statement: "a missing pool entry cannot block terminal settle", lean: RShare.Cover.settle_ignores_deleted_pool, lean_status: proved-model}
+  C17: {statement: "payout implies an authorized attached claim", lean: RShare.Cover.payout_implies_authorized_attached, lean_status: proved-model}
 rules:
   - {id: C-commit, kind: cell, lean: RShare.commit_all_or_none, lean_status: proved-model}
   - {id: C-peek-put, kind: cell, lean: RShare.peek_then_put_rejected, lean_status: proved-model}
@@ -69,15 +76,24 @@ rules:
   - {id: B-checkin, arm: 'BookingContract@"checkIn"', source: contracts/src/deploy/34_booking_instance.rho, lean: RShare.Booking.checkIn_only_from_confirmed, lean_status: proved-model}
   - {id: B-checkout, arm: 'BookingContract@"checkOut"', source: contracts/src/deploy/34_booking_instance.rho, lean: RShare.Booking.checkOut_only_from_checkedIn, lean_status: proved-model}
   - {id: B-settle, arm: 'BookingContract@"settle"', source: contracts/src/deploy/34_booking_instance.rho, lean: RShare.Booking.settle_from_checked_or_redeemed_or_disputed, lean_status: proved-model}
-  - {id: B-dispute, arm: 'BookingContract@"dispute"', source: contracts/src/deploy/34_booking_instance.rho, lean: RShare.Booking.dispute_only_from_checked, lean_status: proved-model}
+  - {id: B-dispute, arm: 'BookingContract@"dispute"', source: contracts/src/deploy/34_booking_instance.rho, lean: RShare.Cover.dispute_refused_pending_claim, lean_status: proved-model, invariants: [C13]}
   - {id: B-arbitrate, arm: 'BookingContract@"arbitrate"', source: contracts/src/deploy/34_booking_instance.rho, lean: RShare.Booking.resolve_step_only_from_disputed, lean_status: proved-model}
   - {id: B-resolve-dispute, arm: 'BookingContract@"resolveDispute"', source: contracts/src/deploy/34_booking_instance.rho, lean: RShare.Booking.resolve_step_only_from_disputed, lean_status: proved-model}
   - {id: B-expire, arm: 'BookingContract@"expire"', source: contracts/src/deploy/34_booking_instance.rho, lean: RShare.Booking.expire_only_from_requested, lean_status: proved-model}
   - {id: B-nosHow, arm: 'BookingContract@"claimNoShow"', source: contracts/src/deploy/34_booking_instance.rho, lean: RShare.Booking.noShowClaim_only_from_confirmed, lean_status: proved-model}
   - {id: B-dispute-noShow, arm: 'BookingContract@"disputeNoShow"', source: contracts/src/deploy/34_booking_instance.rho, lean: RShare.Booking.noShowDispute_only_from_claimed, lean_status: proved-model}
   - {id: B-resolve-noShow, arm: 'BookingContract@"resolveNoShow"', source: contracts/src/deploy/34_booking_instance.rho, lean: RShare.Booking.noShowResolves, lean_status: proved-model}
-  - {id: B-claim, arm: 'BookingContract@"claimDeposit"', source: contracts/src/deploy/34_booking_instance.rho, lean_status: owed}
-  - {id: B-resolve-deposit, arm: 'BookingContract@"resolveDeposit"', source: contracts/src/deploy/34_booking_instance.rho, lean_status: owed}
+  - {id: B-claim, arm: 'BookingContract@"claimDeposit"', source: contracts/src/deploy/34_booking_instance.rho, lean: RShare.Cover.claimDeposit_frozen_after_attach, lean_status: proved-model, invariants: [C13]}
+  - {id: B-resolve-deposit, arm: 'BookingContract@"resolveDeposit"', source: contracts/src/deploy/34_booking_instance.rho, lean: RShare.Cover.pay_requires_attach, lean_status: proved-model, invariants: [C17]}
+
+  - {id: CV-authorize, arm: 'CoverPolicy@"authorize"', source: contracts/src/deploy/33_cover_policy.rho, lean: RShare.Cover.authorize_fixes_token, lean_status: proved-model, invariants: [C14]}
+  - {id: CV-attach, arm: 'CoverPolicy@"attach"', source: contracts/src/deploy/33_cover_policy.rho, lean: RShare.Cover.attach_requires_authorized_token, lean_status: proved-model, invariants: [C17]}
+  - {id: CV-expire, arm: 'CoverPolicy@"expire"', source: contracts/src/deploy/33_cover_policy.rho, lean: RShare.Cover.expire_cannot_precede_pending_claim, lean_status: proved-model, invariants: [C15]}
+  - {id: CV-settle-key, arm: 'CoverSettle@"settleKey"', source: contracts/src/deploy/32_cover_pool.rho, lean: RShare.Cover.settle_ignores_deleted_pool, lean_status: proved-model, invariants: [C16]}
+  - {id: CV-close, arm: 'CoverPool@"close"', source: contracts/src/deploy/32_cover_pool.rho, lean: RShare.Cover.settle_ignores_deleted_pool, lean_status: proved-model, invariants: [C16]}
+  - {id: CV-release, arm: 'CoverPool@"release"', source: contracts/src/deploy/32_cover_pool.rho, lean: RShare.Cover.settle_ignores_deleted_pool, lean_status: proved-model, invariants: [C16]}
+  - {id: CV-pay, arm: 'CoverSettle@"pay"', source: contracts/src/deploy/32_cover_pool.rho, lean: RShare.Cover.pay_once, lean_status: proved-model, invariants: [C14]}
+  - {id: CV-token, arm: 'BookingContract@"attachClaim"', source: contracts/src/deploy/34_booking_instance.rho, lean: RShare.Cover.claim_token_one_time, lean_status: proved-model, invariants: [C14]}
   - {id: B-ticket, arm: 'BookingContract@"transferTicket"', source: contracts/src/deploy/34_booking_instance.rho, lean_status: owed}
 
   - {id: D-pay, arm: 'Bond@"pay"', source: contracts/src/deploy/15_bond.rho, lean: RShare.Bond.pay_once, lean_status: proved-model}

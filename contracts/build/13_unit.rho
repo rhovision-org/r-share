@@ -119,62 +119,56 @@ contract resolveComponent(@key, ret) = {
                         endHeight => {
                           if (startHeight >= endHeight) {
                             ret!((false, "schedule"))
+                          } else if (startHeight <= now) {
+                            ret!((false, "schedule"))
+                          } else if (startHeight > now + maxLead) {
+                            ret!((false, "lead"))
+                          } else if (endHeight - startHeight > maxSlot) {
+                            ret!((false, "duration"))
                           } else {
-                            if (startHeight <= now) {
-                              ret!((false, "schedule"))
-                            } else {
-                              if (startHeight > now + maxLead) {
-                                ret!((false, "lead"))
-                              } else {
-                                if (endHeight - startHeight > maxSlot) {
-                                  ret!((false, "duration"))
-                                } else {
-                                  match state {
-                                    ["free", gen] => {
-                                      new mnCh, mxCh in {
-                                        unitMin!(minStart, startHeight, *mnCh) |
-                                        unitMax!(maxEnd, endHeight, *mxCh) |
-                                        for (@mn <- mnCh; @mx <- mxCh) {
-                                          unitSlotScan!(ids, j + 1, specMap, stateMap,
-                                                          now, maxLead, maxSlot,
-                                                          count + 1, mn, mx, *ret)
-                                        }
-                                      }
-                                    }
-                                    ["held", bId, until, token] => {
-                                      if (now >= until) {
-                                        new mnCh, mxCh in {
-                                          unitMin!(minStart, startHeight, *mnCh) |
-                                          unitMax!(maxEnd, endHeight, *mxCh) |
-                                          for (@mn <- mnCh; @mx <- mxCh) {
-                                            unitSlotScan!(ids, j + 1, specMap, stateMap,
-                                                            now, maxLead, maxSlot,
-                                                            count + 1, mn, mx, *ret)
-                                          }
-                                        }
-                                      } else {
-                                        ret!((false, "slot held", slotId, until))
-                                      }
-                                    }
-                                    ["held", bId, until] => {
-                                      if (now >= until) {
-                                        new mnCh, mxCh in {
-                                          unitMin!(minStart, startHeight, *mnCh) |
-                                          unitMax!(maxEnd, endHeight, *mxCh) |
-                                          for (@mn <- mnCh; @mx <- mxCh) {
-                                            unitSlotScan!(ids, j + 1, specMap, stateMap,
-                                                            now, maxLead, maxSlot,
-                                                            count + 1, mn, mx, *ret)
-                                          }
-                                        }
-                                      } else {
-                                        ret!((false, "slot held", slotId, until))
-                                      }
-                                    }
-                                    _ => { ret!((false, "slot held", slotId)) }
+                            match state {
+                              ["free", gen] => {
+                                new mnCh, mxCh in {
+                                  unitMin!(minStart, startHeight, *mnCh) |
+                                  unitMax!(maxEnd, endHeight, *mxCh) |
+                                  for (@mn <- mnCh; @mx <- mxCh) {
+                                    unitSlotScan!(ids, j + 1, specMap, stateMap,
+                                                    now, maxLead, maxSlot,
+                                                    count + 1, mn, mx, *ret)
                                   }
                                 }
                               }
+                              ["held", bId, until, token] => {
+                                if (now >= until) {
+                                  new mnCh, mxCh in {
+                                    unitMin!(minStart, startHeight, *mnCh) |
+                                    unitMax!(maxEnd, endHeight, *mxCh) |
+                                    for (@mn <- mnCh; @mx <- mxCh) {
+                                      unitSlotScan!(ids, j + 1, specMap, stateMap,
+                                                      now, maxLead, maxSlot,
+                                                      count + 1, mn, mx, *ret)
+                                    }
+                                  }
+                                } else {
+                                  ret!((false, "slot held", slotId, until))
+                                }
+                              }
+                              ["held", bId, until] => {
+                                if (now >= until) {
+                                  new mnCh, mxCh in {
+                                    unitMin!(minStart, startHeight, *mnCh) |
+                                    unitMax!(maxEnd, endHeight, *mxCh) |
+                                    for (@mn <- mnCh; @mx <- mxCh) {
+                                      unitSlotScan!(ids, j + 1, specMap, stateMap,
+                                                      now, maxLead, maxSlot,
+                                                      count + 1, mn, mx, *ret)
+                                    }
+                                  }
+                                } else {
+                                  ret!((false, "slot held", slotId, until))
+                                }
+                              }
+                              _ => { ret!((false, "slot held", slotId)) }
                             }
                           }
                         }

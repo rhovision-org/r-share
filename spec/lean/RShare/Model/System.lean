@@ -45,6 +45,11 @@ structure Boundary where
   namesUnforgeable : Bool
   acquireHoldsListingCellAcrossAwait : Bool
   noRholangRefinement : Bool
+  coverPolicyCellAtomic : Bool
+  claimTokenUnforgeable : Bool
+  ertpPurseAtomic : Bool
+  operatorSettleTrusted : Bool
+  nodeDeployAtomic : Bool
 
 def boundary : Boundary :=
   { providerActiveCheckedByLedger := true
@@ -52,7 +57,12 @@ def boundary : Boundary :=
     clockIsBlockHeight := true
     namesUnforgeable := true
     acquireHoldsListingCellAcrossAwait := true
-    noRholangRefinement := true }
+    noRholangRefinement := true
+    coverPolicyCellAtomic := true
+    claimTokenUnforgeable := true
+    ertpPurseAtomic := true
+    operatorSettleTrusted := true
+    nodeDeployAtomic := true }
 
 /-- A caller can hold free slots without a booking; the hold is bounded by the unit's
 `maxHoldBlocks`, so the grief is temporary. -/

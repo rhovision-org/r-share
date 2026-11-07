@@ -11,8 +11,8 @@
   },
   "terms": {
     "00_root.rho": {
-      "bytes": 8745,
-      "depth": 21,
+      "bytes": 8437,
+      "depth": 20,
       "contracts": 8
     },
     "01_kernel.rho": {
@@ -21,32 +21,32 @@
       "contracts": 6
     },
     "02_admin.rho": {
-      "bytes": 4668,
-      "depth": 21,
+      "bytes": 4590,
+      "depth": 20,
       "contracts": 5
     },
     "03_terms.rho": {
-      "bytes": 6850,
-      "depth": 20,
+      "bytes": 6826,
+      "depth": 14,
       "contracts": 6
     },
     "04_remedy.rho": {
-      "bytes": 2977,
-      "depth": 18,
+      "bytes": 2967,
+      "depth": 19,
       "contracts": 3
     },
     "10_provider.rho": {
-      "bytes": 9527,
+      "bytes": 9361,
       "depth": 36,
       "contracts": 10
     },
     "13_unit.rho": {
-      "bytes": 4047,
-      "depth": 23,
+      "bytes": 4035,
+      "depth": 20,
       "contracts": 8
     },
     "14_listing_contract.rho": {
-      "bytes": 28027,
+      "bytes": 27863,
       "depth": 36,
       "contracts": 35
     },
@@ -66,43 +66,43 @@
       "contracts": 2
     },
     "23_guest_ledger.rho": {
-      "bytes": 12581,
+      "bytes": 12537,
       "depth": 38,
       "contracts": 24
     },
     "24_guest_ledger_cover.rho": {
-      "bytes": 9595,
+      "bytes": 9563,
       "depth": 27,
       "contracts": 15
     },
     "30_cover_terms.rho": {
-      "bytes": 4699,
+      "bytes": 4728,
       "depth": 11,
       "contracts": 3
     },
     "31_cover_offer.rho": {
-      "bytes": 4344,
+      "bytes": 4332,
       "depth": 30,
       "contracts": 4
     },
     "32_cover_pool.rho": {
-      "bytes": 22456,
+      "bytes": 22308,
       "depth": 32,
       "contracts": 16
     },
     "33_cover_policy.rho": {
-      "bytes": 10342,
+      "bytes": 10469,
       "depth": 37,
       "contracts": 13
     },
     "34_booking_instance.rho": {
-      "bytes": 34125,
+      "bytes": 33475,
       "depth": 42,
-      "contracts": 32
+      "contracts": 31
     },
     "40_payments.rho": {
-      "bytes": 5487,
-      "depth": 24,
+      "bytes": 5406,
+      "depth": 23,
       "contracts": 6
     }
   }

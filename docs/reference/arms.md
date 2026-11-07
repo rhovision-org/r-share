@@ -356,9 +356,9 @@ CoverPool("bindReserved", dId, @subject, @offerId, @cap, @policyId,
           @attachKey, ret) -> (true, policyId, policyUri)
 CoverPool("policy", @policyId, ret) -> (true, entry) | (false, "unknown policy")
 CoverPool("release", dId, @policyId, @payment, @paidAmount, ret)
-  -> (true, amount) | (false, "unknown policy")
+  -> (true, amount) | (false, "unknown policy" | "attached" | "amount")
 CoverPool("close", dId, @policyId, @paidAmount, ret)
-  -> (true, Nil) | (false, "unknown policy")
+  -> (true, Nil) | (false, "unknown policy" | "attached" | "amount")
 CoverPool("info", ret) -> (true, state)
 CoverPool("solvency", ret) -> (true, {assets, cash, outstanding, solvent})
 CoverPool("configure", dId, @capacity, @solvencyBps, @reserveCap, ret)
@@ -386,9 +386,11 @@ CoverPolicy("pay", dId, @claimId, @lossId, @amount, @assessed,
             @nonCoverRecovery, @evidenceHash, ret)
   -> (true, amount) | (false, "attached")
 CoverPolicy("authorize", dId, @claimId, @lossId, @amount, @assessed,
-            @nonCoverRecovery, @evidenceHash, ret) -> (true, claimToken)
+            @nonCoverRecovery, @evidenceHash, ret)
+  -> (true, claimToken) | (false, "not attached" | "claim exists" | "expired" | "amount")
 CoverPolicy("settle", dId, ret) -> (true, Nil)
-CoverPolicy("expire", ret) -> (true, Nil) | (false, "too early")
+CoverPolicy("expire", ret)
+  -> (true, Nil) | (false, "too early" | "attached")
 CoverPolicy("attach", @subjectUri, @subjectId, @expiresAtHeight, @key, ret)
   -> (true, Nil)
 CoverPolicy("info", ret) -> (true, redactedState)
@@ -397,10 +399,11 @@ claimToken("info", ret) -> (true, fixedClaim)
 ```
 
 `pay` is the operator/manual adjudication path for an unattached policy only.
-`authorize` mints the fixed claim token used for an attached policy; the booking calls it
-through `attachClaim` and `bcCoverPay`, and it pays once. `settleKey` is the attached
-booking's release path and requires the booking's `settleToken` key. No purse, attach key
-or token name appears in `info`.
+`authorize` is attached-only, refuses a repeated claim id, and mints the fixed claim token;
+the booking calls it through `attachClaim` and `bcCoverPay`, and it pays once. `expire`
+refuses an attached policy. `settleKey` is the attached booking's release path and requires
+the booking's `settleToken` key; a missing pool entry is treated as already settled. No
+purse, attach key or token name appears in `info`.
 
 ## Covered booking — `23_guest_ledger.rho`, `24_guest_ledger_cover.rho`,
 ## `34_booking_instance.rho`
@@ -425,4 +428,7 @@ creates the booking, and attaches the policy in one deploy. Any failure after bi
 is `1/0`, so slots, reserve, premium, Bond and booking roll back together.
 The booking info merges a redacted `cover` map; no token, key or purse is included.
 Cover payout is operator-adjudicated; the booking verifies the policy `paid` amount
-before paying the deposit part and closes the policy with its settle key.
+before paying the deposit part and closes the policy with its settle key. `claimDeposit`
+is one-shot; a second claim and a dispute with a pending or attached claim are refused.
+`resolveDeposit` refuses with `"cover"` if the fixed claim token has not been attached,
+rather than blocking on an empty claim cell.

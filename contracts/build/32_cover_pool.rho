@@ -114,27 +114,30 @@ contract authIsOwner(dId, @ownerId, ret) = {
 
                 contract poolDepositCheck(@effect, @termsDeposit,
                                           @effectiveDeposit, @deductible, ret) = {
-                  if (effect == "none") {
-                    if (effectiveDeposit == termsDeposit) {
-                      ret!((true, Nil))
-                    } else {
-                      ret!((false, "deposit"))
+                  match effect {
+                    "none" => {
+                      if (effectiveDeposit == termsDeposit) {
+                        ret!((true, Nil))
+                      } else {
+                        ret!((false, "deposit"))
+                      }
                     }
-                  } else if (effect == "reduce_to_deductible") {
-                    if (deductible <= termsDeposit
-                        && effectiveDeposit == deductible) {
-                      ret!((true, Nil))
-                    } else {
-                      ret!((false, "deposit"))
+                    "reduce_to_deductible" => {
+                      if (deductible <= termsDeposit
+                          && effectiveDeposit == deductible) {
+                        ret!((true, Nil))
+                      } else {
+                        ret!((false, "deposit"))
+                      }
                     }
-                  } else if (effect == "remove") {
-                    if (effectiveDeposit == 0) {
-                      ret!((true, Nil))
-                    } else {
-                      ret!((false, "deposit"))
+                    "remove" => {
+                      if (effectiveDeposit == 0) {
+                        ret!((true, Nil))
+                      } else {
+                        ret!((false, "deposit"))
+                      }
                     }
-                  } else {
-                    ret!((false, "deposit"))
+                    _ => { ret!((false, "deposit")) }
                   }
                 } |
 
@@ -570,7 +573,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                   match s.get("policies").get(policyId) {
                                     Nil => {
                                       coverPoolState!(s) |
-                                      retS!((false, "unknown policy"))
+                                      retS!((true, Nil))
                                     }
                                     entry => {
                                       if (entry.get("paid") + returned != cap) {
@@ -609,7 +612,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
                           match s.get("policies").get(policyId) {
                             Nil => {
                               coverPoolState!(s) |
-                              retS!((false, "unknown policy"))
+                              retS!((true, Nil))
                             }
                             entry => {
                               if (entry.get("paid") != cap) {
@@ -720,46 +723,12 @@ contract authIsOwner(dId, @ownerId, ret) = {
                             match a {
                               (true, amount) => {
                                 for (@s <- coverPoolState) {
-                                  match s.get("reserves").get(payerId) {
-                                    Nil => {
-                                      if (amount > s.get("reserveCap")) {
-                                        coverPoolState!(s) |
-                                        new rfCh in {
-                                          @Payments!("depositFacet", payerId,
-                                                     "REV", *rfCh) |
-                                          for (@rf <- rfCh) {
-                                            match rf {
-                                              (true, facet) => {
-                                                new dpCh in {
-                                                  @facet!("deposit", payment,
-                                                          *dpCh) |
-                                                  for (@dp <- dpCh) {
-                                                    match dp {
-                                                      (true, _) => {
-                                                        ret!((false, "reserve cap"))
-                                                      }
-                                                      _ => { 1/0 }
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                              _ => { 1/0 }
-                                            }
-                                          }
-                                        }
-                                      } else {
-                                        @facilityPurse!("deposit", payment, *dCh) |
-                                        for (@_ <- dCh) {
-                                          coverPoolState!(s.set(
-                                            "reserves",
-                                            s.get("reserves").set(payerId, amount))
-                                            .set("reserveTotal",
-                                                 s.get("reserveTotal") + amount)) |
-                                          ret!((true, amount))
-                                        }
-                                      }
-                                    }
-                                    current => {
+                                  new curCh in {
+                                    match s.get("reserves").get(payerId) {
+                                      Nil => { curCh!(0) }
+                                      current => { curCh!(current) }
+                                    } |
+                                    for (@current <- curCh) {
                                       if (current + amount > s.get("reserveCap")) {
                                         coverPoolState!(s) |
                                         new rfCh in {
@@ -1037,26 +1006,35 @@ contract authIsOwner(dId, @ownerId, ret) = {
                           for (@a <- aCh) {
                             match a {
                               (true, amount) => {
-                                @facilityPurse!("deposit", payment, *dCh) |
-                                for (@_ <- dCh) {
-                                  for (@s <- coverPoolState) {
-                                    match s.get("policies").get(policyId) {
-                                      Nil => {
+                                for (@s <- coverPoolState) {
+                                  match s.get("policies").get(policyId) {
+                                    Nil => {
+                                      coverPoolState!(s) |
+                                      ret!((false, "unknown policy"))
+                                    }
+                                    entry => {
+                                      if (entry.get("status") == "attached") {
                                         coverPoolState!(s) |
-                                        ret!((false, "unknown policy"))
-                                      }
-                                      entry => {
-                                        coverPoolState!(s.set(
-                                          "outstanding",
-                                          s.get("outstanding") - entry.get("cap"))
-                                          .set("claimsPaid",
-                                               s.get("claimsPaid") + paidAmount)
-                                          .set("policies",
-                                               s.get("policies").delete(policyId))
-                                          .set("subjects",
-                                               s.get("subjects").delete(
-                                                 entry.get("subjectKey")))) |
-                                        ret!((true, amount))
+                                        ret!((false, "attached"))
+                                      } else if (paidAmount != entry.get("paid")
+                                                 || entry.get("paid") + amount != entry.get("cap")) {
+                                        coverPoolState!(s) |
+                                        ret!((false, "amount"))
+                                      } else {
+                                        @facilityPurse!("deposit", payment, *dCh) |
+                                        for (@_ <- dCh) {
+                                          coverPoolState!(s.set(
+                                            "outstanding",
+                                            s.get("outstanding") - entry.get("cap"))
+                                            .set("claimsPaid",
+                                                 s.get("claimsPaid") + entry.get("paid"))
+                                            .set("policies",
+                                                 s.get("policies").delete(policyId))
+                                            .set("subjects",
+                                                 s.get("subjects").delete(
+                                                   entry.get("subjectKey")))) |
+                                          ret!((true, amount))
+                                        }
                                       }
                                     }
                                   }
@@ -1086,17 +1064,26 @@ contract authIsOwner(dId, @ownerId, ret) = {
                                 ret!((false, "unknown policy"))
                               }
                               entry => {
-                                coverPoolState!(s.set(
-                                  "outstanding",
-                                  s.get("outstanding") - entry.get("cap"))
-                                  .set("claimsPaid",
-                                       s.get("claimsPaid") + paidAmount)
-                                  .set("policies",
-                                       s.get("policies").delete(policyId))
-                                  .set("subjects",
-                                       s.get("subjects").delete(
-                                         entry.get("subjectKey")))) |
-                                ret!((true, Nil))
+                                if (entry.get("status") == "attached") {
+                                  coverPoolState!(s) |
+                                  ret!((false, "attached"))
+                                } else if (entry.get("paid") != entry.get("cap")
+                                           || paidAmount != entry.get("paid")) {
+                                  coverPoolState!(s) |
+                                  ret!((false, "amount"))
+                                } else {
+                                  coverPoolState!(s.set(
+                                    "outstanding",
+                                    s.get("outstanding") - entry.get("cap"))
+                                    .set("claimsPaid",
+                                         s.get("claimsPaid") + entry.get("paid"))
+                                    .set("policies",
+                                         s.get("policies").delete(policyId))
+                                    .set("subjects",
+                                         s.get("subjects").delete(
+                                           entry.get("subjectKey")))) |
+                                  ret!((true, Nil))
+                                }
                               }
                             }
                           }
@@ -1109,10 +1096,7 @@ contract authIsOwner(dId, @ownerId, ret) = {
 
                 contract CoverPool(@"policy", @policyId, ret) = {
                   for (@s <<- coverPoolState) {
-                    match s.get("policies").get(policyId) {
-                      Nil => { ret!((false, "unknown policy")) }
-                      entry => { ret!((true, entry)) }
-                    }
+                    poolPolicyLookup!(s, policyId, *ret)
                   }
                 } |
 

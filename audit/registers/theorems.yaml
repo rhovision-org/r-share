@@ -1,6 +1,6 @@
 schema: rshare.theorems/v1
-total: 72
-audited: 72
+total: 94
+audited: 94
 theorems:
 - id: THM-001
   name: set_same
@@ -1150,6 +1150,358 @@ theorems:
   scope: unbounded
   arms: []
   invariants: []
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-073
+  name: authorize_fixes_token
+  module: RShare/Model/Cover.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked cover theorem `authorize_fixes_token`; a successful authorize fixes the token once.
+  axioms: []
+  scope: unbounded
+  arms: ['CoverPolicy@"authorize"']
+  invariants: [C14]
+  hazards: [HZ-057]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-074
+  name: authorize_refuses_second
+  module: RShare/Model/Cover.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked cover theorem `authorize_refuses_second`; a second claim token cannot be minted.
+  axioms: []
+  scope: unbounded
+  arms: ['CoverPolicy@"authorize"']
+  invariants: [C14]
+  hazards: [HZ-057]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-075
+  name: attach_requires_authorized_token
+  module: RShare/Model/Cover.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked cover theorem `attach_requires_authorized_token`; attach requires the stored token and an attached policy.
+  axioms: []
+  scope: unbounded
+  arms: ['CoverPolicy@"attach"']
+  invariants: [C17]
+  hazards: [HZ-055]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-076
+  name: claim_token_one_time
+  module: RShare/Model/Cover.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked cover theorem `claim_token_one_time`; an attached claim cannot be attached twice.
+  axioms: []
+  scope: unbounded
+  arms: ['BookingContract@"attachClaim"']
+  invariants: [C14]
+  hazards: [HZ-059]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-077
+  name: pay_requires_attach
+  module: RShare/Model/Cover.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked cover theorem `pay_requires_attach`; payout requires an attached binding and matching claim.
+  axioms: []
+  scope: unbounded
+  arms: ['BookingContract@"resolveDeposit"']
+  invariants: [C17]
+  hazards: [HZ-055]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-078
+  name: pay_once
+  module: RShare/Model/Cover.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked cover theorem `pay_once`; a claim id cannot increase paid twice.
+  axioms: []
+  scope: unbounded
+  arms: ['CoverSettle@"pay"']
+  invariants: [C14]
+  hazards: [HZ-059]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-079
+  name: payout_implies_authorized_attached
+  module: RShare/Model/Cover.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked cover theorem `payout_implies_authorized_attached`; any positive payout has a token and an attached binding.
+  axioms: []
+  scope: unbounded
+  arms: ['BookingContract@"resolveDeposit"']
+  invariants: [C17]
+  hazards: [HZ-055]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-080
+  name: expire_cannot_precede_pending_claim
+  module: RShare/Model/Cover.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked cover theorem `expire_cannot_precede_pending_claim`; an attached/pending claim blocks expiry.
+  axioms: []
+  scope: unbounded
+  arms: ['CoverPolicy@"expire"']
+  invariants: [C15]
+  hazards: [HZ-057]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-081
+  name: terminal_settle_idempotent
+  module: RShare/Model/Cover.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked cover theorem `terminal_settle_idempotent`; terminal settle is idempotent.
+  axioms: []
+  scope: unbounded
+  arms: ['BookingContract@"resolveDeposit"']
+  invariants: [C16]
+  hazards: [HZ-056]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-082
+  name: settle_ignores_deleted_pool
+  module: RShare/Model/Cover.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked cover theorem `settle_ignores_deleted_pool`; terminal settle is unchanged by a deleted pool entry.
+  axioms: []
+  scope: unbounded
+  arms: ['CoverSettle@"settleKey"', 'CoverPool@"close"', 'CoverPool@"release"']
+  invariants: [C16]
+  hazards: [HZ-056]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-083
+  name: claimDeposit_frozen_after_attach
+  module: RShare/Model/Cover.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked cover theorem `claimDeposit_frozen_after_attach`; no deposit claim after attach.
+  axioms: []
+  scope: unbounded
+  arms: ['BookingContract@"claimDeposit"']
+  invariants: [C13]
+  hazards: [HZ-059]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-084
+  name: claimDeposit_refuses_existing_claim
+  module: RShare/Model/Cover.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked cover theorem `claimDeposit_refuses_existing_claim`; a second deposit claim is refused.
+  axioms: []
+  scope: unbounded
+  arms: ['BookingContract@"claimDeposit"']
+  invariants: [C13]
+  hazards: [HZ-059]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-085
+  name: dispute_refused_pending_claim
+  module: RShare/Model/Cover.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked cover theorem `dispute_refused_pending_claim`; dispute cannot discard a pending or attached claim.
+  axioms: []
+  scope: unbounded
+  arms: ['BookingContract@"dispute"']
+  invariants: [C13]
+  hazards: [HZ-058]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-086
+  name: run_append
+  module: RShare/Linear/Concurrency.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked concurrency theorem `run_append`; successful trace composition.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: [L2]
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-087
+  name: commit_commute
+  module: RShare/Linear/Concurrency.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked concurrency theorem `commit_commute`; commits on distinct cells commute.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: [L2]
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-088
+  name: run_disjoint_commute
+  module: RShare/Linear/Concurrency.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked concurrency theorem `run_disjoint_commute`; disjoint commit blocks commute.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: [L2]
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-089
+  name: disjoint_cells_linearizable
+  module: RShare/Linear/Concurrency.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked concurrency theorem `disjoint_cells_linearizable`; permuting disjoint commit blocks preserves the result.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: [L2]
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-090
+  name: commit_preserves_wf
+  module: RShare/Linear/Deploy.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked deploy theorem `commit_preserves_wf`; a successful commit-only trace preserves well-formedness.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: [L2]
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-091
+  name: run_failure_no_leak
+  module: RShare/Linear/Deploy.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked deploy theorem `run_failure_no_leak`; a failed trace yields the pre-state wrapper.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: [L2]
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-092
+  name: deploy_atomic_rollback
+  module: RShare/Linear/Deploy.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked deploy theorem `deploy_atomic_rollback`; a failed deploy returns the pre-state, a successful one returns the post-state.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: [L2]
+  hazards: []
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-093
+  name: held_across_external_call_unsafe
+  module: RShare/Linear/Deploy.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked counterexample `held_across_external_call_unsafe`; a cell held across an external call blocks a same-cell commit.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: [L2]
+  hazards: [HZ-011]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-094
+  name: external_read_then_commit_safe
+  module: RShare/Linear/Deploy.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Kernel-checked deploy theorem `external_read_then_commit_safe`; a peek followed by one commit is the safe read-revalidate pattern.
+  axioms: []
+  scope: unbounded
+  arms: []
+  invariants: [L2]
   hazards: []
   corpus: null
   evidence: make lean-check

@@ -57,7 +57,6 @@ in {
             @ShareAdmin!("isPaused", *pCh) |
             for (@p <- pCh) {
               match p {
-                (true, true) => { ret!((false, "paused")) }
                 (true, false) => { ret!((true, Nil)) }
                 _ => { ret!((false, "paused")) }
               }

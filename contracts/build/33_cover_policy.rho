@@ -404,6 +404,8 @@ contract authIsOwner(dId, @ownerId, ret) = {
           if (s.get("status") == "settled"
               || s.get("status") == "expired") {
             retE!((true, Nil))
+          } else if (s.get("status") == "attached") {
+            retE!((false, "attached"))
           } else {
             new nowCh in {
               coverPolicyNow!(*nowCh) |
@@ -459,9 +461,10 @@ contract authIsOwner(dId, @ownerId, ret) = {
                     match n {
                       (true, now) => {
                         for (@s <<- policyState) {
-                          if (s.get("status") != "active"
-                              && s.get("status") != "attached") {
-                            retA!((false, "closed"))
+                          if (s.get("status") != "attached") {
+                            retA!((false, "not attached"))
+                          } else if (s.get("claims").get(claimId) != Nil) {
+                            retA!((false, "claim exists"))
                           } else if (now > s.get("expiresAtHeight")) {
                             retA!((false, "expired"))
                           } else if (amount < 1

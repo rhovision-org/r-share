@@ -165,13 +165,19 @@ contract authIsOwner(dId, @ownerId, ret) = {
                 entry => {
                   if (entry.get("publisherId") != publisherId) {
                     coverBookState!(s) | ret!((false, "publisher"))
-                  } else if (entry.get("status") == "retired") {
-                    coverBookState!(s) | ret!((false, "retired"))
-                  } else if (entry.get("status") == "paused") {
-                    coverBookState!(s) | ret!((true, Nil))
                   } else {
-                    coverBookState!(s.set(offerId, entry.set("status", "paused"))) |
-                    ret!((true, Nil))
+                    match entry.get("status") {
+                      "retired" => {
+                        coverBookState!(s) | ret!((false, "retired"))
+                      }
+                      "paused" => {
+                        coverBookState!(s) | ret!((true, Nil))
+                      }
+                      _ => {
+                        coverBookState!(s.set(offerId, entry.set("status", "paused"))) |
+                        ret!((true, Nil))
+                      }
+                    }
                   }
                 }
               }
@@ -195,11 +201,16 @@ contract authIsOwner(dId, @ownerId, ret) = {
                 entry => {
                   if (entry.get("publisherId") != publisherId) {
                     coverBookState!(s) | ret!((false, "publisher"))
-                  } else if (entry.get("status") == "retired") {
-                    coverBookState!(s) | ret!((true, Nil))
                   } else {
-                    coverBookState!(s.set(offerId, entry.set("status", "retired"))) |
-                    ret!((true, Nil))
+                    match entry.get("status") {
+                      "retired" => {
+                        coverBookState!(s) | ret!((true, Nil))
+                      }
+                      _ => {
+                        coverBookState!(s.set(offerId, entry.set("status", "retired"))) |
+                        ret!((true, Nil))
+                      }
+                    }
                   }
                 }
               }

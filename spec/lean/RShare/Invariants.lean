@@ -4,6 +4,7 @@ import RShare.Model.Allocator
 import RShare.Model.Booking
 import RShare.Model.Bond
 import RShare.Model.Remedy
+import RShare.Model.Cover
 
 /-!
 # Invariant aliases
@@ -19,6 +20,7 @@ open Allocator
 open Booking
 open Bond
 open Remedy
+open Cover
 
 /-- S1 — acquisition is all-or-none and one reservation. -/
 def S1_acquire_all_or_none := @acquire_none_or_reservation
@@ -61,6 +63,13 @@ def S11_terminal_sticky := @Booking.terminal_sticky
 def S11_progress := @Booking.progress
 def S11_settle_once := @Booking.settle_once
 def S11_dispute_gate := @Booking.dispute_only_from_checked
+
+-- C13–C17 — cover claim and terminal-settle obligations.
+def C13_claim_frozen := @Cover.claimDeposit_frozen_after_attach
+def C14_claim_once := @Cover.pay_once
+def C15_attached_expiry := @Cover.expire_cannot_precede_pending_claim
+def C16_terminal_settle_idempotent := @Cover.settle_ignores_deleted_pool
+def C17_token_gate := @Cover.payout_implies_authorized_attached
 
 /-- D1/D2/D3 — cell defects. -/
 def D1_peek_then_put := @RShare.peek_then_put_rejected

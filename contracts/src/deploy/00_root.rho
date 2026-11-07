@@ -133,22 +133,18 @@ in {
                        sigs, s.get("admins"), s.get("threshold"), *vCh) |
           for (@v <- vCh) {
             match v {
-              (true, ok) => {
-                if (ok == false) {
-                  rootState!(s) | ret!((false, "below threshold"))
-                } else {
-                  match s.get("entries").get(key) {
-                    Nil => { rootState!(s) | ret!((false, "unknown component")) }
-                    e => {
-                      if (e.get("version") != expectedVersion) {
-                        rootState!(s) | ret!((false, "stale"))
-                      } else {
-                        match e.set("uri", newUri).set("version", newVersion) {
-                          e2 => {
-                            match s.set("entries", s.get("entries").set(key, e2))
-                                    .set("govNonce", nonce) {
-                              s2 => { rootState!(s2) | ret!((true, Nil)) }
-                            }
+              (true, true) => {
+                match s.get("entries").get(key) {
+                  Nil => { rootState!(s) | ret!((false, "unknown component")) }
+                  e => {
+                    if (e.get("version") != expectedVersion) {
+                      rootState!(s) | ret!((false, "stale"))
+                    } else {
+                      match e.set("uri", newUri).set("version", newVersion) {
+                        e2 => {
+                          match s.set("entries", s.get("entries").set(key, e2))
+                                  .set("govNonce", nonce) {
+                            s2 => { rootState!(s2) | ret!((true, Nil)) }
                           }
                         }
                       }
@@ -174,18 +170,14 @@ in {
                        s.get("admins"), s.get("threshold"), *vCh) |
           for (@v <- vCh) {
             match v {
-              (true, ok) => {
-                if (ok == false) {
-                  rootState!(s) | ret!((false, "below threshold"))
-                } else {
-                  match s.get("entries").get(key) {
-                    Nil => { rootState!(s) | ret!((false, "unknown component")) }
-                    e => {
-                      match s.set("entries",
-                                   s.get("entries").set(key, e.set("status", "retired")))
-                              .set("govNonce", nonce) {
-                        s2 => { rootState!(s2) | ret!((true, Nil)) }
-                      }
+              (true, true) => {
+                match s.get("entries").get(key) {
+                  Nil => { rootState!(s) | ret!((false, "unknown component")) }
+                  e => {
+                    match s.set("entries",
+                                 s.get("entries").set(key, e.set("status", "retired")))
+                            .set("govNonce", nonce) {
+                      s2 => { rootState!(s2) | ret!((true, Nil)) }
                     }
                   }
                 }
@@ -208,13 +200,9 @@ in {
                        s.get("admins"), s.get("threshold"), *vCh) |
           for (@v <- vCh) {
             match v {
-              (true, ok) => {
-                if (ok == false) {
-                  rootState!(s) | ret!((false, "below threshold"))
-                } else {
-                  rootState!(s.set("frozen", true).set("govNonce", nonce)) |
-                  ret!((true, Nil))
-                }
+              (true, true) => {
+                rootState!(s.set("frozen", true).set("govNonce", nonce)) |
+                ret!((true, Nil))
               }
               _ => { rootState!(s) | ret!((false, "below threshold")) }
             }
@@ -234,28 +222,24 @@ in {
                        s.get("admins"), s.get("threshold"), *vCh) |
           for (@v <- vCh) {
             match v {
-              (true, ok) => {
-                if (ok == false) {
-                  rootState!(s) | ret!((false, "below threshold"))
-                } else {
-                  match action {
-                    "setAdmins" => {
-                      match args.nth(0) {
-                        newAdmins => {
-                          match args.nth(1) {
-                            newThreshold => {
-                              new avCh in {
-                                adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
-                                for (@av <- avCh) {
-                                  match av {
-                                    (true, Nil) => {
-                                      rootState!(s.set("admins", newAdmins)
-                                                  .set("threshold", newThreshold)
-                                                  .set("govNonce", nonce)) |
-                                      ret!((true, Nil))
-                                    }
-                                    _ => { rootState!(s) | ret!(av) }
+              (true, true) => {
+                match action {
+                  "setAdmins" => {
+                    match args.nth(0) {
+                      newAdmins => {
+                        match args.nth(1) {
+                          newThreshold => {
+                            new avCh in {
+                              adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
+                              for (@av <- avCh) {
+                                match av {
+                                  (true, Nil) => {
+                                    rootState!(s.set("admins", newAdmins)
+                                                .set("threshold", newThreshold)
+                                                .set("govNonce", nonce)) |
+                                    ret!((true, Nil))
                                   }
+                                  _ => { rootState!(s) | ret!(av) }
                                 }
                               }
                             }
@@ -263,27 +247,27 @@ in {
                         }
                       }
                     }
-                    "setThreshold" => {
-                      match args.nth(0) {
-                        newThreshold => {
-                          new avCh in {
-                            adminsValid!(s.get("admins"), newThreshold, 0, {}, *avCh) |
-                            for (@av <- avCh) {
-                              match av {
-                                (true, Nil) => {
-                                  rootState!(s.set("threshold", newThreshold)
-                                              .set("govNonce", nonce)) |
-                                  ret!((true, Nil))
-                                }
-                                _ => { rootState!(s) | ret!(av) }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                    _ => { rootState!(s) | ret!((false, "unknown action")) }
                   }
+                  "setThreshold" => {
+                    match args.nth(0) {
+                      newThreshold => {
+                        new avCh in {
+                          adminsValid!(s.get("admins"), newThreshold, 0, {}, *avCh) |
+                          for (@av <- avCh) {
+                            match av {
+                              (true, Nil) => {
+                                rootState!(s.set("threshold", newThreshold)
+                                            .set("govNonce", nonce)) |
+                                ret!((true, Nil))
+                              }
+                              _ => { rootState!(s) | ret!(av) }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                  _ => { rootState!(s) | ret!((false, "unknown action")) }
                 }
               }
               _ => { rootState!(s) | ret!((false, "below threshold")) }

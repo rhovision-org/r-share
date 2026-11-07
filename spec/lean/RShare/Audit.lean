@@ -1,5 +1,8 @@
 import RShare.Invariants
 import RShare.Model.System
+import RShare.Model.Cover
+import RShare.Linear.Concurrency
+import RShare.Linear.Deploy
 
 /-!
 # Axiom audit
@@ -53,6 +56,32 @@ import RShare.Model.System
 #print axioms RShare.System.alloc_transition_is_one_commit
 #print axioms RShare.System.system_settle_once
 #print axioms RShare.System.system_terminal_progress
+
+-- Cover state machine.
+#print axioms RShare.Cover.authorize_fixes_token
+#print axioms RShare.Cover.authorize_refuses_second
+#print axioms RShare.Cover.attach_requires_authorized_token
+#print axioms RShare.Cover.claim_token_one_time
+#print axioms RShare.Cover.pay_requires_attach
+#print axioms RShare.Cover.pay_once
+#print axioms RShare.Cover.payout_implies_authorized_attached
+#print axioms RShare.Cover.expire_cannot_precede_pending_claim
+#print axioms RShare.Cover.terminal_settle_idempotent
+#print axioms RShare.Cover.settle_ignores_deleted_pool
+#print axioms RShare.Cover.claimDeposit_frozen_after_attach
+#print axioms RShare.Cover.claimDeposit_refuses_existing_claim
+#print axioms RShare.Cover.dispute_refused_pending_claim
+
+-- Disjoint-commit concurrency and deploy atomicity.
+#print axioms RShare.run_append
+#print axioms RShare.commit_commute
+#print axioms RShare.run_disjoint_commute
+#print axioms RShare.disjoint_cells_linearizable
+#print axioms RShare.commit_preserves_wf
+#print axioms RShare.run_failure_no_leak
+#print axioms RShare.deploy_atomic_rollback
+#print axioms RShare.held_across_external_call_unsafe
+#print axioms RShare.external_read_then_commit_safe
 
 -- Added by the audit: previously unaudited source theorems.
 #print axioms RShare.Store.set_same

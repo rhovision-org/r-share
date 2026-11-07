@@ -105,6 +105,9 @@ def main() -> int:
         terms, "validate", json.dumps(offer(deductible=200))), "deductible")
     expect_refusal("negative premium", actors.invoke(
         terms, "validate", json.dumps(offer(premiumFloor=-1))), "premium")
+    expect_refusal("zero premium", actors.invoke(
+        terms, "validate", json.dumps(offer(
+            premiumFloor=0, premiumTotal=0))), "premium")
 
     published = actors.invoke(book, "publish", f'*dId, {json.dumps(valid)}')
     expect_ok("publish provider offer", published)

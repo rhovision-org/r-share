@@ -1326,3 +1326,232 @@ hazards:
   owner: cover
   evidence:
   - spec/cover.md
+- id: HZ-055
+  node: N19
+  arm: BookingContract@"resolveDeposit"
+  guide_word: premature
+  parameter: claim token
+  deviation: resolveDeposit reaches the cover payout before the fixed claim token is attached
+  causes:
+  - attachClaim is a separate deploy from claimDeposit
+  - bcCoverPay waits on an empty claim-token cell
+  consequences:
+    on_chain: the booking deploy blocks instead of refusing
+    operational: stuck covered settlement
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: high
+  controls: bcCoverPay refuses (false, "claim token") when the cell is empty; resolveDeposit returns "cover" without moving value
+  findings: []
+  tests:
+  - T-COVER-BOOKING
+  lean: null
+  disposition: mitigate
+  owner: cover
+  evidence:
+  - contracts/src/deploy/34_booking_instance.rho
+  - spec/cover.md
+- id: HZ-056
+  node: N19
+  arm: CoverPool@"close"
+  guide_word: early
+  parameter: pool entry
+  deviation: operator close/release deletes an attached policy entry and a later booking settle is blocked
+  causes:
+  - close/release delete the pool policy without the booking knowing
+  - settleKey treats a missing entry as an error
+  consequences:
+    on_chain: booking terminal settle rolls back forever
+    operational: stranded booking and cover
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: high
+  controls: close/release refuse attached policies; settleKey/settleKeyEmpty treat a missing entry as already settled
+  findings: []
+  tests:
+  - T-COVER-POLICY
+  - T-COVER-BOOKING
+  lean: null
+  disposition: mitigate
+  owner: cover
+  evidence:
+  - contracts/src/deploy/32_cover_pool.rho
+  - spec/cover.md
+- id: HZ-057
+  node: N19
+  arm: CoverPolicy@"expire"
+  guide_word: early
+  parameter: attached policy
+  deviation: permissionless expire settles an attached policy before a pending claim payout
+  causes:
+  - expire only checks the expiry height
+  - attached and active policies share the same settle path
+  consequences:
+    on_chain: provider cover is silently lost
+    operational: unfair claim denial
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: high
+  controls: expire refuses status attached; the booking terminal settle closes the policy through settleKey
+  findings: []
+  tests:
+  - T-COVER-POLICY
+  lean: null
+  disposition: mitigate
+  owner: cover
+  evidence:
+  - contracts/src/deploy/33_cover_policy.rho
+  - spec/cover.md
+- id: HZ-058
+  node: N15
+  arm: BookingContract@"dispute"
+  guide_word: other_than
+  parameter: attached claim
+  deviation: a guest dispute after claimDeposit/attachClaim settles the booking without paying the fixed cover claim
+  causes:
+  - dispute only checks booking status
+  - resolveDispute routes through bcDisputeSettle, which never calls bcCoverPay
+  consequences:
+    on_chain: provider cover is nullified and the deposit is refunded
+    operational: adjudication bypass
+    safety: none
+  severity: S3
+  likelihood: L2
+  risk: critical
+  controls: dispute refuses when a claim is pending or attached; claim remains on the resolveDeposit path
+  findings: []
+  tests:
+  - T-COVER-BOOKING
+  lean: null
+  disposition: mitigate
+  owner: cover
+  evidence:
+  - contracts/src/deploy/34_booking_instance.rho
+  - spec/cover.md
+- id: HZ-059
+  node: N15
+  arm: BookingContract@"claimDeposit"
+  guide_word: repeat
+  parameter: deposit claim
+  deviation: a second claimDeposit overwrites the loss while the fixed claim token still pays the original amount
+  causes:
+  - claimDeposit has no one-shot guard
+  - resolveDeposit recomputes the split from the mutable claim
+  consequences:
+    on_chain: inconsistent deposit/cover settlement and over- or under-payment
+    operational: adjudication record is not frozen
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: high
+  controls: claimDeposit refuses a pending claim or an attached claim; the claim is frozen after attachClaim
+  findings: []
+  tests:
+  - T-COVER-BOOKING
+  lean: null
+  disposition: mitigate
+  owner: cover
+  evidence:
+  - contracts/src/deploy/34_booking_instance.rho
+  - spec/cover.md
+- id: HZ-060
+  node: N19
+  arm: CoverPool@"bindReserved"
+  guide_word: other_than
+  parameter: slot hold
+  deviation: a guest can bind a provider reserve with a fabricated subject and no real booking hold
+  causes:
+  - bindReserved authenticates only the self-asserted guestId
+  - poolBindCheck reads listing info but never verifies a live slot hold
+  consequences:
+    on_chain: provider reserve is converted to premiumIn without a booking
+    operational: repeated reserve drain
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: high
+  controls: reserve cap and expiry bound the drain; a live Listing.verifyHold proof is still owed
+  findings: []
+  tests: []
+  lean: null
+  disposition: open
+  owner: cover
+  evidence:
+  - contracts/src/deploy/32_cover_pool.rho
+  - contracts/src/deploy/24_guest_ledger_cover.rho
+- id: HZ-061
+  node: N09
+  arm: ListingContract@"acquire"
+  guide_word: unauthorized
+  parameter: free slot hold
+  deviation: a caller without escrow or a booking intent acquires all slots and holds them for the full window
+  causes:
+  - acquire has no payment or ledger reservation proof
+  - maxUnits and holdBlocks bound one hold but not repetition
+  consequences:
+    on_chain: inventory denial for legitimate guests
+    operational: griefing during demand peaks
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: high
+  controls: pause, maxUnits, holdBlocks and monitoring; a ledger-issued hold token is owed
+  findings: []
+  tests: []
+  lean: null
+  disposition: open
+  owner: slots
+  evidence:
+  - contracts/src/deploy/14_listing_contract.rho
+- id: HZ-062
+  node: N19
+  arm: CoverTerms@"validate"
+  guide_word: less
+  parameter: premium
+  deviation: a zero-premium offer reserves cover capacity with no premium
+  causes:
+  - validate allowed premiumTotal 0
+  consequences:
+    on_chain: free capacity exhaustion and unfunded cover
+    operational: pool capacity starvation
+    safety: none
+  severity: S2
+  likelihood: L2
+  risk: medium
+  controls: premiumTotal must be at least 1
+  findings: []
+  tests:
+  - T-COVER
+  lean: null
+  disposition: mitigate
+  owner: cover
+  evidence:
+  - contracts/src/deploy/30_cover_terms.rho
+- id: HZ-063
+  node: N19
+  arm: CoverPool@"release"
+  guide_word: as_well_as
+  parameter: paid amount
+  deviation: operator release/close accepts an arbitrary paidAmount and strands the policy purse
+  causes:
+  - paidAmount is caller-supplied
+  - close deletes the policy without measuring the remaining purse
+  consequences:
+    on_chain: claimsPaid/outstanding corruption and stranded REV
+    operational: unreconciled facility accounting
+    safety: none
+  severity: S2
+  likelihood: L1
+  risk: medium
+  controls: release requires measured payment plus entry.paid equals cap; close requires entry.paid equals cap; claimsPaid derives from entry.paid; attached policies are refused
+  findings: []
+  tests:
+  - T-COVER-POLICY
+  lean: null
+  disposition: mitigate
+  owner: cover
+  evidence:
+  - contracts/src/deploy/32_cover_pool.rho

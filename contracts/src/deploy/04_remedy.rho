@@ -17,58 +17,60 @@ in {
 
   contract Remedy(@"cancel", @kind, @policy, @now, @startHeight,
                   @rent, @deposit, @actor, ret) = {
-    if (actor == "provider") {
-      ret!((true, {"providerRent": 0, "platformFee": 0,
-                   "guestRefund": rent + deposit, "providerDamage": 0,
-                   "reason": "provider"}))
-    } else {
-      if (actor != "guest") {
-        ret!((false, "actor"))
-      } else {
-        if (kind == "event") {
-          match startHeight - policy.get("eventTransferCutoffBlocks") {
-            cutoff => {
-              if (now <= cutoff) {
-                ret!((true, {"providerRent": 0, "platformFee": 0,
-                             "guestRefund": rent + deposit, "providerDamage": 0,
-                             "reason": "full"}))
-              } else {
-                ret!((true, {"providerRent": rent, "platformFee": 0,
-                             "guestRefund": deposit, "providerDamage": 0,
-                             "reason": "late"}))
+    match actor {
+      "provider" => {
+        ret!((true, {"providerRent": 0, "platformFee": 0,
+                     "guestRefund": rent + deposit, "providerDamage": 0,
+                     "reason": "provider"}))
+      }
+      "guest" => {
+        match kind {
+          "event" => {
+            match startHeight - policy.get("eventTransferCutoffBlocks") {
+              cutoff => {
+                if (now <= cutoff) {
+                  ret!((true, {"providerRent": 0, "platformFee": 0,
+                               "guestRefund": rent + deposit, "providerDamage": 0,
+                               "reason": "full"}))
+                } else {
+                  ret!((true, {"providerRent": rent, "platformFee": 0,
+                               "guestRefund": deposit, "providerDamage": 0,
+                               "reason": "late"}))
+                }
               }
             }
           }
-        } else {
-          match startHeight - policy.get("fullRefundBeforeBlocks") {
-            fullCut => {
-              if (now <= fullCut) {
-                ret!((true, {"providerRent": 0, "platformFee": 0,
-                             "guestRefund": rent + deposit, "providerDamage": 0,
-                             "reason": "full"}))
-              } else {
-                match startHeight - policy.get("partialRefundBeforeBlocks") {
-                  partialCut => {
-                    if (now <= partialCut) {
-                      new pCh in {
-                        moneyPart!(rent, policy.get("partialRefundBps"), *pCh) |
-                        for (@p <- pCh) {
-                          match p {
-                            (true, refund, retained) => {
-                              ret!((true, {"providerRent": retained,
-                                           "platformFee": 0,
-                                           "guestRefund": refund + deposit,
-                                           "providerDamage": 0,
-                                           "reason": "partial"}))
+          _ => {
+            match startHeight - policy.get("fullRefundBeforeBlocks") {
+              fullCut => {
+                if (now <= fullCut) {
+                  ret!((true, {"providerRent": 0, "platformFee": 0,
+                               "guestRefund": rent + deposit, "providerDamage": 0,
+                               "reason": "full"}))
+                } else {
+                  match startHeight - policy.get("partialRefundBeforeBlocks") {
+                    partialCut => {
+                      if (now <= partialCut) {
+                        new pCh in {
+                          moneyPart!(rent, policy.get("partialRefundBps"), *pCh) |
+                          for (@p <- pCh) {
+                            match p {
+                              (true, refund, retained) => {
+                                ret!((true, {"providerRent": retained,
+                                             "platformFee": 0,
+                                             "guestRefund": refund + deposit,
+                                             "providerDamage": 0,
+                                             "reason": "partial"}))
+                              }
+                              _ => { ret!((false, "bps")) }
                             }
-                            _ => { ret!((false, "bps")) }
                           }
                         }
+                      } else {
+                        ret!((true, {"providerRent": rent, "platformFee": 0,
+                                     "guestRefund": deposit, "providerDamage": 0,
+                                     "reason": "late"}))
                       }
-                    } else {
-                      ret!((true, {"providerRent": rent, "platformFee": 0,
-                                   "guestRefund": deposit, "providerDamage": 0,
-                                   "reason": "late"}))
                     }
                   }
                 }
@@ -77,6 +79,7 @@ in {
           }
         }
       }
+      _ => { ret!((false, "actor")) }
     }
   } |
 

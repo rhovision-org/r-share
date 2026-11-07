@@ -219,46 +219,42 @@ contract adminGuard(@domain, @nonce, @action, @args, @sigs,
                                          admins, threshold, *vCh) |
                             for (@v <- vCh) {
                               match v {
-                                (true, ok) => {
-                                  if (ok == false) {
-                                    paymentsState!(s) | ret!((false, "below threshold"))
-                                  } else {
-                                    match action {
-                                      "setPlatformOwner" => {
-                                        match args.nth(0) {
-                                          ownerId => {
-                                            paymentsState!(s.set("platformOwnerId", ownerId)
+                                (true, true) => {
+                                  match action {
+                                    "setPlatformOwner" => {
+                                      match args.nth(0) {
+                                        ownerId => {
+                                          paymentsState!(s.set("platformOwnerId", ownerId)
+                                                          .set("nonce", nonce)) |
+                                          ret!((true, Nil))
+                                        }
+                                      }
+                                    }
+                                    "setAssets" => {
+                                      match args.nth(0) {
+                                        assets => {
+                                          if (assets.length() == 0) {
+                                            paymentsState!(s) |
+                                            ret!((false, "asset"))
+                                          } else {
+                                            paymentsState!(s.set("assets", assets)
                                                             .set("nonce", nonce)) |
                                             ret!((true, Nil))
                                           }
                                         }
                                       }
-                                      "setAssets" => {
-                                        match args.nth(0) {
-                                          assets => {
-                                            if (assets.length() == 0) {
-                                              paymentsState!(s) |
-                                              ret!((false, "asset"))
-                                            } else {
-                                              paymentsState!(s.set("assets", assets)
-                                                              .set("nonce", nonce)) |
-                                              ret!((true, Nil))
-                                            }
-                                          }
+                                    }
+                                    "setRcashRoot" => {
+                                      match args.nth(0) {
+                                        newRoot => {
+                                          paymentsState!(s.set("rcashRootUri", newRoot)
+                                                          .set("nonce", nonce)) |
+                                          ret!((true, Nil))
                                         }
                                       }
-                                      "setRcashRoot" => {
-                                        match args.nth(0) {
-                                          newRoot => {
-                                            paymentsState!(s.set("rcashRootUri", newRoot)
-                                                            .set("nonce", nonce)) |
-                                            ret!((true, Nil))
-                                          }
-                                        }
-                                      }
-                                      _ => {
-                                        paymentsState!(s) | ret!((false, "unknown action"))
-                                      }
+                                    }
+                                    _ => {
+                                      paymentsState!(s) | ret!((false, "unknown action"))
                                     }
                                   }
                                 }

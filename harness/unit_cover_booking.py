@@ -98,14 +98,34 @@ def main() -> int:
         booking_uri, "claimDeposit",
         f'*dId, "{claim_op}", 60, "damage"', key=provider))
 
+    expect_refusal("second claim is frozen", actors.invoke(
+        booking_uri, "claimDeposit",
+        f'*dId, "{market.op("cover-reclaim")}", 70, "damage2"', key=provider),
+        "claim pending")
+    expect_refusal("dispute refused with pending claim", actors.invoke(
+        booking_uri, "dispute",
+        f'*dId, "{market.op("cover-dispute")}", "reason"', key=guest),
+        "claim pending")
+
+    actors.wait_height(actors.block_height() + 4)
+    expect_refusal("resolve before claim attach refuses", actors.invoke(
+        booking_uri, "resolveDeposit", f'"{market.op("cover-early")}"'), "cover")
+
     policy_uri = booking.get("cover").get("policyUri")
     claim_id = booking.get("bookingId")
     expect_ok("authorize and attach claim token", single(one(
         authorize_attach_term(policy_uri, booking_uri, claim_id, claim_id,
                               50, 60, 10),
         key="deployer", phlo_limit=4_000_000)))
+    expect_refusal("second claim after attach is refused", actors.invoke(
+        booking_uri, "claimDeposit",
+        f'*dId, "{market.op("cover-reclaim2")}", 70, "damage3"', key=provider),
+        "claim attached")
+    expect_refusal("dispute refused with attached claim", actors.invoke(
+        booking_uri, "dispute",
+        f'*dId, "{market.op("cover-dispute2")}", "reason2"', key=guest),
+        "claim pending")
 
-    actors.wait_height(actors.block_height() + 4)
     provider_before = actors.balance(provider)
     expect_ok("resolve deposit", actors.invoke(
         booking_uri, "resolveDeposit", f'"{resolve_op}"'))

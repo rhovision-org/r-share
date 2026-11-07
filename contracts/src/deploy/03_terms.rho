@@ -193,35 +193,23 @@ in {
                       if (slotId.toUtf8Bytes().length() == 0
                           || slotId.toUtf8Bytes().length() > 64) {
                         ret!((false, "slot id"))
+                      } else if (seen.get(slotId) != Nil) {
+                        ret!((false, "duplicate slot"))
+                      } else if (startHeight >= endHeight) {
+                        ret!((false, "slot order"))
+                      } else if (startHeight <= now) {
+                        ret!((false, "slot past"))
+                      } else if (startHeight > now + maxLead) {
+                        ret!((false, "slot lead"))
+                      } else if (endHeight - startHeight > maxSlot) {
+                        ret!((false, "slot duration"))
+                      } else if (contiguous == true && i > 0
+                                 && startHeight != prevEnd) {
+                        ret!((false, "slot gap"))
                       } else {
-                        if (seen.get(slotId) != Nil) {
-                          ret!((false, "duplicate slot"))
-                        } else {
-                          if (startHeight >= endHeight) {
-                            ret!((false, "slot order"))
-                          } else {
-                            if (startHeight <= now) {
-                              ret!((false, "slot past"))
-                            } else {
-                              if (startHeight > now + maxLead) {
-                                ret!((false, "slot lead"))
-                              } else {
-                                if (endHeight - startHeight > maxSlot) {
-                                  ret!((false, "slot duration"))
-                                } else {
-                                  if (contiguous == true && i > 0
-                                      && startHeight != prevEnd) {
-                                    ret!((false, "slot gap"))
-                                  } else {
-                                    termsSchedule!(slots, i + 1, contiguous, now,
-                                                   maxLead, maxSlot, endHeight,
-                                                   seen.set(slotId, true), *ret)
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
+                        termsSchedule!(slots, i + 1, contiguous, now,
+                                       maxLead, maxSlot, endHeight,
+                                       seen.set(slotId, true), *ret)
                       }
                     }
                   }

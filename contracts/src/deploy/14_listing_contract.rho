@@ -1238,29 +1238,25 @@ in {
                                    st.get("threshold"), *vCh) |
                       for (@v <- vCh) {
                         match v {
-                          (true, ok) => {
-                            if (ok == false) {
-                              listingState!(st) | ret2!((false, "below threshold"))
-                            } else {
-                              match action {
-                                "pause" => {
-                                  if (st.get("status") == "delisted") {
-                                    listingState!(st) | ret2!((false, "delisted"))
-                                  } else {
-                                    listingState!(st.set("status", "paused")
-                                                    .set("nonce", nonce)) |
-                                    ret2!((true, Nil))
-                                  }
-                                }
-                                "delist" => {
-                                  listingState!(st.set("status", "delisted")
+                          (true, true) => {
+                            match action {
+                              "pause" => {
+                                if (st.get("status") == "delisted") {
+                                  listingState!(st) | ret2!((false, "delisted"))
+                                } else {
+                                  listingState!(st.set("status", "paused")
                                                   .set("nonce", nonce)) |
                                   ret2!((true, Nil))
                                 }
-                                _ => {
-                                  listingState!(st) |
-                                  ret2!((false, "unknown action"))
-                                }
+                              }
+                              "delist" => {
+                                listingState!(st.set("status", "delisted")
+                                                .set("nonce", nonce)) |
+                                ret2!((true, Nil))
+                              }
+                              _ => {
+                                listingState!(st) |
+                                ret2!((false, "unknown action"))
                               }
                             }
                           }
@@ -1286,23 +1282,19 @@ in {
                       } |
                       for (@v <- vCh) {
                         match v {
-                          (true, ok) => {
-                            if (ok == false) {
-                              listingState!(st) | ret2!((false, "below threshold"))
-                            } else {
-                              new avCh in {
-                                adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
-                                for (@av <- avCh) {
-                                  match av {
-                                    (true, Nil) => {
-                                      listingState!(st.set("admins", newAdmins)
-                                                       .set("threshold", newThreshold)
-                                                       .set("nonce", nonce)) |
-                                      ret2!((true, Nil))
-                                    }
-                                    _ => {
-                                      listingState!(st) | ret2!(av)
-                                    }
+                          (true, true) => {
+                            new avCh in {
+                              adminsValid!(newAdmins, newThreshold, 0, {}, *avCh) |
+                              for (@av <- avCh) {
+                                match av {
+                                  (true, Nil) => {
+                                    listingState!(st.set("admins", newAdmins)
+                                                     .set("threshold", newThreshold)
+                                                     .set("nonce", nonce)) |
+                                    ret2!((true, Nil))
+                                  }
+                                  _ => {
+                                    listingState!(st) | ret2!(av)
                                   }
                                 }
                               }
