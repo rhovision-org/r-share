@@ -1,6 +1,6 @@
 # Design note — closing the free `Listing.acquire` hold (HZ-061)
 
-Status: design spike, not implemented.
+Status: implemented (option B + the funded-booking confirm gate).
 
 ## Problem
 
@@ -43,7 +43,41 @@ refund path.
 Keep the public arm; rely on `maxUnits`, `maxHoldBlocks`, pause and off-chain monitoring.
 Document HZ-061 as accepted. This is honest but does not eliminate the exploit.
 
-## Recommendation
+## Implemented design
+
+Option B plus the confirm gate. `Listing.acquire` takes a payment equal to
+`terms.pricePerSlot`; `41_hold_deposit.rho` holds it by `bookingId`. The listing calls
+`HoldDeposit("settle", bookingId, "release", ...)` after a successful release and the
+ledgers/booking call `"confirm"` after a successful confirm. A settle is refused while the
+listing `probe` still reports the booking's hold; after the hold window a release forfeits
+the deposit to the provider. `BookingInstanceFactory("spawn")` verifies a real Bond via
+`Bond("verify")` and `BookingFactory("verify")` looks the booking up in a registry; the
+listing's `confirm` calls `HoldDeposit("authorize")`, which requires both the deposit record
+and the verified funded booking. This closes the acquire→confirm permanent-hold path that
+the deposit alone would leave open.
+
+The release probe is anchored to the listing the **provider** registered, not a
+caller-supplied URI: the record stores `providerUri`/`listingId`/`listingKey`, and
+`HoldDeposit("settle", "release")` resolves `ProviderContract("listingUri", listingId)` and
+probes that URI. A caller cannot substitute a free listing to unlock the deposit while still
+holding. The confirm gate compares the booking's `listingKey` with the record's, so a funded
+booking on one listing cannot authorize a confirm on another. The spawn also asks the trusted
+`BondFactory("issued")` index whether the bond URI was factory-issued before it calls the
+bond's `verify`, so a caller-supplied fake Bond cannot satisfy the funded-booking gate, and
+it resolves the provider book and `ProviderContract("listingUri", listingId)` to reject a
+caller-supplied listing URI that is not the provider's registered listing for that id.
+
+Residual: a funded caller can still acquire and release inside the window at gas cost, and a
+confirmed booking keeps the deposit locked until terminal release. The deposit is not a
+per-release fee; adding one is a separate product decision. A direct caller must pass a real
+payment and must settle explicitly; the legacy acquire arity is an unmatched contract
+(silence), so all callers are updated. The flow adds several resolves (hold deposit, provider
+book, bond index, booking verify); the client default phlo stays at 4M and must be measured
+on the next runtime run before assuming a book deploy fits.
+
+The earlier option A analysis is retained below as the design record.
+
+## Recommendation (superseded)
 
 Run a short design spike on A. The deliverable is a concrete answer to one question: **what
 funded object does `HoldBook` verify before it issues a hold?** If the answer is "a Bond or

@@ -260,7 +260,12 @@ contract resolveComponent(@key, ret) = {
     rs!(bundle+{*Terms}, *c) |
     for (@uri <- c) {
       Root!("register", "component:terms", uri, 1, "terms", *deployerId, *ack) |
-      for (@r <- ack) { deployId!([uri]) }
+      for (@r <- ack) {
+        match r {
+          (true, Nil) => { deployId!([uri]) }
+          _ => { 1/0 }
+        }
+      }
     }
   }
 }

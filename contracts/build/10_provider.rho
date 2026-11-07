@@ -146,7 +146,7 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
           match r {
             (true, uri, _) => {
               rl!(uri, *cCh) |
-              for (Payments <- cCh) { ret!(*Payments) }
+              for (Payments <- cCh) { ret!((true, *Payments)) }
             }
             _ => { ret!(r) }
           }
@@ -179,8 +179,12 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
                   new pCh, aCh, eCh in {
                     providerPayments!(*pCh) |
                     providerAdmins!(*aCh) |
-                    for (P <- pCh; @(true, admins, threshold) <- aCh) {
-                      P!("ensureAccount", *dId, *eCh) |
+                    for (@p <- pCh; @a <- aCh) {
+                      match p {
+                        (true, Payments) => {
+                          match a {
+                            (true, admins, threshold) => {
+                      @Payments!("ensureAccount", *dId, *eCh) |
                       for (@e <- eCh) {
                         match e {
                           (true, account, accountOwner) => {
@@ -236,6 +240,15 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
                                           ret2!((true, entry))
                                         }
                                       }
+                                    }
+                                  }
+                                } |
+                                contract ProviderContract(@"listingUri", @listingId,
+                                                          ret2) = {
+                                  for (@st <<- providerState) {
+                                    match st.get("listings").get(listingId) {
+                                      Nil => { ret2!((false, "unknown listing")) }
+                                      entry => { ret2!((true, entry.get("uri"))) }
                                     }
                                   }
                                 } |
@@ -475,6 +488,12 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
                           _ => { ret!(e) }
                         }
                       }
+                          }
+                          _ => { ret!(a) }
+                        }
+                          }
+                          _ => { ret!(p) }
+                        }
                     }
                   }
                 }
@@ -504,7 +523,12 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
     rs!(bundle+{*ProviderBook}, *c) |
     for (@uri <- c) {
       Root!("register", "component:provider-book", uri, 1, "provider", *deployerId, *ack) |
-      for (@r <- ack) { deployId!([uri]) }
+      for (@r <- ack) {
+        match r {
+          (true, Nil) => { deployId!([uri]) }
+          _ => { 1/0 }
+        }
+      }
     }
   }
 }

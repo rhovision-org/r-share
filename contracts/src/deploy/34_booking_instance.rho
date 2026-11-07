@@ -37,9 +37,78 @@ contract bookingResolve(@key, ret) = {
 
   contract BookingInstanceFactory(@"spawn", dId, @data, releaseToken,
                                   @bondUri, settleToken, ret) = {
+    new pbCh, pvCh, prCh, auCh, fCh, iCh, bCh, vCh in {
+      resolveComponent!("component:provider-book", *pbCh) |
+      for (@pb <- pbCh) {
+        match pb {
+          (true, ProviderBook) => {
+            @ProviderBook!("providerOf", data.get("providerId"), *pvCh) |
+            for (@pv <- pvCh) {
+              match pv {
+                (true, providerUri) => {
+                  rl!(providerUri, *prCh) |
+                  for (Provider <- prCh) {
+                    Provider!("listingUri", data.get("listingId"), *auCh) |
+                    for (@au <- auCh) {
+                      match au {
+                        (true, authoritativeUri) => {
+                          if (authoritativeUri != data.get("listingUri")) {
+                            ret!((false, "listing"))
+                          } else {
+      resolveComponent!("component:bond-factory", *fCh) |
+      for (@f <- fCh) {
+        match f {
+          (true, BondFactory) => {
+            @BondFactory!("issued", bondUri, *iCh) |
+            for (@i <- iCh) {
+              match i {
+                (true, Nil) => {
+                  rl!(bondUri, *bCh) |
+                  for (Bond <- bCh) {
+                    Bond!("verify", *settleToken,
+                          data.get("rent") + data.get("deposit"), *vCh) |
+                    for (@bv <- vCh) {
+                      match bv {
+                        (true, Nil) => {
+                          BookingInstanceFactory!("spawnChecked", *dId, data,
+                                                  *releaseToken, bondUri,
+                                                  *settleToken, ret)
+                        }
+                        _ => { ret!((false, "bond")) }
+                      }
+                    }
+                  }
+                }
+                _ => { ret!((false, "bond")) }
+              }
+            }
+          }
+          _ => { ret!((false, "bond")) }
+        }
+      }
+                          }
+                        }
+                        _ => { ret!((false, "listing")) }
+                      }
+                    }
+                  }
+                }
+                _ => { ret!((false, "provider")) }
+              }
+            }
+          }
+          _ => { ret!((false, "provider book")) }
+        }
+      }
+    }
+  } |
+  contract BookingInstanceFactory(@"spawnChecked", dId, @data, releaseToken,
+                                  @bondUri, settleToken, ret) = {
     new oCh in {
       authOwner!(*dId, *oCh) |
-      for (@(true, guestId) <- oCh) {
+      for (@o <- oCh) {
+        match o {
+          (true, guestId) => {
         if (guestId != data.get("guestId")) {
           ret!((false, "not guest"))
         } else {
@@ -58,10 +127,11 @@ contract bookingResolve(@key, ret) = {
                           (true, listing) => {
                             if (listing.get("providerId") == data.get("providerId")
                                 && listing.get("listingId") == data.get("listingId")
-                                && listing.get("kind") == data.get("kind")) {
+                                && listing.get("kind") == data.get("kind")
+                                && listing.get("termsHash") == data.get("termsHash")) {
           new BookingContract, bookingState, bookingCoverState,
               claimStore, claimTokenCell,
-              uCh, bcPost, bcRefuse, bcReplay, bcRelease, bcConfirm, bcPlatform,
+              uCh, bcPost, bcRefuse, bcReplay, bcRelease, bcConfirm, bcHoldSettle, bcPlatform,
               bcSettleWith, bcSettleRent, bcCancelSettle, bcProviderCancel,
               bcSettleNoShow, bcDisputeSettle, bcCoverClose, bcCoverPay, bcMin, bcMax, bcCoverSplit, bcClaimMax in {
                     bookingState!({
@@ -70,6 +140,9 @@ contract bookingResolve(@key, ret) = {
                       "providerId": data.get("providerId"),
                       "listingId": data.get("listingId"),
                       "listingUri": data.get("listingUri"),
+                      "termsHash": data.get("termsHash"),
+                      "listingKey": data.get("listingId") ++ ":"
+                        ++ data.get("termsHash"),
                       "kind": data.get("kind"),
                       "unitSlots": data.get("unitSlots"),
                       "assetId": data.get("assetId"),
@@ -128,7 +201,24 @@ contract bookingResolve(@key, ret) = {
                       bookingState!(st) | ret2!(prev)
                     } |
 
-                    contract bcRelease(@listingUri, @unitSlots, releaseToken, ret2) = {
+                    contract bcHoldSettle(@bookingId, @mode,
+                                          releaseToken, ret2) = {
+                      new hdCh, spCh in {
+                        resolveComponent!("component:hold-deposit", *hdCh) |
+                        for (@hd <- hdCh) {
+                          match hd {
+                            (true, HoldDeposit) => {
+                              @HoldDeposit!("settle", bookingId, mode,
+                                            *releaseToken, *spCh) |
+                              for (@_ <- spCh) { ret2!((true, Nil)) }
+                            }
+                            _ => { ret2!((true, Nil)) }
+                          }
+                        }
+                      }
+                    } |
+                    contract bcRelease(@listingUri, @bookingId,
+                                       @unitSlots, releaseToken, ret2) = {
                       if (unitSlots.length() == 0) {
                         ret2!((true, Nil))
                       } else {
@@ -138,9 +228,15 @@ contract bookingResolve(@key, ret) = {
                             Listing!("release", unitSlots, *releaseToken, *innerCh) |
                             for (@r <- innerCh) {
                               match r {
+                                (true, Nil) => {
+                                  bcHoldSettle!(bookingId, "release",
+                                                *releaseToken, *ret2)
+                                }
                                 (false, reason) => {
-                                  if (reason == "not holder") { ret2!((true, Nil)) }
-                                  else { ret2!(r) }
+                                  if (reason == "not holder") {
+                                    bcHoldSettle!(bookingId, "release",
+                                                  *releaseToken, *ret2)
+                                  } else { ret2!(r) }
                                 }
                                 _ => { ret2!(r) }
                               }
@@ -149,14 +245,25 @@ contract bookingResolve(@key, ret) = {
                         }
                       }
                     } |
-                    contract bcConfirm(@listingUri, @unitSlots, releaseToken, ret2) = {
+                    contract bcConfirm(@listingUri, @bookingId,
+                                       @unitSlots, releaseToken, ret2) = {
                       if (unitSlots.length() == 0) {
                         ret2!((true, Nil))
                       } else {
-                        new cCh in {
+                        new cCh, cfCh in {
                           rl!(listingUri, *cCh) |
                           for (Listing <- cCh) {
-                            Listing!("confirm", unitSlots, *releaseToken, *ret2)
+                            Listing!("confirm", bookingId,
+                                     unitSlots, *releaseToken, *cfCh) |
+                            for (@cf <- cfCh) {
+                              match cf {
+                                (true, Nil) => {
+                                  bcHoldSettle!(bookingId, "confirm",
+                                                *releaseToken, *ret2)
+                                }
+                                _ => { ret2!(cf) }
+                              }
+                            }
                           }
                         }
                       }
@@ -266,7 +373,8 @@ contract bookingResolve(@key, ret) = {
 
                     contract bcSettleWith(@st, @opId, @buckets, @status, @assetId, ret2) = {
                       new relCh in {
-                        bcRelease!(st.get("listingUri"), st.get("unitSlots"),
+                        bcRelease!(st.get("listingUri"), st.get("bookingId"),
+                                   st.get("unitSlots"),
                                    *releaseToken, *relCh) |
                         for (@rel <- relCh) {
                           match rel {
@@ -328,7 +436,7 @@ contract bookingResolve(@key, ret) = {
                                   match s {
                                     (true, split) => {
                                       new relCh in {
-                                        bcRelease!(st.get("listingUri"), st.get("unitSlots"), *releaseToken, *relCh) |
+                                        bcRelease!(st.get("listingUri"), st.get("bookingId"), st.get("unitSlots"), *releaseToken, *relCh) |
                                         for (@_ <- relCh) {
                                           new ppCh in {
                                             bcPlatform!(*ppCh) |
@@ -407,7 +515,7 @@ contract bookingResolve(@key, ret) = {
 
                     contract bcDisputeSettle(@st, @opId, @splitBps, ret2) = {
                       new relCh in {
-                        bcRelease!(st.get("listingUri"), st.get("unitSlots"), *releaseToken, *relCh) |
+                        bcRelease!(st.get("listingUri"), st.get("bookingId"), st.get("unitSlots"), *releaseToken, *relCh) |
                         for (@rel <- relCh) {
                           match rel {
                             (true, Nil) => {
@@ -452,6 +560,18 @@ contract bookingResolve(@key, ret) = {
                     contract BookingContract(@"status", ret2) = {
                       for (@st <<- bookingState) { ret2!((true, st.get("status"))) }
                     } |
+                    contract BookingContract(@"verifyHold", @bookingId,
+                                             @unitSlots, passedToken, ret2) = {
+                      if (bookingId != data.get("bookingId")) {
+                        ret2!((false, "booking"))
+                      } else if (unitSlots != data.get("unitSlots")) {
+                        ret2!((false, "slots"))
+                      } else if (*passedToken != *releaseToken) {
+                        ret2!((false, "not holder"))
+                      } else {
+                        ret2!((true, data.get("listingKey")))
+                      }
+                    } |
                     contract BookingContract(@"attachCover", dId2, @policyUri,
                                              @policyId, ret2) = {
                       for (@st <- bookingState; @cv <<- bookingCoverState) {
@@ -479,12 +599,17 @@ contract bookingResolve(@key, ret) = {
                                            st.get("bookingId"),
                                            cv.get("coverExpiresAtHeight"),
                                            *settleToken, *tCh) |
-                                      for (@(true, Token) <- tCh) {
+                                      for (@a <- tCh) {
+                                        match a {
+                                          (true, _) => {
                                         for (@cv2 <- bookingCoverState) {
                                           bookingCoverState!(cv2.set(
                                             "status", "attached")) |
                                           bookingState!(st) |
                                           ret2!((true, Nil))
+                                        }
+                                          }
+                                          _ => { bookingState!(st) | ret2!(a) }
                                         }
                                       }
                                     }
@@ -611,7 +736,7 @@ contract bookingResolve(@key, ret) = {
                                   match s {
                                     (true, split) => {
                                       new relCh in {
-                                        bcRelease!(st.get("listingUri"), st.get("unitSlots"), *releaseToken, *relCh) |
+                                        bcRelease!(st.get("listingUri"), st.get("bookingId"), st.get("unitSlots"), *releaseToken, *relCh) |
                                         for (@_ <- relCh) {
                                           bcSettleWith!(st, opId, [
                                             {"owner": st.get("providerId"), "amount": 0},
@@ -695,7 +820,7 @@ contract bookingResolve(@key, ret) = {
                                                 bcRefuse!(st, "expired", *ret2)
                                               } else {
                                                 new cfCh in {
-                                                  bcConfirm!(st.get("listingUri"), st.get("unitSlots"), *releaseToken, *cfCh) |
+                                                  bcConfirm!(st.get("listingUri"), st.get("bookingId"), st.get("unitSlots"), *releaseToken, *cfCh) |
                                                   for (@cf <- cfCh) {
                                                     match cf {
                                                       (true, Nil) => {
@@ -744,7 +869,7 @@ contract bookingResolve(@key, ret) = {
                                       bcRefuse!(st, "closed", *ret2)
                                     } else {
                                       new rCh in {
-                                        bcRelease!(st.get("listingUri"), st.get("unitSlots"), *releaseToken, *rCh) |
+                                        bcRelease!(st.get("listingUri"), st.get("bookingId"), st.get("unitSlots"), *releaseToken, *rCh) |
                                         for (@_ <- rCh) {
                                           bcSettleWith!(st.set("rejectReason", reason),
                                             opId, [
@@ -1271,7 +1396,7 @@ contract bookingResolve(@key, ret) = {
                                         bcRefuse!(st, "too early", *ret2)
                                       } else {
                                         new relCh in {
-                                          bcRelease!(st.get("listingUri"), st.get("unitSlots"), *releaseToken, *relCh) |
+                                          bcRelease!(st.get("listingUri"), st.get("bookingId"), st.get("unitSlots"), *releaseToken, *relCh) |
                                           for (@_ <- relCh) {
                                             bcSettleWith!(st, opId, [
                                               {"owner": st.get("providerId"), "amount": 0},
@@ -1321,7 +1446,7 @@ contract bookingResolve(@key, ret) = {
                                                       bcRefuse!(st, "too early", *ret2)
                                                     } else {
                                                       new relCh in {
-                                                        bcRelease!(st.get("listingUri"), st.get("unitSlots"), *releaseToken, *relCh) |
+                                                        bcRelease!(st.get("listingUri"), st.get("bookingId"), st.get("unitSlots"), *releaseToken, *relCh) |
                                                         for (@_ <- relCh) {
                                                           bcPost!(st.set("noShowClaimAtHeight", now),
                                                                   opId, "noShowClaimed", *ret2)
@@ -1639,6 +1764,9 @@ contract bookingResolve(@key, ret) = {
             }
           }
         }
+          }
+          _ => { ret!(o) }
+        }
       }
     }
   } |
@@ -1649,7 +1777,12 @@ contract bookingResolve(@key, ret) = {
     for (@uri <- c) {
       Root!("register", "component:booking-instance-factory", uri, 1,
             "booking", *deployerId, *ack) |
-      for (@r <- ack) { deployId!([uri]) }
+      for (@r <- ack) {
+        match r {
+          (true, Nil) => { deployId!([uri]) }
+          _ => { 1/0 }
+        }
+      }
     }
   }
 }

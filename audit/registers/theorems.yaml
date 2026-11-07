@@ -1506,3 +1506,115 @@ theorems:
   corpus: null
   evidence: make lean-check
   reviewer: lean
+- id: THM-095
+  name: acquire_requires_deposit
+  module: RShare/Model/Hold.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: An acquire step from the free hold state requires the deposit-paid gate.
+  axioms: []
+  scope: unbounded
+  arms: ['HoldDeposit@"deposit"', 'ListingContract@"acquire"']
+  invariants: []
+  hazards: [HZ-061]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-096
+  name: confirm_requires_booking
+  module: RShare/Model/Hold.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: A confirm step requires both the deposit-paid gate and the funded-booking check.
+  axioms: []
+  scope: unbounded
+  arms: ['HoldDeposit@"authorize"', 'BookingFactory@"verify"', 'BookingContract@"verifyHold"', 'ListingContract@"confirm"']
+  invariants: []
+  hazards: [HZ-061]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-097
+  name: release_requires_no_hold
+  module: RShare/Model/Hold.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: A release step requires the listing probe to report that the hold no longer stands.
+  axioms: []
+  scope: unbounded
+  arms: ['HoldDeposit@"settle"', 'ListingContract@"release"']
+  invariants: []
+  hazards: [HZ-061]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-098
+  name: refund_requires_no_hold
+  module: RShare/Model/Hold.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: A paid-out deposit from the held state is a refund gated on no hold or a forfeit gated on the hold window.
+  axioms: []
+  scope: unbounded
+  arms: ['HoldDeposit@"settle"']
+  invariants: []
+  hazards: [HZ-061]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-099
+  name: refund_before_window_requires_no_hold
+  module: RShare/Model/Hold.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: Inside the hold window a refund requires the probe to report no hold.
+  axioms: []
+  scope: unbounded
+  arms: ['HoldDeposit@"settle"']
+  invariants: []
+  hazards: [HZ-061]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-100
+  name: paidOut_terminal
+  module: RShare/Model/Hold.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: A paid-out deposit has no outgoing step.
+  axioms: []
+  scope: unbounded
+  arms: ['HoldDeposit@"settle"']
+  invariants: []
+  hazards: [HZ-061]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean
+- id: THM-101
+  name: settleBooked_requires_booking
+  module: RShare/Model/Hold.lean
+  line: 1
+  kind: theorem
+  status: proved-model
+  audit_line: true
+  statement: A booked hold reaches a paid-out deposit only through the funded-booking check.
+  axioms: []
+  scope: unbounded
+  arms: ['HoldDeposit@"settle"', 'BookingFactory@"verify"']
+  invariants: []
+  hazards: [HZ-061]
+  corpus: null
+  evidence: make lean-check
+  reviewer: lean

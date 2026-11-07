@@ -50,6 +50,7 @@ SUITES = {
     "cover_policy": "unit_cover_policy.py",
     "cover_booking": "unit_cover_booking.py",
     "cover_disabled": "unit_cover_disabled.py",
+    "hold_deposit": "unit_hold_deposit.py",
 }
 EXPERIMENTAL = {"cover", "cover_policy", "cover_booking"}
 SAFE_ONLY = {"cover_disabled"}

@@ -88,11 +88,15 @@ def rho_map(value: dict) -> str:
 
 def bind_term(pool_uri: str, subject: dict, offer_id: str, cap: int,
               policy_id: str, attach: bool = False,
-              attach_expiry: int = 1_000_000) -> str:
+              attach_expiry: int = 1_000_000,
+              hold_deposit: int = 100) -> str:
     subject_id = subject["subjectId"]
     listing_uri = subject["listingUri"]
     unit_slots = subject["unitSlots"]
     until = subject["until"]
+    payer = subject["guestId"]
+    payments = actors.resolve("component:payments")
+    hold_uri = actors.resolve("component:hold-deposit")
     wire_subject = {key: value for key, value in subject.items()
                     if key not in ("unitSlots", "until")}
     attach_block = "deployId!([r])" if not attach else f"""
@@ -109,37 +113,57 @@ def bind_term(pool_uri: str, subject: dict, offer_id: str, cap: int,
 """
     return f"""
 new rl(`rho:registry:lookup`), rootCh, pCh, ret, bCh, polCh, tokCh, infoCh,
-    lCh, acqCh, relCh, deployerId(`rho:rchain:deployerId`),
+    lCh, acqCh, relCh, payCh, wCh, hdCh, hsCh,
+    deployerId(`rho:rchain:deployerId`),
     deployId(`rho:rchain:deployId`), attachKey, subjectId, policyUri,
     releaseToken in {{
   subjectId!({json.dumps(subject_id)}) |
   for (@subjectId <- subjectId) {{
-    rl!(`{listing_uri}`, *lCh) |
-    for (Listing <- lCh) {{
-      Listing!("acquire", subjectId, {json.dumps(unit_slots)}, {until},
-               *releaseToken, *acqCh) |
-      for (@a <- acqCh) {{
-        match a {{
-          (true, _) => {{
-            rl!(`{pool_uri}`, *pCh) |
-            for (Pool <- pCh) {{
-              Pool!("bindReserved", *deployerId, {rho_map(wire_subject)},
-                    "{offer_id}", {cap}, "{policy_id}", *attachKey,
-                    {json.dumps(unit_slots)}, *releaseToken, *ret) |
-              for (@r <- ret) {{
-                Listing!("release", {json.dumps(unit_slots)}, *releaseToken, *relCh) |
-                for (@_ <- relCh) {{
-                  match r {{
-                    (true, policyId, policyUri) => {{
-                      {attach_block}
+    rl!(`{payments}`, *payCh) |
+    for (P <- payCh) {{
+      P!("withdrawPayment", *deployerId, "REV", {hold_deposit}, *wCh) |
+      for (w <- wCh) {{
+        match w {{
+          (true, payment) => {{
+            rl!(`{listing_uri}`, *lCh) |
+            for (Listing <- lCh) {{
+              Listing!("acquire", subjectId, "{payer}",
+                       {json.dumps(unit_slots)}, {until}, *releaseToken,
+                       *payment, *acqCh) |
+              for (@a <- acqCh) {{
+                match a {{
+                  (true, _) => {{
+                    rl!(`{pool_uri}`, *pCh) |
+                    for (Pool <- pCh) {{
+                      Pool!("bindReserved", *deployerId, {rho_map(wire_subject)},
+                            "{offer_id}", {cap}, "{policy_id}", *attachKey,
+                            {json.dumps(unit_slots)}, *releaseToken, *ret) |
+                      for (@r <- ret) {{
+                        Listing!("release", {json.dumps(unit_slots)}, *releaseToken, *relCh) |
+                        for (@_ <- relCh) {{
+                          rl!(`{hold_uri}`, *hdCh) |
+                          for (HoldDeposit <- hdCh) {{
+                            HoldDeposit!("settle", subjectId, "release",
+                                         *releaseToken, *hsCh) |
+                            for (@_ <- hsCh) {{
+                              match r {{
+                                (true, policyId, policyUri) => {{
+                                  {attach_block}
+                                }}
+                                _ => {{ deployId!([r]) }}
+                              }}
+                            }}
+                          }}
+                        }}
+                      }}
                     }}
-                    _ => {{ deployId!([r]) }}
                   }}
+                  _ => {{ deployId!([a]) }}
                 }}
               }}
             }}
           }}
-          _ => {{ deployId!([a]) }}
+          _ => {{ deployId!(w) }}
         }}
       }}
     }}

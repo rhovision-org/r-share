@@ -21,6 +21,7 @@ per object. The arm signatures are in the [arm reference](arms.md); the install 
 | `33_cover_policy.rho` | CoverPolicyFactory |
 | `32_cover_pool.rho` | CoverPool |
 | `40_payments.rho` | Payments |
+| `41_hold_deposit.rho` | HoldDeposit (per-acquire hold custody) |
 | `10_provider.rho` | ProviderBook, ProviderContract |
 | `13_unit.rho` | UnitFactory (stateless schedule helpers) |
 | `14_listing_contract.rho` | ListingFactory, ListingContract (per-listing allocator; plus the internal ListingContractFactory) |
@@ -48,6 +49,7 @@ per object. The arm signatures are in the [arm reference](arms.md); the install 
 | CoverPolicyFactory | `33_cover_policy.rho` | — | per-policy purse and claim token |
 | CoverPool | `32_cover_pool.rho` | `coverPoolState` | operator-controlled facility purse |
 | Payments | `40_payments.rho` | `paymentsState` | singleton r-cash adapter |
+| HoldDeposit | `41_hold_deposit.rho` | `holdEscrowState` | singleton hold-deposit custody |
 | ProviderBook | `10_provider.rho` | `providerBookState` | singleton index |
 | ProviderContract | `10_provider.rho` | `providerState` | one per provider |
 | ListingFactory | `14_listing_contract.rho` | none | stateless |

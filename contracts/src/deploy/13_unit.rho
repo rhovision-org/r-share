@@ -176,7 +176,12 @@ in {
     rs!(bundle+{*UnitFactory}, *c) |
     for (@uri <- c) {
       Root!("register", "component:unit-factory", uri, 1, "unit", *deployerId, *ack) |
-      for (@r <- ack) { deployId!([uri]) }
+      for (@r <- ack) {
+        match r {
+          (true, Nil) => { deployId!([uri]) }
+          _ => { 1/0 }
+        }
+      }
     }
   }
 }

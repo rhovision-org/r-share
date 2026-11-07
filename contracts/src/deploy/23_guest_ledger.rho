@@ -8,7 +8,7 @@ new
   deployerId(`rho:rchain:deployerId`),
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
-  GuestLedgerBook, GuestLedgerDrop, GuestLedgerFinish, GuestLedgerGate, GuestLedgerPay, GuestLedgerReserve, GuestLedgerSpawn, authIsOwner, authOwner, ledgerAdmin, ledgerBookingFactory, ledgerBookListing, ledgerAcquire, ledgerConfirm, ledgerListingCheck, ledgerNow, ledgerOpenListing, ledgerPayments, ledgerProviderActive, ledgerRelease, ledgerResolve,
+  GuestLedgerBook, GuestLedgerDrop, GuestLedgerFinish, GuestLedgerGate, GuestLedgerPay, GuestLedgerReserve, GuestLedgerSpawn, authIsOwner, authOwner, ledgerAdmin, ledgerBookingFactory, ledgerBookListing, ledgerAcquire, ledgerConfirm, ledgerHoldPay, ledgerHoldSettle, ledgerListingCheck, ledgerNow, ledgerOpenListing, ledgerPayments, ledgerProviderActive, ledgerRelease, ledgerResolve,
   resolveComponent
 in {
   // @@INLINE:lib/Resolve.rho@@
@@ -67,12 +67,13 @@ in {
       }
     }
   } |
-  contract ledgerAcquire(@listingUri, @bookingId, @unitSlots, @until,
-                         releaseToken, ret) = {
+  contract ledgerAcquire(@listingUri, @bookingId, @payerId, @unitSlots,
+                         @until, releaseToken, payment, ret) = {
     new cCh in {
       rl!(listingUri, *cCh) |
       for (Listing <- cCh) {
-        Listing!("acquire", bookingId, unitSlots, until, *releaseToken, *ret)
+        Listing!("acquire", bookingId, payerId, unitSlots,
+                 until, *releaseToken, *payment, *ret)
       }
     }
   } |
@@ -86,11 +87,41 @@ in {
     }
   } |
 
-  contract ledgerConfirm(@listingUri, @unitSlots, releaseToken, ret) = {
+  contract ledgerConfirm(@listingUri, @bookingId, @unitSlots,
+                         releaseToken, ret) = {
     new cCh in {
       rl!(listingUri, *cCh) |
       for (Listing <- cCh) {
-        Listing!("confirm", unitSlots, *releaseToken, *ret)
+        Listing!("confirm", bookingId, unitSlots, *releaseToken, *ret)
+      }
+    }
+  } |
+
+  contract ledgerHoldPay(dId, @assetId, @amount, ret) = {
+    new pCh in {
+      ledgerPayments!(*pCh) |
+      for (@p <- pCh) {
+        match p {
+          (true, Payments) => {
+            @Payments!("withdrawPayment", *dId, assetId, amount, *ret)
+          }
+          _ => { ret!(p) }
+        }
+      }
+    }
+  } |
+
+  contract ledgerHoldSettle(@bookingId, @mode, releaseToken, ret) = {
+    new hdCh, spCh in {
+      ledgerResolve!("component:hold-deposit", *hdCh) |
+      for (@hd <- hdCh) {
+        match hd {
+          (true, HoldDeposit) => {
+            @HoldDeposit!("settle", bookingId, mode, *releaseToken, *spCh) |
+            for (@_ <- spCh) { ret!((true, Nil)) }
+          }
+          _ => { ret!((true, Nil)) }
+        }
       }
     }
   } |
@@ -199,23 +230,61 @@ in {
                       bIdCh!(guestId ++ ":" ++ opId) |
                       untilCh!(now + listing.get("terms").get("holdBlocks")) |
                       for (@bId <- bIdCh; @untilHeight <- untilCh) {
-                        new acqCh in {
-                          ledgerAcquire!(listingUri, bId, unitSlots,
-                                         untilHeight, *releaseToken, *acqCh) |
-                          for (@acq <- acqCh) {
-                            match acq {
-                              (true, summary) => {
-                                GuestLedgerPay!(
-                                  *ledgerState, *dId, guestId, listing,
-                                  listingUri, unitSlots, opId, bId,
-                                  untilHeight, summary.get("count"),
-                                  summary.get("rent"),
-                                  summary.get("checkIn"), summary.get("checkOut"),
-                                  *releaseToken, *ret)
+                        new hpCh in {
+                          ledgerHoldPay!(*dId,
+                                         listing.get("terms").get("assetId"),
+                                         listing.get("terms").get("pricePerSlot"),
+                                         *hpCh) |
+                          for (@hp <- hpCh) {
+                            match hp {
+                              (true, payment) => {
+                                new acqCh in {
+                                  ledgerAcquire!(listingUri, bId, guestId,
+                                                 unitSlots, untilHeight,
+                                                 *releaseToken, *payment,
+                                                 *acqCh) |
+                                  for (@acq <- acqCh) {
+                                    match acq {
+                                      (true, summary) => {
+                                        GuestLedgerPay!(
+                                          *ledgerState, *dId, guestId, listing,
+                                          listingUri, unitSlots, opId, bId,
+                                          untilHeight, summary.get("count"),
+                                          summary.get("rent"),
+                                          summary.get("checkIn"),
+                                          summary.get("checkOut"),
+                                          *releaseToken, *ret)
+                                      }
+                                      _ => {
+                                        new rfCh in {
+                                          new pCh in {
+                                            ledgerPayments!(*pCh) |
+                                            for (@p <- pCh) {
+                                              match p {
+                                                (true, Payments) => {
+                                                  @Payments!("refundPayment",
+                                                    guestId,
+                                                    listing.get("terms").get(
+                                                      "assetId"),
+                                                    *payment, *rfCh)
+                                                }
+                                                _ => { rfCh!(p) }
+                                              }
+                                            }
+                                          } |
+                                          for (@_ <- rfCh) {
+                                            GuestLedgerDrop!(*ledgerState, opId) |
+                                            ret!(acq)
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
                               }
                               _ => {
                                 GuestLedgerDrop!(*ledgerState, opId) |
-                                ret!(acq)
+                                ret!(hp)
                               }
                             }
                           }
@@ -271,6 +340,10 @@ in {
                     new relCh in {
                       ledgerRelease!(listingUri, unitSlots, *releaseToken, *relCh) |
                       for (@_ <- relCh) {
+                        new hsCh in {
+                          ledgerHoldSettle!(bookingId, "release",
+                                            *releaseToken, *hsCh)
+                        } |
                         GuestLedgerDrop!(*ledgerState, opId) |
                         ret!(br)
                       }
@@ -284,6 +357,9 @@ in {
             new relCh in {
               ledgerRelease!(listingUri, unitSlots, *releaseToken, *relCh) |
               for (@_ <- relCh) {
+                new hsCh in {
+                  ledgerHoldSettle!(bookingId, "release", *releaseToken, *hsCh)
+                } |
                 GuestLedgerDrop!(*ledgerState, opId) |
                 ret!((false, "bond factory unavailable"))
               }
@@ -305,11 +381,7 @@ in {
         match f {
           (true, BookingFactory) => {
             new cfCh in {
-              if (listing.get("terms").get("instantBook") == true) {
-                ledgerConfirm!(listingUri, unitSlots, *releaseToken, *cfCh)
-              } else {
-                cfCh!((true, Nil))
-              } |
+              cfCh!((true, Nil)) |
               for (@cf <- cfCh) {
                 match cf {
                   (true, Nil) => {
@@ -328,6 +400,7 @@ in {
                         "providerId": listing.get("providerId"),
                         "listingId": listing.get("listingId"),
                         "listingUri": listingUri,
+                        "termsHash": listing.get("termsHash"),
                         "kind": listing.get("kind"),
                         "unitSlots": unitSlots,
                         "assetId": listing.get("terms").get("assetId"),
@@ -358,11 +431,34 @@ in {
                           for (@r <- cCh) {
                             match r {
                               (true, bookingUri) => {
-                                GuestLedgerFinish!(*ledgerState, opId,
-                                  {"pending": false, "ok": true,
-                                   "bookingId": bookingId,
-                                   "uri": bookingUri}) |
-                                ret!((true, bookingId, bookingUri))
+                                if (listing.get("terms").get("instantBook") == true) {
+                                  new cfCh2, hsCh in {
+                                    ledgerConfirm!(listingUri, bookingId,
+                                      unitSlots, *releaseToken, *cfCh2) |
+                                    for (@cf2 <- cfCh2) {
+                                      match cf2 {
+                                        (true, Nil) => {
+                                          ledgerHoldSettle!(bookingId, "confirm",
+                                            *releaseToken, *hsCh) |
+                                          for (@_ <- hsCh) {
+                                            GuestLedgerFinish!(*ledgerState, opId,
+                                              {"pending": false, "ok": true,
+                                               "bookingId": bookingId,
+                                               "uri": bookingUri}) |
+                                            ret!((true, bookingId, bookingUri))
+                                          }
+                                        }
+                                        _ => { 1/0 }
+                                      }
+                                    }
+                                  }
+                                } else {
+                                  GuestLedgerFinish!(*ledgerState, opId,
+                                    {"pending": false, "ok": true,
+                                     "bookingId": bookingId,
+                                     "uri": bookingUri}) |
+                                  ret!((true, bookingId, bookingUri))
+                                }
                               }
                               _ => { 1/0 }
                             }
@@ -594,7 +690,12 @@ in {
     for (@uri <- c) {
       Root!("register", "component:guest-ledger-factory", uri, 1,
             "booking", *deployerId, *ack) |
-      for (@r <- ack) { deployId!([uri]) }
+      for (@r <- ack) {
+        match r {
+          (true, Nil) => { deployId!([uri]) }
+          _ => { 1/0 }
+        }
+      }
     }
   }
 }

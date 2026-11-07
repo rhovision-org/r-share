@@ -58,6 +58,8 @@ contract authIsOwner(dId, @ownerId, ret) = {
   }
 } |
 
+  // Deploy-time init: a missing component leaves no registration. install.py
+  // verifies r-cash and every later term before this deploy, so the chain is gated.
   resolveComponent!("component:payments", *paymentsCh) |
   for (@(true, Payments) <- paymentsCh) {
     @Payments!("issuer", "REV", *issuerCh) |
@@ -1150,7 +1152,12 @@ contract authIsOwner(dId, @ownerId, ret) = {
                   for (@uri <- c) {
                     Root!("register", "component:cover-pool", uri, 1,
                           "cover", *deployerId, *c) |
-                    for (@_ <- c) { deployId!([uri]) }
+                    for (@r <- c) {
+                      match r {
+                        (true, Nil) => { deployId!([uri]) }
+                        _ => { 1/0 }
+                      }
+                    }
                   }
                 }
               }

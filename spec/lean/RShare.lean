@@ -9,5 +9,6 @@ import RShare.Model.Booking
 import RShare.Model.Ledger
 import RShare.Model.System
 import RShare.Model.Cover
+import RShare.Model.Hold
 import RShare.Linear.Concurrency
 import RShare.Linear.Deploy

@@ -57,6 +57,16 @@
         "ShareAdmin"
       ]
     },
+    "HoldDeposit": {
+      "file": "41_hold_deposit.rho",
+      "state_cells": [
+        "holdEscrowState"
+      ],
+      "depends_on": [
+        "Payments",
+        "Clock"
+      ]
+    },
     "ProviderBook": {
       "file": "10_provider.rho",
       "state_cells": [
@@ -82,7 +92,8 @@
       "depends_on": [
         "ProviderContract",
         "Terms",
-        "ShareAdmin"
+        "ShareAdmin",
+        "HoldDeposit"
       ]
     },
     "ListingContract": {
@@ -95,7 +106,8 @@
         "AdminGuard",
         "ShareAdmin",
         "ProviderContract",
-        "Clock"
+        "Clock",
+        "HoldDeposit"
       ]
     },
     "UnitFactory": {
@@ -125,7 +137,8 @@
         "ListingContract",
         "Clock",
         "BookingContractFactory",
-        "BondFactory"
+        "BondFactory",
+        "HoldDeposit"
       ],
       "optional_depends_on": [
         "GuestLedgerCover"
@@ -143,7 +156,8 @@
         "Remedy",
         "Clock",
         "AdminGuard",
-        "Bond"
+        "Bond",
+        "HoldDeposit"
       ]
     },
     "GuestLedgerFactory": {
@@ -174,7 +188,9 @@
     },
     "BondFactory": {
       "file": "15_bond.rho",
-      "state_cells": [],
+      "state_cells": [
+        "bondIndex"
+      ],
       "depends_on": [
         "Payments"
       ]
@@ -238,7 +254,10 @@
         "Clock",
         "AdminGuard",
         "Bond",
-        "Payments"
+        "BondFactory",
+        "ProviderBook",
+        "Payments",
+        "HoldDeposit"
       ]
     },
     "GuestLedgerCover": {
@@ -250,7 +269,8 @@
         "Clock",
         "BondFactory",
         "BookingContractFactory",
-        "ListingFactory"
+        "ListingFactory",
+        "HoldDeposit"
       ],
       "experimental": true
     }

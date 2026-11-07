@@ -61,7 +61,7 @@ deploy order; R24–R26 are mitigated by the cover guards and tests.
 |---|---|---|---|
 | EX-1 | `bindReserved` drains a provider reserve without a real hold | confirmed | fixed: `Listing("verifyHold")` required; no-hold test added |
 | EX-2 | guest dispute after `claimDeposit`/`attachClaim` nullifies cover | confirmed | fixed: dispute refuses a pending/attached claim |
-| EX-3 | public `Listing.acquire` is free and can hold inventory | confirmed | **open design item**; see section 5 |
+| EX-3 | public `Listing.acquire` is free and can hold inventory | confirmed | fixed: `pricePerSlot` hold deposit, probe-gated refund, and a funded-booking confirm gate (`41_hold_deposit.rho`, `22`, `34`); residual gas-only release loop |
 | EX-4 | second `claimDeposit` overwrites the fixed claim | confirmed | fixed: claim frozen after first deposit and after attach |
 | EX-5 | permissionless `CoverPool("premium")` inflates `premiumIn` | refuted | donation, not theft; accounting hygiene only |
 | EX-6 | operator `release`/`close` accepts arbitrary `paidAmount` and strands the purse | confirmed | fixed: attached refused, measured amount and `entry.paid` reconciled |
@@ -82,20 +82,26 @@ deploy order; R24–R26 are mitigated by the cover guards and tests.
   attached claim; `bcCoverPay` refuses an empty claim token instead of blocking; dead
   `bcCoverPaid` removed.
 - `30_cover_terms.rho`: positive premium required.
-- Lean: `Linear/Concurrency.lean`, `Linear/Deploy.lean`, `Model/Cover.lean` add 22
-  kernel-checked theorems (94 registered). They prove disjoint-commit commutation, deploy
+- Lean: `Linear/Concurrency.lean`, `Linear/Deploy.lean`, `Model/Cover.lean` and
+  `Model/Hold.lean` add kernel-checked theorems (101 registered). They prove disjoint-commit
+  commutation, the hold-deposit gates and deploy
   rollback, fixed/one-time claim tokens, attached-only payout, attached expiry, idempotent
   terminal settle, claim freeze and dispute refusal.
 
 ## 5. Open items
 
-1. **EX-3 / HZ-061 — free `Listing.acquire`.** Recommended design: a ledger-issued hold
-   proof (`GuestLedger` mints a private key; `Listing` verifies it through a shared
-   `HoldBook`, consumed by confirm/release). Fallback: accept and monitor with
-   `maxUnits`/`holdBlocks`/pause; do not claim it eliminated.
-2. **Runtime verification.** The isolated r-cash install failed and the default devnet is
-   missing `component:asset-resolver`; no behavior suite has run against the latest
-   contracts. A preflight now fails an RShare install early when r-cash is incomplete.
+1. **EX-3 / HZ-061 — free `Listing.acquire`.** Closed with the refundable `pricePerSlot`
+   hold deposit in `41_hold_deposit.rho` and the funded-booking confirm gate
+   (`BookingFactory("verify")` + `BookingContract("verifyHold")` + `HoldDeposit("authorize")`).
+   The residual (a funded caller can release inside the window at gas cost) is recorded in
+   `2026-11-07-acquire-hold-proof.md`; the deposit is not a per-release fee.
+2. **Runtime verification.** Both running devnets accept `explore-deploy` but a signed
+   resolve deploy is not processed (`deploy_and_wait` hangs), so `verify_rcash` reports all
+   three keys missing and both install attempts stop in preflight. This is the same
+   `NotProcessed` blocker recorded on 2026-11-06; it is not an r-cash root or RShare contract
+   failure. No behavior suite has run against the latest contracts. A preflight fails an
+   RShare install early when r-cash is unreadable; the next run must confirm deploy
+   processing before any suite.
 3. **EX-8 rounding/config.** Deferred; operator-only and sub-atomic-unit in practice.
 4. **Helper extraction and `1/0` cleanup.** Remaining code-quality items, not safety
    regressions; converting `1/0` to refusals is a behavior change requiring per-site tests.
@@ -104,5 +110,9 @@ deploy order; R24–R26 are mitigated by the cover guards and tests.
 
 Rholang refinement; unforgeable names/claim token; ERTP purse atomicity; node deploy
 atomicity; operator settle trust; block-height clock; the `Listing.verifyHold` deployment
-tie (`bindReservedRequiresHold` in `System.Boundary`). The Lean results are `proved-model`,
-not a refinement of the deployed node.
+tie (`bindReservedRequiresHold` in `System.Boundary`); the hold-deposit purse, booking
+registry, bond verification, confirm authorization and probe ties
+(`holdDepositPurseAtomic`, `bookingRegistryAtomic`, `bondVerifyTrusted`,
+`bondFactoryIssued`, `confirmAuthorizationTie`, `holdProbeObservesListing`,
+`holdRefundAfterWindowForfeits`). The Lean results are `proved-model`, not a refinement of
+the deployed node.

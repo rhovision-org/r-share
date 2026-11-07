@@ -15,25 +15,25 @@ account after `40_payments.rho`.
 | 2 | `01_kernel.rho` | `component:clock`, `component:verifier`, `component:codec` |
 | 3 | `02_admin.rho` | `component:admin-guard`, `component:admin` |
 | 4 | `40_payments.rho` | `component:payments` |
-| 5 | `03_terms.rho` | `component:terms` |
-| 6 | `04_remedy.rho` | `component:remedy` |
-| 7 | `30_cover_terms.rho` | `component:cover-terms` |
-| 8 | `31_cover_offer.rho` | `component:cover-book` |
-| 9 | `33_cover_policy.rho` | `component:cover-policy-factory` |
-| 10 | `32_cover_pool.rho` | `component:cover-pool` |
-| 11 | `10_provider.rho` | `component:provider-book` |
-| 12 | `13_unit.rho` | `component:unit-factory` |
-| 13 | `14_listing_contract.rho` | `component:listing-factory` |
-| 14 | `15_bond.rho` | `component:bond-factory` |
-| 15 | `34_booking_instance.rho` | `component:booking-instance-factory` |
-| 16 | `22_booking_contract.rho` | `component:booking-factory` |
-| 17 | `23_guest_ledger.rho` | `component:guest-ledger-factory` |
-| 18 | `24_guest_ledger_cover.rho` | `component:guest-ledger-cover` |
-| 19 | `20_booking.rho` | `component:guest-book` |
----|---|
+| 5 | `41_hold_deposit.rho` | `component:hold-deposit` |
+| 6 | `03_terms.rho` | `component:terms` |
+| 7 | `04_remedy.rho` | `component:remedy` |
+| 8 | `30_cover_terms.rho` | `component:cover-terms` |
+| 9 | `31_cover_offer.rho` | `component:cover-book` |
+| 10 | `33_cover_policy.rho` | `component:cover-policy-factory` |
+| 11 | `32_cover_pool.rho` | `component:cover-pool` |
+| 12 | `10_provider.rho` | `component:provider-book` |
+| 13 | `13_unit.rho` | `component:unit-factory` |
+| 14 | `14_listing_contract.rho` | `component:listing-factory` |
+| 15 | `15_bond.rho` | `component:bond-factory` |
+| 16 | `34_booking_instance.rho` | `component:booking-instance-factory` |
+| 17 | `22_booking_contract.rho` | `component:booking-factory` |
+| 18 | `23_guest_ledger.rho` | `component:guest-ledger-factory` |
+| 19 | `24_guest_ledger_cover.rho` | `component:guest-ledger-cover` |
+| 20 | `20_booking.rho` | `component:guest-book` |
 
-The default **safe** profile installs 14 terms and omits `30`, `31`, `33`, `32` and `24`.
-The **cover-demo** experimental profile installs all 19 terms. Profiles are per-chain; use a
+The default **safe** profile installs 15 terms and omits `30`, `31`, `33`, `32` and `24`.
+The **cover-demo** experimental profile installs all 20 terms. Profiles are per-chain; use a
 fresh chain to switch.
 
 `20_booking` comes last because GuestBook resolves the guest-ledger factory at runtime;
@@ -64,6 +64,7 @@ component:codec
 component:admin-guard
 component:admin
 component:payments
+component:hold-deposit
 component:terms
 component:remedy
 component:provider-book

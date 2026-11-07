@@ -89,7 +89,12 @@ in {
     rs!(bundle+{*GuestBook}, *c) |
     for (@uri <- c) {
       Root!("register", "component:guest-book", uri, 1, "booking", *deployerId, *ack) |
-      for (@r <- ack) { deployId!([uri]) }
+      for (@r <- ack) {
+        match r {
+          (true, Nil) => { deployId!([uri]) }
+          _ => { 1/0 }
+        }
+      }
     }
   }
 }

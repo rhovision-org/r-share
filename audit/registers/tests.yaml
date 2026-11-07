@@ -106,3 +106,8 @@ tests:
   file: harness/unit_cover_disabled.py
   status: passing
   focus: cover keys absent, plain escrow full deposit, bookWithCover refusal, op recovery
+- id: T-HOLD-DEPOSIT
+  name: refundable hold deposit and confirm gate
+  file: harness/unit_hold_deposit.py
+  status: planned
+  focus: exact pricePerSlot deposit, refund gated on the listing probe, short-payment refusal, confirm without a funded booking refused, plain book still confirms

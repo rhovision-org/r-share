@@ -1,0 +1,32 @@
+{
+  "run_id": "2026-11-07-hold-deposit",
+  "date": "2026-11-07",
+  "commit": "8a1aecf",
+  "branch": "master",
+  "dirty": true,
+  "node": "default http://localhost:40403 and isolated cover http://localhost:42403 (both healthy; signed deploys not processed)",
+  "commands": [
+    "make build",
+    "make measure",
+    "make parse-check",
+    "make check",
+    "make lean-check",
+    "make install --profile safe (preflight stopped)",
+    "make install-cover-demo (preflight stopped)"
+  ],
+  "results": {
+    "static": "make check exit 0",
+    "measure": "20 terms within budget; 14=28657/28672, 23=14289/14336, 34=36277 bytes depth 44, 41=7053 bytes depth 33, 15=4905",
+    "lean": "105 axiom audits, 100 source theorems, no sorry/admit/axiom/native_decide",
+    "flows": "43 rules, 39 arms, 13 core arms proved-model, 0 strict warnings",
+    "audit": "101 theorems, 63 hazards, 174 arms, 45 panic sites and 22 register guards registered",
+    "runtime": "not run: verify_rcash reports all three r-cash keys missing because a signed resolve deploy is not processed; both installs stopped in preflight, no deploy was submitted"
+  },
+  "blocker": "Signed deploys are accepted but never reach processedwithsuccess; explore-deploy returns a block but signed deploy_and_wait hangs. Same NotProcessed symptom as 2026-11-06. No behavior suite was run; do not claim green.",
+  "design": "HZ-061 option B: pricePerSlot hold deposit in 41_hold_deposit.rho, provider-anchored probe-gated refund, forfeit after the hold window, and a funded-booking confirm gate (provider-registered listing URI, BondFactory issued index, Bond verify, BookingFactory verify, BookingContract verifyHold, HoldDeposit authorize). Residual: gas-only acquire/release inside the window; phlo not yet measured.",
+  "tests": {
+    "unit_all": "not run",
+    "unit_hold_deposit": "not run (planned; harness/unit_hold_deposit.py)",
+    "cover_suites": "not run"
+  }
+}

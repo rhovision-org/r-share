@@ -1,5 +1,5 @@
 schema: rshare.arms/v1
-total: 163
+total: 174
 arms:
 - component: AdminGuard
   arm: verify
@@ -1468,3 +1468,102 @@ arms:
   lean_target: null
   audit_disposition: unmapped
   rationale: Operator resume for new binds.
+- component: Bond
+  arm: verify
+  source: contracts/src/deploy/15_bond.rho:143
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Funded-bond proof used by the booking spawn; holder token and expected amount.
+- component: BookingFactory
+  arm: verify
+  source: contracts/src/deploy/22_booking_contract.rho:46
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Canonical bookingId lookup and hold verification for the listing confirm gate.
+- component: BookingContract
+  arm: verifyHold
+  source: contracts/src/deploy/34_booking_instance.rho:500
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Booking-side check of bookingId, unitSlots, captured token and open status.
+- component: HoldDeposit
+  arm: deposit
+  source: contracts/src/deploy/41_hold_deposit.rho:166
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Takes the per-acquire hold deposit and records it by bookingId.
+- component: HoldDeposit
+  arm: authorize
+  source: contracts/src/deploy/41_hold_deposit.rho:250
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: "Confirm gate: requires a deposit record and a verified funded booking."
+- component: HoldDeposit
+  arm: settle
+  source: contracts/src/deploy/41_hold_deposit.rho:287
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Release/confirm settlement; probe-gated for release and verify-gated for confirm.
+- component: Payments
+  arm: withdrawPayment
+  source: contracts/src/deploy/40_payments.rho:130
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Deployer-authorized withdrawal of an exact amount for the hold deposit.
+- component: Payments
+  arm: refundPayment
+  source: contracts/src/deploy/40_payments.rho:173
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Deposits an unspent hold payment back to the payer's deposit facet.
+- component: BookingInstanceFactory
+  arm: spawnChecked
+  source: contracts/src/deploy/34_booking_instance.rho:58
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Bond-verified booking spawn; the unverified spawn forwards here only after Bond.verify.
+- component: ProviderContract
+  arm: listingUri
+  source: contracts/src/deploy/10_provider.rho:128
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Authoritative listing URI for the hold-deposit release probe; returns removed listings too.
+- component: BondFactory
+  arm: issued
+  source: contracts/src/deploy/15_bond.rho:16
+  visibility: public
+  flow_rule: null
+  flow_status: unmapped
+  lean_target: null
+  audit_disposition: unmapped
+  rationale: Factory-issued bond index; the booking spawn uses it to reject a caller-supplied fake Bond.

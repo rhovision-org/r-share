@@ -127,6 +127,69 @@ in {
     }
   } |
 
+  contract Payments(@"withdrawPayment", dId, @assetId, @amount, ret) = {
+    new iCh in {
+      Payments!("issuer", assetId, *iCh) |
+      for (@i <- iCh) {
+        match i {
+          (true, brand, issuer) => {
+            new aCh in {
+              Payments!("ensureAccount", *dId, *aCh) |
+              for (@a <- aCh) {
+                match a {
+                  (true, account, ownerId) => {
+                    new wCh, mCh in {
+                      @account!("withdraw", *dId, assetId, amount, *wCh) |
+                      for (@w <- wCh) {
+                        match w {
+                          (true, payment) => {
+                            @issuer!("getAmountOf", payment, *mCh) |
+                            for (@m <- mCh) {
+                              match m {
+                                (true, measured) => {
+                                  if (measured != amount) { 1/0 }
+                                  else { ret!((true, payment)) }
+                                }
+                                _ => { 1/0 }
+                              }
+                            }
+                          }
+                          _ => { ret!(w) }
+                        }
+                      }
+                    }
+                  }
+                  _ => { ret!(a) }
+                }
+              }
+            }
+          }
+          _ => { ret!(i) }
+        }
+      }
+    }
+  } |
+
+  contract Payments(@"refundPayment", @ownerId, @assetId, payment, ret) = {
+    new fCh, dCh in {
+      Payments!("depositFacet", ownerId, assetId, *fCh) |
+      for (@f <- fCh) {
+        match f {
+          (true, facet) => {
+            @facet!("deposit", payment, *dCh) |
+            for (@d <- dCh) {
+              match d {
+                (true, _) => { ret!((true, Nil)) }
+                _ => { 1/0 }
+              }
+            }
+          }
+          _ => { ret!(f) }
+        }
+      }
+    }
+  } |
+
   contract Payments(@"issuer", @assetId, ret) = {
     for (@s <<- paymentsState) {
       new okCh in {
@@ -253,7 +316,12 @@ in {
     rs!(bundle+{*Payments}, *c) |
     for (@uri <- c) {
       Root!("register", "component:payments", uri, 1, "payments", *deployerId, *ack) |
-      for (@r <- ack) { deployId!([uri]) }
+      for (@r <- ack) {
+        match r {
+          (true, Nil) => { deployId!([uri]) }
+          _ => { 1/0 }
+        }
+      }
     }
   }
 }

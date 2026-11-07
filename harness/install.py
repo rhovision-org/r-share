@@ -132,6 +132,10 @@ def verify_profile(profile: str) -> None:
     elif not all(present):
         missing = [key for key, ok in zip(COVER_KEYS, present) if not ok]
         raise SystemExit(f"install: cover-demo profile is incomplete: missing {missing}")
+    try:
+        actors.resolve("component:hold-deposit")
+    except Exception:
+        raise SystemExit("install: profile is incomplete: missing component:hold-deposit")
     print(f"install: profile {profile} verified ({sum(present)}/{len(COVER_KEYS)} cover keys)")
 
 
@@ -233,6 +237,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"install: root {root_uri}")
         else:
             state.setdefault("components", {})[name] = decoded
+            if not find_uri(decoded):
+                raise SystemExit(
+                    f"install: {name} returned no component URI: {decoded!r}"
+                )
             if name == "40_payments.rho":
                 pay_uri = find_uri(decoded)
                 if not pay_uri:

@@ -1,6 +1,7 @@
 import RShare.Invariants
 import RShare.Model.System
 import RShare.Model.Cover
+import RShare.Model.Hold
 import RShare.Linear.Concurrency
 import RShare.Linear.Deploy
 
@@ -56,6 +57,15 @@ import RShare.Linear.Deploy
 #print axioms RShare.System.alloc_transition_is_one_commit
 #print axioms RShare.System.system_settle_once
 #print axioms RShare.System.system_terminal_progress
+
+-- Hold deposit and confirm gate.
+#print axioms RShare.Hold.acquire_requires_deposit
+#print axioms RShare.Hold.confirm_requires_booking
+#print axioms RShare.Hold.release_requires_no_hold
+#print axioms RShare.Hold.refund_requires_no_hold
+#print axioms RShare.Hold.refund_before_window_requires_no_hold
+#print axioms RShare.Hold.paidOut_terminal
+#print axioms RShare.Hold.settleBooked_requires_booking
 
 -- Cover state machine.
 #print axioms RShare.Cover.authorize_fixes_token

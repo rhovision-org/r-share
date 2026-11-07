@@ -2,12 +2,18 @@
 
 Date: 2026-11-07
 
-Scope: `contracts/src/deploy/*.rho` (19 deploy terms) and `contracts/src/lib/*.rho`
+Scope: `contracts/src/deploy/*.rho` (20 deploy terms) and `contracts/src/lib/*.rho`
 (7 inlined fragments). Read-only audit first; refactors are listed by risk tier.
+
+Refresh 2026-11-07 (hold-deposit close-out): the counts below are 514 `match` expressions
+(501 deploy, 13 lib) after the hold-deposit and funded-booking confirm gate. The earlier
+455/436 figures in the tier tables are the pre-change audit record; the structural findings
+still apply. The new `41_hold_deposit.rho` matches are exhaustive over resolver, probe and
+purse replies, and the `1/0` arms are registered in `audit/registers/panics.yaml`.
 
 ## 1. Why this audit exists
 
-The contracts use 455 `match` expressions (442 deploy, 13 lib). Every current `match` ends
+The contracts use 514 `match` expressions (501 deploy, 13 lib). Every current `match` ends
 in a wildcard or bare variable, so none is silently non-exhaustive. The problems are
 structural: a `match` used only as a `let`, a second `match` on the same scrutinee, a
 duplicated refusal branch, or a flat string dispatch written as an `if/else` ladder.

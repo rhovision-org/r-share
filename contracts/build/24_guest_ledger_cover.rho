@@ -8,7 +8,8 @@ new
   deployId(`rho:rchain:deployId`),
   rootCh, c, ack,
   resolveComponent,
-  coverListing, coverOffer, coverNow, coverAcquire, coverRelease,
+  coverListing, coverOffer, coverNow, coverPayments, coverHoldPay,
+  coverHoldRefund, coverHoldSettle, coverAcquire, coverRelease,
   coverPool, coverBondFactory, coverBookingFactory, coverStatus,
   coverBind, coverBond, coverBook, coverAttach
 in {
@@ -78,12 +79,60 @@ contract resolveComponent(@key, ret) = {
     }
   } |
 
-  contract coverAcquire(@listingUri, @bookingId, @slots, @until,
-                        releaseToken, ret) = {
+  contract coverPayments(ret) = {
+    resolveComponent!("component:payments", *ret)
+  } |
+
+  contract coverHoldPay(dId, @assetId, @amount, ret) = {
+    new pCh in {
+      coverPayments!(*pCh) |
+      for (@p <- pCh) {
+        match p {
+          (true, Payments) => {
+            @Payments!("withdrawPayment", *dId, assetId, amount, *ret)
+          }
+          _ => { ret!(p) }
+        }
+      }
+    }
+  } |
+
+  contract coverHoldRefund(@ownerId, @assetId, payment, ret) = {
+    new pCh in {
+      coverPayments!(*pCh) |
+      for (@p <- pCh) {
+        match p {
+          (true, Payments) => {
+            @Payments!("refundPayment", ownerId, assetId, payment, *ret)
+          }
+          _ => { ret!(p) }
+        }
+      }
+    }
+  } |
+
+  contract coverHoldSettle(@bookingId, @mode, releaseToken, ret) = {
+    new hdCh, spCh in {
+      resolveComponent!("component:hold-deposit", *hdCh) |
+      for (@hd <- hdCh) {
+        match hd {
+          (true, HoldDeposit) => {
+            @HoldDeposit!("settle", bookingId, mode, *releaseToken, *spCh) |
+            for (@_ <- spCh) { ret!((true, Nil)) }
+          }
+          _ => { ret!((true, Nil)) }
+        }
+      }
+    }
+  } |
+
+  contract coverAcquire(@listingUri, @bookingId, @payerId, @slots, @until,
+                        releaseToken, payment, ret) = {
     new cCh in {
       rl!(listingUri, *cCh) |
       for (Listing <- cCh) {
-        Listing!("acquire", bookingId, slots, until, *releaseToken, *ret)
+        Listing!("acquire", bookingId, payerId, slots, until,
+                 *releaseToken, *payment, *ret)
       }
     }
   } |
@@ -149,7 +198,13 @@ contract resolveComponent(@key, ret) = {
                           coverRelease!(ctx.get("listingUri"),
                                         ctx.get("unitSlots"),
                                         *releaseToken, *rCh) |
-                          for (@_ <- rCh) { ret!(br) }
+                          for (@_ <- rCh) {
+                            new hsCh in {
+                              coverHoldSettle!(ctx.get("bookingId"), "release",
+                                               *releaseToken, *hsCh) |
+                              for (@_ <- hsCh) { ret!(br) }
+                            }
+                          }
                         }
                       }
                     }
@@ -162,7 +217,13 @@ contract resolveComponent(@key, ret) = {
             new rCh in {
               coverRelease!(ctx.get("listingUri"), ctx.get("unitSlots"),
                             *releaseToken, *rCh) |
-              for (@_ <- rCh) { ret!((false, "cover pool")) }
+              for (@_ <- rCh) {
+                new hsCh in {
+                  coverHoldSettle!(ctx.get("bookingId"), "release",
+                                   *releaseToken, *hsCh) |
+                  for (@_ <- hsCh) { ret!((false, "cover pool")) }
+                }
+              }
             }
           }
         }
@@ -201,16 +262,7 @@ contract resolveComponent(@key, ret) = {
   contract coverBook(dId, @ctx, @policyUri, @bondUri,
                      releaseToken, settleToken, ret) = {
     new cfCh in {
-      if (ctx.get("instant") == true) {
-        new cCh in {
-          rl!(ctx.get("listingUri"), *cCh) |
-          for (Listing <- cCh) {
-            Listing!("confirm", ctx.get("unitSlots"), *releaseToken, *cfCh)
-          }
-        }
-      } else {
-        cfCh!((true, Nil))
-      } |
+      cfCh!((true, Nil)) |
       for (@cf <- cfCh) {
         match cf {
           (true, Nil) => {
@@ -225,6 +277,7 @@ contract resolveComponent(@key, ret) = {
                     "providerId": ctx.get("providerId"),
                     "listingId": ctx.get("listing").get("listingId"),
                     "listingUri": ctx.get("listingUri"),
+                    "termsHash": ctx.get("listing").get("termsHash"),
                     "kind": ctx.get("listing").get("kind"),
                     "unitSlots": ctx.get("unitSlots"),
                     "assetId": ctx.get("listing").get("terms").get("assetId"),
@@ -268,8 +321,35 @@ contract resolveComponent(@key, ret) = {
                               for (@booking <- bookingCh) {
                                 match booking {
                                   (true, bookingUri) => {
-                                    coverAttach!(*dId, ctx, policyUri,
-                                                 bookingUri, *ret)
+                                    if (ctx.get("instant") == true) {
+                                      new cCh2, hsCh in {
+                                        rl!(ctx.get("listingUri"), *cCh2) |
+                                        for (Listing <- cCh2) {
+                                          Listing!("confirm",
+                                            ctx.get("bookingId"),
+                                            ctx.get("unitSlots"),
+                                            *releaseToken, *cfCh2) |
+                                          for (@cf2 <- cfCh2) {
+                                            match cf2 {
+                                              (true, Nil) => {
+                                                coverHoldSettle!(
+                                                  ctx.get("bookingId"),
+                                                  "confirm", *releaseToken,
+                                                  *hsCh) |
+                                                for (@_ <- hsCh) {
+                                                  coverAttach!(*dId, ctx,
+                                                    policyUri, bookingUri, *ret)
+                                                }
+                                              }
+                                              _ => { 1/0 }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    } else {
+                                      coverAttach!(*dId, ctx, policyUri,
+                                                   bookingUri, *ret)
+                                    }
                                   }
                                   _ => { 1/0 }
                                 }
@@ -369,10 +449,18 @@ contract resolveComponent(@key, ret) = {
                                     new bookingIdCh in {
                                       bookingIdCh!(guestId ++ ":" ++ opId) |
                                       for (@bookingId <- bookingIdCh) {
+                                        new hpCh in {
+                                          coverHoldPay!(*dId,
+                                            listing.get("terms").get("assetId"),
+                                            listing.get("terms").get("pricePerSlot"),
+                                            *hpCh) |
+                                          for (@hp <- hpCh) {
+                                            match hp {
+                                              (true, payment) => {
                                         coverAcquire!(listingUri, bookingId,
-                                          unitSlots,
+                                          guestId, unitSlots,
                                           now + listing.get("terms").get("holdBlocks"),
-                                          *releaseToken, *acqCh) |
+                                          *releaseToken, *payment, *acqCh) |
                                         for (@acq <- acqCh) {
                                           match acq {
                                             (true, summary) => {
@@ -410,11 +498,23 @@ contract resolveComponent(@key, ret) = {
                                               }
                                             }
                                             _ => {
-                                              new relCh in {
-                                                coverRelease!(listingUri, unitSlots,
-                                                  *releaseToken, *relCh) |
-                                                for (@_ <- relCh) { ret!(acq) }
+                                              new rfCh in {
+                                                coverHoldRefund!(guestId,
+                                                  listing.get("terms").get("assetId"),
+                                                  payment, *rfCh) |
+                                                for (@_ <- rfCh) {
+                                                  new relCh in {
+                                                    coverRelease!(listingUri, unitSlots,
+                                                      *releaseToken, *relCh) |
+                                                    for (@_ <- relCh) { ret!(acq) }
+                                                  }
+                                                }
                                               }
+                                            }
+                                          }
+                                        }
+                                              }
+                                              _ => { ret!(hp) }
                                             }
                                           }
                                         }
@@ -447,7 +547,12 @@ contract resolveComponent(@key, ret) = {
     for (@uri <- c) {
       Root!("register", "component:guest-ledger-cover", uri, 1,
             "cover", *deployerId, *ack) |
-      for (@_ <- ack) { deployId!([uri]) }
+      for (@r <- ack) {
+        match r {
+          (true, Nil) => { deployId!([uri]) }
+          _ => { 1/0 }
+        }
+      }
     }
   }
 }

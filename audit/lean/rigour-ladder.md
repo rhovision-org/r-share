@@ -31,7 +31,8 @@ is not a proof.
 - Resolve the duplicate S-numbering in favour of `INV-###` IDs that map to
   `spec/invariants.md`.
 
-At the current baseline: 94 registered theorems, all named in the axiom audit. The flow
+At the current baseline: 101 registered theorems, 100 source theorems, 105 axiom audits; the
+hold-deposit theorems are named in the axiom audit. The flow
 manifest has 43 rules over 39 arms; the remaining public arms stay in the inventory as
 explicitly unmapped.
 
@@ -70,6 +71,14 @@ contract is restructured or the model is changed to the take/await/put pattern. 
 adds 13 cover theorems: fixed token, one-time pay, attached-only payout, attached expiry,
 idempotent terminal settle, claim freeze and dispute refusal. ERTP and token unforgeability
 remain assumptions.
+
+`Model/Hold` adds 7 hold-deposit theorems: `acquire_requires_deposit`,
+`confirm_requires_booking`, `release_requires_no_hold`, `refund_requires_no_hold`,
+`refund_before_window_requires_no_hold`, `paidOut_terminal` and
+`settleBooked_requires_booking`. They model the deployed gates (deposit paid, funded-booking
+verify, probe-gated refund, forfeit only after the window) but do not tie them to Rholang;
+the boundary fields are listed in `Model/System.Boundary` and `docs/reference/formal-model.md`.
+The residual gas-only release loop inside the window is recorded, not proved away.
 
 ## L3 — admin thresholds and ERTP conservation
 

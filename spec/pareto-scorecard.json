@@ -15,13 +15,13 @@
   ],
   "trust_count": 3,
   "metrics": {
-    "deploy_terms": 19,
-    "components": 27,
-    "state_cell_types": 14,
-    "bytes_max": 33475,
-    "arm_declarations": 163,
+    "deploy_terms": 20,
+    "components": 28,
+    "state_cell_types": 16,
+    "bytes_max": 36277,
+    "arm_declarations": 174,
     "root_resolve_sites": 4,
-    "registry_lookup_sites": 49
+    "registry_lookup_sites": 55
   },
   "candidates": [
     {
@@ -29,9 +29,9 @@
       "coverage_passing": 20,
       "coverage_total": 30,
       "trust": 3,
-      "bytes_max": 33475,
-      "components": 27,
-      "state_cell_types": 14,
+      "bytes_max": 36277,
+      "components": 28,
+      "state_cell_types": 16,
       "measured": true
     },
     {

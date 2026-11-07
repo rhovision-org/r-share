@@ -529,7 +529,12 @@ in {
     for (@uri <- c) {
       Root!("register", "component:cover-policy-factory", uri, 1,
             "cover", *deployerId, *c) |
-      for (@_ <- c) { deployId!([uri]) }
+      for (@r <- c) {
+        match r {
+          (true, Nil) => { deployId!([uri]) }
+          _ => { 1/0 }
+        }
+      }
     }
   }
 }

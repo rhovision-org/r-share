@@ -1,0 +1,317 @@
+schema: rshare.abort-arms/v1
+description: >-
+  Every `1/0` in a deploy term. `sites` are keyed by file, enclosing contract and
+  ordinal within that contract; line numbers are deliberately not stored. Register
+  guards are counted per file separately: they abort the install deploy when Root
+  refuses a registration. Rollback aborts are intentional and rely on deploy atomicity;
+  recoverable entries are `convert-deferred` until a test covers the failure path.
+register_guards:
+- file: 01_kernel.rho
+  count: 3
+- file: 02_admin.rho
+  count: 2
+- file: 03_terms.rho
+  count: 1
+- file: 04_remedy.rho
+  count: 1
+- file: 10_provider.rho
+  count: 1
+- file: 13_unit.rho
+  count: 1
+- file: 14_listing_contract.rho
+  count: 1
+- file: 15_bond.rho
+  count: 1
+- file: 20_booking.rho
+  count: 1
+- file: 22_booking_contract.rho
+  count: 1
+- file: 23_guest_ledger.rho
+  count: 1
+- file: 24_guest_ledger_cover.rho
+  count: 1
+- file: 30_cover_terms.rho
+  count: 1
+- file: 31_cover_offer.rho
+  count: 1
+- file: 32_cover_pool.rho
+  count: 1
+- file: 33_cover_policy.rho
+  count: 1
+- file: 34_booking_instance.rho
+  count: 1
+- file: 40_payments.rho
+  count: 1
+- file: 41_hold_deposit.rho
+  count: 1
+sites:
+- id: PA-001
+  file: 14_listing_contract.rho
+  contract: ListingFactory
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-002
+  file: 15_bond.rho
+  contract: bondPaySequence
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-003
+  file: 15_bond.rho
+  contract: bondPaySequence
+  ordinal: 2
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-004
+  file: 15_bond.rho
+  contract: bondPaySequence
+  ordinal: 3
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-005
+  file: 15_bond.rho
+  contract: BondFactory
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-006
+  file: 15_bond.rho
+  contract: BondFactory
+  ordinal: 2
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-007
+  file: 15_bond.rho
+  contract: BondFactory
+  ordinal: 3
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-008
+  file: 15_bond.rho
+  contract: BondFactory
+  ordinal: 4
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-009
+  file: 23_guest_ledger.rho
+  contract: GuestLedgerSpawn
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-010
+  file: 23_guest_ledger.rho
+  contract: GuestLedgerSpawn
+  ordinal: 2
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-011
+  file: 23_guest_ledger.rho
+  contract: GuestLedgerSpawn
+  ordinal: 3
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-012
+  file: 24_guest_ledger_cover.rho
+  contract: coverBond
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-013
+  file: 24_guest_ledger_cover.rho
+  contract: coverBond
+  ordinal: 2
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-014
+  file: 24_guest_ledger_cover.rho
+  contract: coverBook
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-015
+  file: 24_guest_ledger_cover.rho
+  contract: coverBook
+  ordinal: 2
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-016
+  file: 24_guest_ledger_cover.rho
+  contract: coverBook
+  ordinal: 3
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-017
+  file: 24_guest_ledger_cover.rho
+  contract: coverAttach
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-018
+  file: 32_cover_pool.rho
+  contract: reservePolicy
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-019
+  file: 32_cover_pool.rho
+  contract: reservePolicy
+  ordinal: 2
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-020
+  file: 32_cover_pool.rho
+  contract: CoverSettle
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-021
+  file: 32_cover_pool.rho
+  contract: CoverPool
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-022
+  file: 32_cover_pool.rho
+  contract: CoverPool
+  ordinal: 2
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-023
+  file: 32_cover_pool.rho
+  contract: CoverPool
+  ordinal: 3
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-024
+  file: 32_cover_pool.rho
+  contract: CoverPool
+  ordinal: 4
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-025
+  file: 33_cover_policy.rho
+  contract: coverPolicyPay
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-026
+  file: 33_cover_policy.rho
+  contract: coverPolicySettle
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-027
+  file: 33_cover_policy.rho
+  contract: coverPolicySettle
+  ordinal: 2
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-028
+  file: 33_cover_policy.rho
+  contract: coverPolicySettleKey
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-029
+  file: 33_cover_policy.rho
+  contract: coverPolicySettleKey
+  ordinal: 2
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-030
+  file: 34_booking_instance.rho
+  contract: bcPlatform
+  ordinal: 1
+  classification: recoverable_component_failure
+  rationale: "Payments resolve failed before any value moved; conversion is a candidate"
+- id: PA-031
+  file: 34_booking_instance.rho
+  contract: bcSettleWith
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-032
+  file: 34_booking_instance.rho
+  contract: bcSettleWith
+  ordinal: 2
+  classification: recoverable_refusal_mapping
+  rationale: "non-closed Bond pay reply is a booking refusal, not an invariant"
+- id: PA-033
+  file: 34_booking_instance.rho
+  contract: bcSettleWith
+  ordinal: 3
+  classification: rollback_after_value_move
+  rationale: "aborts a partial purse, slot or state movement and relies on deploy rollback"
+- id: PA-034
+  file: 34_booking_instance.rho
+  contract: bcCancelSettle
+  ordinal: 1
+  classification: recoverable_component_failure
+  rationale: "Payments resolve failed before any value moved; conversion is a candidate"
+- id: PA-035
+  file: 34_booking_instance.rho
+  contract: bcSettleRent
+  ordinal: 1
+  classification: recoverable_component_failure
+  rationale: "Payments resolve failed before any value moved; conversion is a candidate"
+- id: PA-036
+  file: 34_booking_instance.rho
+  contract: bcSettleNoShow
+  ordinal: 1
+  classification: recoverable_component_failure
+  rationale: "Payments resolve failed before any value moved; conversion is a candidate"
+- id: PA-037
+  file: 23_guest_ledger.rho
+  contract: GuestLedgerSpawn
+  ordinal: 4
+  classification: rollback_after_value_move
+  rationale: "post-booking confirm failure must roll back the booking, bond, hold and deposit"
+- id: PA-038
+  file: 24_guest_ledger_cover.rho
+  contract: coverBook
+  ordinal: 4
+  classification: rollback_after_value_move
+  rationale: "post-booking confirm failure must roll back the cover booking chain"
+- id: PA-039
+  file: 40_payments.rho
+  contract: Payments
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "withdrawPayment measured amount mismatch aborts the deploy; the withdraw rolls back"
+- id: PA-040
+  file: 40_payments.rho
+  contract: Payments
+  ordinal: 2
+  classification: rollback_after_value_move
+  rationale: "withdrawPayment getAmountOf failure aborts the deploy; the withdraw rolls back"
+- id: PA-041
+  file: 40_payments.rho
+  contract: Payments
+  ordinal: 3
+  classification: rollback_after_value_move
+  rationale: "refundPayment deposit failure must not half-refund; deploy rollback restores the payment"
+- id: PA-042
+  file: 41_hold_deposit.rho
+  contract: holdDepositTo
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "deposit facet unavailable; rollback returns the payment to the caller"
+- id: PA-043
+  file: 41_hold_deposit.rho
+  contract: holdDepositTo
+  ordinal: 2
+  classification: rollback_after_value_move
+  rationale: "facet deposit failed; rollback returns the payment to the caller"
+- id: PA-044
+  file: 41_hold_deposit.rho
+  contract: HoldDeposit
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "purse deposit failed after the amount check; deploy rollback restores the payment"
+- id: PA-045
+  file: 41_hold_deposit.rho
+  contract: settlePay
+  ordinal: 1
+  classification: rollback_after_value_move
+  rationale: "withdraw failed during settle; rollback leaves the escrow record intact"

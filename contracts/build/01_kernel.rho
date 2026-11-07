@@ -106,7 +106,20 @@ in {
         Root!("register", "component:verifier", uVerifier, 1, "kernel", *deployerId, *a2) |
         Root!("register", "component:codec", uCodec, 1, "kernel", *deployerId, *a3) |
         for (@r1 <- a1; @r2 <- a2; @r3 <- a3) {
-          deployId!([uClock, uVerifier, uCodec])
+          match r1 {
+            (true, Nil) => {
+              match r2 {
+                (true, Nil) => {
+                  match r3 {
+                    (true, Nil) => { deployId!([uClock, uVerifier, uCodec]) }
+                    _ => { 1/0 }
+                  }
+                }
+                _ => { 1/0 }
+              }
+            }
+            _ => { 1/0 }
+          }
         }
       }
     }

@@ -191,14 +191,17 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
                 (true, providerId) => {
                   match act {
                     (true, true) => {
-                  new termsCh, admCh in {
+                  new termsCh, admCh, holdCh in {
                     listingResolve!("component:terms", *termsCh) |
                     listingResolve!("component:admin", *admCh) |
-                    for (@tr <- termsCh; @ar <- admCh) {
+                    listingResolve!("component:hold-deposit", *holdCh) |
+                    for (@tr <- termsCh; @ar <- admCh; @hd <- holdCh) {
                       match tr {
                         (true, Terms) => {
                           match ar {
                             (true, ShareAdmin) => {
+                              match hd {
+                                (true, HoldDeposit) => {
                               new tCh, hCh, aCh in {
                                 @Terms!("validate", kind, terms, *tCh) |
                                 @Terms!("hash", kind, terms, *hCh) |
@@ -215,7 +218,7 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
                                                   *dId, providerUri, providerId,
                                                   listingId, kind, terms,
                                                   termsHash, admins, threshold,
-                                                  *lcCh) |
+                                                  *HoldDeposit, *lcCh) |
                                                 for (@lr <- lcCh) {
                                                   match lr {
                                                     (true, listingUri) => {
@@ -248,6 +251,9 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
                                   }
                                 }
                               }
+                                }
+                                _ => { ret!(hd) }
+                              }
                             }
                             _ => { ret!(ar) }
                           }
@@ -273,7 +279,7 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
 
   contract ListingContractFactory(@"create", dId, @providerUri, @providerId,
                                   @listingId, @kind, @terms, @termsHash,
-                                  @admins, @threshold, ret) = {
+                                  @admins, @threshold, HoldDeposit, ret) = {
     new oCh in {
       authIsOwner!(*dId, providerId, *oCh) |
       for (@v <- oCh) {
@@ -294,6 +300,7 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
                 "kind": kind,
                 "terms": terms,
                 "termsHash": termsHash,
+                "listingKey": listingId ++ ":" ++ termsHash,
                 "status": "draft",
                 "units": {},
                 "slots": {},
@@ -921,8 +928,9 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
                   }
                 }
               } |
-              contract ListingContract(@"acquire", @bookingId, @unitSlots,
-                                       @untilHeight, releaseToken, ret2) = {
+              contract ListingContract(@"acquire", @bookingId, @payerId,
+                                       @unitSlots, @untilHeight,
+                                       releaseToken, payment, ret2) = {
                 new nCh in {
                   listingNow!(*nCh) |
                   for (@n <- nCh) {
@@ -962,8 +970,30 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
                                                         bookingId, untilHeight,
                                                         *releaseToken, *apCh) |
                                                       for (@st2 <- apCh) {
-                                                        listingState!(st2) |
-                                                        ret2!((true, summary))
+                                                        new dpCh in {
+                                                          @HoldDeposit!("deposit",
+                                                            st.get("providerUri"),
+                                                            st.get("listingId"),
+                                                            st.get("listingKey"),
+                                                            bookingId, payerId,
+                                                            st.get("providerId"),
+                                                            untilHeight, unitSlots,
+                                                            st.get("terms").get(
+                                                              "pricePerSlot"),
+                                                            *payment, *dpCh) |
+                                                          for (@dp <- dpCh) {
+                                                            match dp {
+                                                              (true, Nil) => {
+                                                                listingState!(st2) |
+                                                                ret2!((true, summary))
+                                                              }
+                                                              _ => {
+                                                                listingState!(st) |
+                                                                ret2!(dp)
+                                                              }
+                                                            }
+                                                          }
+                                                        }
                                                       }
                                                     }
                                                   }
@@ -994,28 +1024,41 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
                   }
                 }
               } |
-              contract ListingContract(@"confirm", @unitSlots, releaseToken, ret2) = {
+              contract ListingContract(@"confirm", @bookingId,
+                                       @unitSlots, releaseToken, ret2) = {
                 new nCh in {
                   listingNow!(*nCh) |
                   for (@n <- nCh) {
                     match n {
                       (true, now) => {
                         for (@st <- listingState) {
-                          new cCh in {
-                            allocConfirmCheck!(st, unitSlots, 0,
-                                               *releaseToken, now, *cCh) |
-                            for (@c <- cCh) {
-                              match c {
+                          new aCh in {
+                            @HoldDeposit!("authorize", st.get("listingKey"),
+                                          bookingId, *releaseToken, *aCh) |
+                            for (@au <- aCh) {
+                              match au {
                                 (true, Nil) => {
-                                  new apCh in {
-                                    allocConfirmApply!(st, unitSlots, 0,
-                                                       *releaseToken, *apCh) |
-                                    for (@st2 <- apCh) {
-                                      listingState!(st2) | ret2!((true, Nil))
+                                  new cCh in {
+                                    allocConfirmCheck!(st, unitSlots, 0,
+                                                       *releaseToken, now, *cCh) |
+                                    for (@c <- cCh) {
+                                      match c {
+                                        (true, Nil) => {
+                                          new apCh in {
+                                            allocConfirmApply!(st, unitSlots, 0,
+                                                               *releaseToken, *apCh) |
+                                            for (@st2 <- apCh) {
+                                              listingState!(st2) |
+                                              ret2!((true, Nil))
+                                            }
+                                          }
+                                        }
+                                        _ => { listingState!(st) | ret2!(c) }
+                                      }
                                     }
                                   }
                                 }
-                                _ => { listingState!(st) | ret2!(c) }
+                                _ => { listingState!(st) | ret2!(au) }
                               }
                             }
                           }
@@ -1442,7 +1485,12 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
     for (@uri <- c) {
       Root!("register", "component:listing-factory", uri, 1,
             "listing", *deployerId, *ack) |
-      for (@r <- ack) { deployId!([uri]) }
+      for (@r <- ack) {
+        match r {
+          (true, Nil) => { deployId!([uri]) }
+          _ => { 1/0 }
+        }
+      }
     }
   }
 }

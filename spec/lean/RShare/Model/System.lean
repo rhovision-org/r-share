@@ -51,6 +51,13 @@ structure Boundary where
   operatorSettleTrusted : Bool
   nodeDeployAtomic : Bool
   bindReservedRequiresHold : Bool
+  holdDepositPurseAtomic : Bool
+  bookingRegistryAtomic : Bool
+  bondVerifyTrusted : Bool
+  bondFactoryIssued : Bool
+  confirmAuthorizationTie : Bool
+  holdProbeObservesListing : Bool
+  holdRefundAfterWindowForfeits : Bool
 
 def boundary : Boundary :=
   { providerActiveCheckedByLedger := true
@@ -64,10 +71,18 @@ def boundary : Boundary :=
     ertpPurseAtomic := true
     operatorSettleTrusted := true
     nodeDeployAtomic := true
-    bindReservedRequiresHold := true }
+    bindReservedRequiresHold := true
+    holdDepositPurseAtomic := true
+    bookingRegistryAtomic := true
+    bondVerifyTrusted := true
+    bondFactoryIssued := true
+    confirmAuthorizationTie := true
+    holdProbeObservesListing := true
+    holdRefundAfterWindowForfeits := true }
 
 /-- A caller can hold free slots without a booking; the hold is bounded by the unit's
-`maxHoldBlocks`, so the grief is temporary. -/
+`maxHoldBlocks`, so the grief is temporary. The hold deposit and the funded-booking
+confirm gate are separate model theorems in `RShare.Hold`. -/
 def caller_hold_bounded := @Allocator.acquire_bounded
 
 end System

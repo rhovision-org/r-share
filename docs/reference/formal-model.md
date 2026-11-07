@@ -22,6 +22,7 @@
 | `RShare/Model/Remedy.lean` | fee, full refund, no-show and deposit-split conservation |
 | `RShare/Model/Ledger.lean` | reserve/finish/drop replay shape |
 | `RShare/Model/Cover.lean` | cover policy/binding state machine, fixed claim token, one-time pay, attached expiry, idempotent terminal settle, claim freeze, dispute refusal |
+| `RShare/Model/Hold.lean` | hold-deposit state machine: acquire requires payment, confirm requires a verified funded booking, refund requires no standing hold, forfeit only after the window |
 | `RShare/Model/System.lean` | composition aliases and the explicit boundary |
 | `RShare/Invariants.lean` | stable S-names for the flow manifest |
 | `RShare/Emit.lean` | deterministic vectors consumed by the suites |
@@ -49,10 +50,17 @@ deployed `acquire` is a single commit; `held_across_external_call_unsafe` is the
 counterexample for the take/await/put window, and the acquire tie remains an assumption.
 
 The deployed `acquire` now checks ShareAdmin pause and ProviderContract status; those checks
-are not proved as a refinement of the model. A caller can still hold free slots without a
-booking; that grief is bounded by `maxHoldBlocks`. `bindReserved` now requires a live
-`Listing("verifyHold")`; the deployment tie is recorded as `bindReservedRequiresHold` in the
-boundary, not proved.
+are not proved as a refinement of the model. `acquire` also takes a `pricePerSlot` hold
+deposit into `41_hold_deposit.rho`; the refund is gated by the listing `probe` and forfeits
+after the hold window, and `Listing.confirm` requires a deposit record plus a verified funded
+booking (`BookingFactory("verify")` -> `BookingContract("verifyHold")`). `Model/Hold.lean`
+proves those transition gates; the deployed ties are boundary assumptions
+(`holdDepositPurseAtomic`, `bookingRegistryAtomic`, `bondVerifyTrusted`,
+`bondFactoryIssued`, `confirmAuthorizationTie`, `holdProbeObservesListing`,
+`holdRefundAfterWindowForfeits`), not refinements. The residual is a funded caller who
+releases inside the window at gas cost; the deposit is not a per-release fee. `bindReserved`
+now requires a live `Listing("verifyHold")`; the deployment tie is recorded as
+`bindReservedRequiresHold` in the boundary, not proved.
 
 The cover model proves claim-token and terminal-settle properties. ERTP purse atomicity,
 claim-token unforgeability, operator trust, node deploy atomicity and Rholang refinement are
@@ -83,7 +91,8 @@ turns those warnings into failures.
 
 ## Audit baseline
 
-The theorem registry now has 94 theorems, all named in the axiom audit. The flow manifest
+The theorem registry now has 101 theorems (100 source theorems, 105 axiom audits); the
+hold-deposit theorems are named in the axiom audit. The flow manifest
 has 43 rules over 39 arms, every `proved-model` target is a theorem, and
 `make check-flows-strict` reports zero warnings. `System.disjoint_cells_commute` and
 `provider_pause_not_structural` were removed; the acquire and cover deployment ties are

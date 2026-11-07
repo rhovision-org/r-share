@@ -15,9 +15,9 @@ export RHOLO_DIR := $(abspath $(RHOLO_DIR))
         devnet-wait down status rcash-install rcash-keys rcash-bootstrap keys install install-cover-demo setup setup-cover unit-root unit-payments \
         unit-provider unit-listing unit-booking unit-allocator unit-lifecycle \
         unit-claims unit-pricing unit-guestbook unit-events unit-admin unit-pause \
-        unit-generality unit-conservation unit-behavior unit-all unit-all-cover \
+        unit-generality unit-conservation unit-behavior unit-hold-deposit unit-all unit-all-cover \
         check ci clean lean-build lean-check vectors vectors-write check-flows check-flows-strict formal-check \
-        audit-check audit-trace audit-trace-check check-audit check-arm-inventory audit-dynamic \
+        audit-check audit-trace audit-trace-check check-audit check-arm-inventory check-panics audit-dynamic \
         client-lint client-test client-wasm client-wasm-smoke client-gates client-check \
         client-fixtures client-journey client-keystores \
         web-install web-test web-build web-e2e
@@ -181,6 +181,8 @@ unit-conservation:
 	$(PY) harness/unit_conservation.py
 unit-behavior:
 	$(PY) harness/unit_behavior.py
+unit-hold-deposit:
+	$(PY) harness/unit_hold_deposit.py
 
 # The runner reports pass / fail / not-run and writes deployments/suite-results.json.
 unit-all:
@@ -211,7 +213,7 @@ formal-check: lean-check vectors check-flows check-flows-strict
 
 # ---- audit ---------------------------------------------------------------------------
 
-audit-check: check-audit check-arm-inventory audit-trace-check
+audit-check: check-audit check-arm-inventory check-panics audit-trace-check
 
 audit-trace:
 	$(PY) tools/audit_trace.py --write
@@ -224,6 +226,9 @@ check-audit:
 
 check-arm-inventory:
 	$(PY) tools/check_arm_inventory.py
+
+check-panics:
+	$(PY) tools/check_panics.py
 
 # Needs a fresh devnet. Runs the fault-injection and factory-origin regressions; it is
 # not part of the offline `check` gate. Override the four AUDIT_* values for an isolated

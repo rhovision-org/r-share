@@ -23,13 +23,13 @@ def raw_book(market: Market, op_id: str, slot_ids: list[str]):
         key=market.guest)
 
 
-def fresh_token_call(listing_uri: str, arm: str, unit_slots: list[dict]):
+def fresh_token_call(listing_uri: str, arm: str, args: str):
     term = f"""
 new rl(`rho:registry:lookup`), lCh, wrong, ret,
     deployId(`rho:rchain:deployId`) in {{
   rl!(`{listing_uri}`, *lCh) |
   for (L <- lCh) {{
-    L!("{arm}", {json.dumps(unit_slots)}, *wrong, *ret) |
+    L!("{arm}", {args}, *wrong, *ret) |
     for (@r <- ret) {{ deployId!(r) }}
   }}
 }}
@@ -77,9 +77,13 @@ def token_gates() -> None:
     booked = market.book(market.op("book"))
     uri = booked[2]
     unit_slots = market.unit_slots()
-    confirm = fresh_token_call(market.listing_uri, "confirm", unit_slots)
+    confirm = fresh_token_call(
+        market.listing_uri, "confirm",
+        f'{json.dumps(booked[1])}, "{market.listing_uri}", '
+        f'{json.dumps(unit_slots)}')
     expect_refusal("wrong token confirm", confirm, "slot lost")
-    release = fresh_token_call(market.listing_uri, "release", unit_slots)
+    release = fresh_token_call(
+        market.listing_uri, "release", json.dumps(unit_slots))
     expect_refusal("wrong token release", release, "not holder")
     expect_ok("holder confirm", market.accept(uri, market.op("accept")))
     expect_ok("holder release", market.cancel(uri, market.op("cancel")))

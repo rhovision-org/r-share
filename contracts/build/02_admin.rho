@@ -237,7 +237,15 @@ contract adminsValid(@admins, @threshold, @i, @seen, ret) = {
         Root!("register", "component:admin-guard", uGuard, 1, "admin", *deployerId, *a1) |
         Root!("register", "component:admin", uAdmin, 1, "admin", *deployerId, *a2) |
         for (@r1 <- a1; @r2 <- a2) {
-          deployId!([uGuard, uAdmin])
+          match r1 {
+            (true, Nil) => {
+              match r2 {
+                (true, Nil) => { deployId!([uGuard, uAdmin]) }
+                _ => { 1/0 }
+              }
+            }
+            _ => { 1/0 }
+          }
         }
       }
     }

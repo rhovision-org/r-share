@@ -229,7 +229,12 @@ contract authIsOwner(dId, @ownerId, ret) = {
     rs!(bundle+{*CoverBook}, *c) |
     for (@uri <- c) {
       Root!("register", "component:cover-book", uri, 1, "cover", *deployerId, *a1) |
-      for (@r1 <- a1) { deployId!([uri]) }
+      for (@r1 <- a1) {
+        match r1 {
+          (true, Nil) => { deployId!([uri]) }
+          _ => { 1/0 }
+        }
+      }
     }
   }
 }

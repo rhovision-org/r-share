@@ -14,14 +14,28 @@ from unit_pause import admin_sigs
 
 
 def direct_acquire(market, key: str, until: int):
+    payments = actors.resolve("component:payments")
+    payer = actors.address(key)
     term = f"""
-new rl(`rho:registry:lookup`), lCh, ret, releaseToken,
-    deployId(`rho:rchain:deployId`) in {{
-  rl!(`{market.listing_uri}`, *lCh) |
-  for (L <- lCh) {{
-    L!("acquire", "audit-pause", {json.dumps(market.unit_slots())}, {until},
-       *releaseToken, *ret) |
-    for (@r <- ret) {{ deployId!(r) }}
+new rl(`rho:registry:lookup`), pCh, lCh, wCh, ret, releaseToken,
+    dId(`rho:rchain:deployerId`), deployId(`rho:rchain:deployId`) in {{
+  rl!(`{payments}`, *pCh) |
+  for (P <- pCh) {{
+    P!("withdrawPayment", *dId, "REV", 1, *wCh) |
+    for (w <- wCh) {{
+      match w {{
+        (true, payment) => {{
+          rl!(`{market.listing_uri}`, *lCh) |
+          for (L <- lCh) {{
+            L!("acquire", "audit-pause", "{payer}",
+               {json.dumps(market.unit_slots())}, {until},
+               *releaseToken, *payment, *ret) |
+            for (@r <- ret) {{ deployId!(r) }}
+          }}
+        }}
+        _ => {{ deployId!(w) }}
+      }}
+    }}
   }}
 }}
 """

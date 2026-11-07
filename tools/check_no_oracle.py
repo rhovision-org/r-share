@@ -21,6 +21,7 @@ ALLOWED = {
     "component:cover-terms", "component:cover-book", "component:cover-pool",
     "component:cover-policy-factory",
     "component:guest-ledger-cover", "component:booking-instance-factory",
+    "component:hold-deposit",
 }
 REGISTER = re.compile(r'Root!\("register",\s*"([^"]+)"')
 CONTRACT = re.compile(r"contract\s+([A-Za-z_][A-Za-z0-9_]*)")

@@ -1,7 +1,7 @@
 // BondFactory + one Bond per booking. The Bond owns the ERTP purse and the single payout.
 // Placeholders: __ROOT_URI__.
 new
-  BondFactory,
+  BondFactory, bondIndex,
   rl(`rho:registry:lookup`),
   rs(`rho:registry:insertArbitrary`),
   deployerId(`rho:rchain:deployerId`),
@@ -11,6 +11,17 @@ new
   resolveComponent
 in {
   // @@INLINE:lib/Resolve.rho@@
+  bondIndex!({}) |
+
+  contract BondFactory(@"issued", @bondUri, ret) = {
+    for (@idx <<- bondIndex) {
+      match idx.get(bondUri) {
+        Nil => { ret!((false, "bond")) }
+        _ => { ret!((true, Nil)) }
+      }
+    }
+  } |
+
   contract bondResolve(@key, ret) = {
     resolveComponent!(key, *ret)
   } |
@@ -140,8 +151,25 @@ in {
         for (@st <<- bondState) { ret2!((true, st)) }
       } |
 
+      contract Bond(@"verify", settleToken2, @expected2, ret2) = {
+        for (@st <<- bondState) {
+          if (st.get("paid") == true
+              || expected2 != st.get("expected")
+              || *settleToken2 != *settleToken) {
+            ret2!((false, "bond"))
+          } else {
+            ret2!((true, Nil))
+          }
+        }
+      } |
+
       rs!(bundle+{*Bond}, *uCh) |
-      for (@uri <- uCh) { ret!((true, uri)) }
+      for (@uri <- uCh) {
+        for (@idx <- bondIndex) {
+          bondIndex!(idx.set(uri, true)) |
+          ret!((true, uri))
+        }
+      }
     }
   } |
 
@@ -236,7 +264,12 @@ in {
     rs!(bundle+{*BondFactory}, *c) |
     for (@uri <- c) {
       Root!("register", "component:bond-factory", uri, 1, "bond", *deployerId, *ack) |
-      for (@r <- ack) { deployId!([uri]) }
+      for (@r <- ack) {
+        match r {
+          (true, Nil) => { deployId!([uri]) }
+          _ => { 1/0 }
+        }
+      }
     }
   }
 }

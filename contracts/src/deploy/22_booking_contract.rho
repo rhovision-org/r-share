@@ -1,7 +1,8 @@
-// BookingFactory: resolve the booking instance factory and spawn one instance.
+// BookingFactory: resolve the booking instance factory, spawn one instance, and keep a
+// bookingId -> instance URI index for the listing confirm gate.
 // Placeholders: __ROOT_URI__.
 new
-  BookingFactory,
+  BookingFactory, bookingIndex,
   rl(`rho:registry:lookup`),
   rs(`rho:registry:insertArbitrary`),
   deployerId(`rho:rchain:deployerId`),
@@ -11,6 +12,8 @@ new
 in {
   // @@INLINE:lib/Resolve.rho@@
 
+  bookingIndex!({}) |
+
   contract BookingFactory(@"create", dId, @data, releaseToken,
                            @bondUri, settleToken, ret) = {
     new fCh in {
@@ -18,10 +21,42 @@ in {
       for (@f <- fCh) {
         match f {
           (true, InstanceFactory) => {
-            @InstanceFactory!("spawn", *dId, data, *releaseToken,
-                              bondUri, *settleToken, *ret)
+            new bCh in {
+              @InstanceFactory!("spawn", *dId, data, *releaseToken,
+                                bondUri, *settleToken, *bCh) |
+              for (@b <- bCh) {
+                match b {
+                  (true, uri) => {
+                    for (@idx <- bookingIndex) {
+                      bookingIndex!(idx.set(data.get("bookingId"), uri)) |
+                      ret!((true, uri))
+                    }
+                  }
+                  _ => { ret!(b) }
+                }
+              }
+            }
           }
           _ => { ret!((false, "instance factory")) }
+        }
+      }
+    }
+  } |
+
+  contract BookingFactory(@"verify", @bookingId, @unitSlots,
+                          releaseToken, ret) = {
+    for (@idx <<- bookingIndex) {
+      match idx.get(bookingId) {
+        Nil => { ret!((false, "booking")) }
+        uri => {
+          new bCh, vCh in {
+            rl!(uri, *bCh) |
+            for (BookingContract <- bCh) {
+              BookingContract!("verifyHold", bookingId, unitSlots,
+                               *releaseToken, *vCh) |
+              for (@v <- vCh) { ret!(v) }
+            }
+          }
         }
       }
     }
@@ -33,7 +68,12 @@ in {
     for (@uri <- c) {
       Root!("register", "component:booking-factory", uri, 1,
             "booking", *deployerId, *ack) |
-      for (@_ <- ack) { deployId!([uri]) }
+      for (@r <- ack) {
+        match r {
+          (true, Nil) => { deployId!([uri]) }
+          _ => { 1/0 }
+        }
+      }
     }
   }
 }

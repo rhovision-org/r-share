@@ -1,0 +1,426 @@
+// HoldDeposit: custody for the per-acquire refundable hold deposit.
+// The deposit is keyed by bookingId; refunds are authorized by the listing probe
+// (release) or the booked-booking check (confirm). A release after the hold window
+// forfeits the deposit to the provider. Placeholders: __ROOT_URI__.
+new
+  HoldDeposit,
+  rl(`rho:registry:lookup`),
+  rs(`rho:registry:insertArbitrary`),
+  deployerId(`rho:rchain:deployerId`),
+  deployId(`rho:rchain:deployId`),
+  rootCh, c, ack,
+  paymentsCh, issuerCh, purseCh, clockCh,
+  holdEscrowState,
+  holdDepositTo, holdRefuse, holdHeld, holdHeldSlots, settleGo, settlePay,
+  resolveComponent
+in {
+contract resolveComponent(@key, ret) = {
+  new rCh, Root, kCh in {
+    rl!(`__ROOT_URI__`, *rCh) |
+    for (Root <- rCh) {
+      Root!("resolve", key, 1, *kCh) |
+      for (@r <- kCh) {
+        match r {
+          (true, uri, _) => {
+            new cCh in {
+              rl!(uri, *cCh) |
+              for (C <- cCh) { ret!((true, *C)) }
+            }
+          }
+          _ => { ret!((false, "unavailable", key)) }
+        }
+      }
+    }
+  }
+} |
+
+  resolveComponent!("component:payments", *paymentsCh) |
+  for (@p0 <- paymentsCh) {
+    match p0 {
+      (true, Payments) => {
+        @Payments!("issuer", "REV", *issuerCh) |
+        for (@i0 <- issuerCh) {
+          match i0 {
+            (true, brand, issuer) => {
+              @issuer!("makeEmptyPurse", *purseCh) |
+              for (@pu0 <- purseCh) {
+                match pu0 {
+                  (true, purse) => {
+                    resolveComponent!("component:clock", *clockCh) |
+                    for (@c0 <- clockCh) {
+                      match c0 {
+                        (true, Clock) => {
+                          holdEscrowState!({"assetId": "REV", "records": {}}) |
+
+                          contract holdDepositTo(@ownerId, payment, ret) = {
+                            new fCh, dCh in {
+                              @Payments!("depositFacet", ownerId, "REV", *fCh) |
+                              for (@f <- fCh) {
+                                match f {
+                                  (true, facet) => {
+                                    @facet!("deposit", payment, *dCh) |
+                                    for (@d <- dCh) {
+                                      match d {
+                                        (true, _) => { ret!((true, Nil)) }
+                                        _ => { 1/0 }
+                                      }
+                                    }
+                                  }
+                                  _ => { 1/0 }
+                                }
+                              }
+                            }
+                          } |
+
+                          contract holdRefuse(payment, @reason, ret) = {
+                            ret!((false, reason, payment))
+                          } |
+
+                          contract holdHeldSlots(@sm, @ids, @j, @bookingId, ret2) = {
+                            if (j >= ids.length()) {
+                              ret2!((true, false))
+                            } else {
+                              match sm.get(ids.nth(j)) {
+                                Nil => { ret2!((false, "slot")) }
+                                ["held", b, _] => {
+                                  if (b == bookingId) {
+                                    ret2!((true, true))
+                                  } else {
+                                    holdHeldSlots!(sm, ids, j + 1, bookingId, *ret2)
+                                  }
+                                }
+                                ["booked", b] => {
+                                  if (b == bookingId) {
+                                    ret2!((true, true))
+                                  } else {
+                                    holdHeldSlots!(sm, ids, j + 1, bookingId, *ret2)
+                                  }
+                                }
+                                _ => {
+                                  holdHeldSlots!(sm, ids, j + 1, bookingId, *ret2)
+                                }
+                              }
+                            }
+                          } |
+
+                          contract holdHeld(@probed, @unitSlots, @j, @bookingId, ret2) = {
+                            if (j >= unitSlots.length()) {
+                              ret2!((true, false))
+                            } else {
+                              match unitSlots.nth(j) {
+                                ur => {
+                                  match probed.get(ur.get("unitId")) {
+                                    Nil => { ret2!((false, "unit")) }
+                                    sm => {
+                                      new hCh in {
+                                        holdHeldSlots!(sm, ur.get("slots"), 0,
+                                                       bookingId, *hCh) |
+                                        for (@h <- hCh) {
+                                          match h {
+                                            (true, true) => {
+                                              ret2!((true, true))
+                                            }
+                                            (true, false) => {
+                                              holdHeld!(probed, unitSlots, j + 1,
+                                                        bookingId, *ret2)
+                                            }
+                                            _ => { ret2!(h) }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          } |
+
+                          contract settlePay(@s, @bookingId, @ownerId, @amount, ret2) = {
+                            new wCh, dCh in {
+                              @purse!("withdraw", (brand, amount), *wCh) |
+                              for (@w <- wCh) {
+                                match w {
+                                  (true, payment) => {
+                                    holdDepositTo!(ownerId, payment, *dCh) |
+                                    for (@_ <- dCh) {
+                                      holdEscrowState!(s.set(
+                                        "records",
+                                        s.get("records").delete(bookingId))) |
+                                      ret2!((true, Nil))
+                                    }
+                                  }
+                                  _ => { 1/0 }
+                                }
+                              }
+                            }
+                          } |
+
+                          contract settleGo(@s, @rec, @bookingId, @mode, ret2) = {
+                            new nCh in {
+                              @Clock!("now", *nCh) |
+                              for (@n <- nCh) {
+                                match n {
+                                  (true, now) => {
+                                    if (mode == "release"
+                                        && now >= rec.get("until")) {
+                                      settlePay!(s, bookingId,
+                                                 rec.get("providerId"),
+                                                 rec.get("amount"), *ret2)
+                                    } else {
+                                      settlePay!(s, bookingId,
+                                                 rec.get("payerId"),
+                                                 rec.get("amount"), *ret2)
+                                    }
+                                  }
+                                  _ => {
+                                    holdEscrowState!(s) |
+                                    ret2!((false, "clock"))
+                                  }
+                                }
+                              }
+                            }
+                          } |
+
+                          contract HoldDeposit(@"deposit", @providerUri,
+                                               @listingId, @listingKey,
+                                               @bookingId, @payerId,
+                                               @providerId, @until,
+                                               @unitSlots, @expected,
+                                               payment, ret) = {
+                            if (payment == Nil) {
+                              ret!((false, "hold deposit"))
+                            } else {
+                              new aCh in {
+                                @issuer!("getAmountOf", payment, *aCh) |
+                                for (@a <- aCh) {
+                                  match a {
+                                    (true, amount) => {
+                                      if (amount != expected) {
+                                        holdRefuse!(payment, "amount", *ret)
+                                      } else {
+                                        for (@s <- holdEscrowState) {
+                                          match s.get("records").get(bookingId) {
+                                            Nil => {
+                                              new dCh in {
+                                                @purse!("deposit", payment, *dCh) |
+                                                for (@d <- dCh) {
+                                                  match d {
+                                                    (true, _) => {
+                                                      holdEscrowState!(s.set(
+                                                        "records",
+                                                        s.get("records").set(
+                                                          bookingId,
+                                                          {"providerUri": providerUri,
+                                                           "listingId": listingId,
+                                                           "listingKey": listingKey,
+                                                           "payerId": payerId,
+                                                           "providerId": providerId,
+                                                           "amount": amount,
+                                                           "unitSlots": unitSlots,
+                                                           "until": until}))) |
+                                                      ret!((true, Nil))
+                                                    }
+                                                    _ => { 1/0 }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                            _ => {
+                                              holdEscrowState!(s) |
+                                              holdRefuse!(payment,
+                                                          "duplicate", *ret)
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                    _ => { holdRefuse!(payment, "amount", *ret) }
+                                  }
+                                }
+                              }
+                            }
+                          } |
+
+                          contract HoldDeposit(@"authorize", @listingKey,
+                                               @bookingId, releaseToken, ret) = {
+                            for (@s <<- holdEscrowState) {
+                              match s.get("records").get(bookingId) {
+                                Nil => { ret!((false, "deposit")) }
+                                rec => {
+                                  if (rec.get("listingKey") != listingKey) {
+                                    ret!((false, "listing"))
+                                  } else {
+                                    new fCh, vCh in {
+                                      resolveComponent!("component:booking-factory",
+                                                        *fCh) |
+                                      for (@f <- fCh) {
+                                        match f {
+                                          (true, BookingFactory) => {
+                                            @BookingFactory!("verify", bookingId,
+                                              rec.get("unitSlots"), *releaseToken,
+                                              *vCh) |
+                                            for (@v <- vCh) {
+                                              match v {
+                                                (true, bookingKey) => {
+                                                  if (bookingKey
+                                                      == rec.get("listingKey")) {
+                                                    ret!((true, Nil))
+                                                  } else {
+                                                    ret!((false, "listing"))
+                                                  }
+                                                }
+                                                _ => { ret!(v) }
+                                              }
+                                            }
+                                          }
+                                          _ => { ret!(f) }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          } |
+
+                          contract HoldDeposit(@"settle", @bookingId, @mode,
+                                               releaseToken, ret) = {
+                            for (@s <- holdEscrowState) {
+                              match s.get("records").get(bookingId) {
+                                Nil => {
+                                  holdEscrowState!(s) |
+                                  ret!((true, Nil))
+                                }
+                                rec => {
+                                  if (mode == "release") {
+                                    new prCh, liCh, lCh, pCh in {
+                                      rl!(rec.get("providerUri"), *prCh) |
+                                      for (Provider <- prCh) {
+                                        Provider!("listingUri",
+                                                  rec.get("listingId"), *liCh) |
+                                        for (@li <- liCh) {
+                                          match li {
+                                            (true, listingUri) => {
+                                      rl!(listingUri, *lCh) |
+                                      for (Listing <- lCh) {
+                                        Listing!("probe", rec.get("unitSlots"),
+                                                 *pCh) |
+                                        for (@pr <- pCh) {
+                                          match pr {
+                                            (true, probed) => {
+                                              new hCh in {
+                                                holdHeld!(probed,
+                                                  rec.get("unitSlots"), 0,
+                                                  bookingId, *hCh) |
+                                                for (@h <- hCh) {
+                                                  match h {
+                                                    (true, true) => {
+                                                      holdEscrowState!(s) |
+                                                      ret!((false, "held"))
+                                                    }
+                                                    (true, false) => {
+                                                      settleGo!(s, rec, bookingId,
+                                                                mode, *ret)
+                                                    }
+                                                    _ => {
+                                                      holdEscrowState!(s) |
+                                                      ret!(h)
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                            _ => {
+                                              holdEscrowState!(s) |
+                                              ret!((false, "probe"))
+                                            }
+                                          }
+                                        }
+                                      }
+                                            }
+                                            _ => {
+                                              holdEscrowState!(s) |
+                                              ret!((false, "listing"))
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  } else {
+                                    if (mode == "confirm") {
+                                      new fCh, vCh in {
+                                        resolveComponent!(
+                                          "component:booking-factory", *fCh) |
+                                        for (@f <- fCh) {
+                                          match f {
+                                            (true, BookingFactory) => {
+                                              @BookingFactory!("verify",
+                                                bookingId, rec.get("unitSlots"),
+                                                *releaseToken, *vCh) |
+                                              for (@v <- vCh) {
+                                                match v {
+                                                  (true, bookingKey) => {
+                                                    if (bookingKey
+                                                        == rec.get("listingKey")) {
+                                                      settleGo!(s, rec, bookingId,
+                                                                mode, *ret)
+                                                    } else {
+                                                      holdEscrowState!(s) |
+                                                      ret!((false, "listing"))
+                                                    }
+                                                  }
+                                                  _ => {
+                                                    holdEscrowState!(s) |
+                                                    ret!(v)
+                                                  }
+                                                }
+                                              }
+                                            }
+                                            _ => {
+                                              holdEscrowState!(s) |
+                                              ret!(f)
+                                            }
+                                          }
+                                        }
+                                      }
+                                    } else {
+                                      holdEscrowState!(s) |
+                                      ret!((false, "mode"))
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          } |
+
+                          rl!(`__ROOT_URI__`, *rootCh) |
+                          for (Root <- rootCh) {
+                            rs!(bundle+{*HoldDeposit}, *c) |
+                            for (@uri <- c) {
+                              Root!("register", "component:hold-deposit", uri, 1,
+                                    "hold", *deployerId, *ack) |
+                              for (@r <- ack) {
+                                match r {
+                                  (true, Nil) => { deployId!([uri]) }
+                                  _ => { 1/0 }
+                                }
+                              }
+                            }
+                          }
+                        }
+                        _ => { deployId!([["hold-deposit", "init", "clock", c0]]) }
+                      }
+                    }
+                  }
+                  _ => { deployId!([["hold-deposit", "init", "purse", pu0]]) }
+                }
+              }
+            }
+            _ => { deployId!([["hold-deposit", "init", "issuer", i0]]) }
+          }
+        }
+      }
+      _ => { deployId!([["hold-deposit", "init", "payments", p0]]) }
+    }
+  }
+}

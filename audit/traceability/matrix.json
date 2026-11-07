@@ -1,13 +1,13 @@
 {
   "schema": "rshare.traceability/v1",
   "summary": {
-    "arms": 163,
+    "arms": 174,
     "arms_with_flow_rule": 31,
     "arms_with_hazard": 42,
     "hazards": 63,
     "findings": 21,
     "improvements": 23,
-    "tests": 21
+    "tests": 22
   },
   "arms": [
     {
@@ -670,6 +670,7 @@
       "tests": [
         "T-CELL",
         "T-FORMAL",
+        "T-HOLD-DEPOSIT",
         "T-PAUSE"
       ]
     },
@@ -2387,6 +2388,149 @@
       "component": "CoverPool",
       "arm": "resume",
       "source": "contracts/src/deploy/32_cover_pool.rho:938",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Bond",
+      "arm": "verify",
+      "source": "contracts/src/deploy/15_bond.rho:143",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingFactory",
+      "arm": "verify",
+      "source": "contracts/src/deploy/22_booking_contract.rho:46",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingContract",
+      "arm": "verifyHold",
+      "source": "contracts/src/deploy/34_booking_instance.rho:500",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "HoldDeposit",
+      "arm": "deposit",
+      "source": "contracts/src/deploy/41_hold_deposit.rho:166",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "HoldDeposit",
+      "arm": "authorize",
+      "source": "contracts/src/deploy/41_hold_deposit.rho:250",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "HoldDeposit",
+      "arm": "settle",
+      "source": "contracts/src/deploy/41_hold_deposit.rho:287",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Payments",
+      "arm": "withdrawPayment",
+      "source": "contracts/src/deploy/40_payments.rho:130",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "Payments",
+      "arm": "refundPayment",
+      "source": "contracts/src/deploy/40_payments.rho:173",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BookingInstanceFactory",
+      "arm": "spawnChecked",
+      "source": "contracts/src/deploy/34_booking_instance.rho:58",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "ProviderContract",
+      "arm": "listingUri",
+      "source": "contracts/src/deploy/10_provider.rho:128",
+      "visibility": "public",
+      "flow_rule": null,
+      "flow_status": "unmapped",
+      "lean_target": null,
+      "hazards": [],
+      "findings": [],
+      "improvements": [],
+      "tests": []
+    },
+    {
+      "component": "BondFactory",
+      "arm": "issued",
+      "source": "contracts/src/deploy/15_bond.rho:16",
       "visibility": "public",
       "flow_rule": null,
       "flow_status": "unmapped",

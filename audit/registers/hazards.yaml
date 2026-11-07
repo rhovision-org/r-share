@@ -1488,9 +1488,10 @@ hazards:
   arm: ListingContract@"acquire"
   guide_word: unauthorized
   parameter: free slot hold
-  deviation: a caller without escrow or a booking intent acquires all slots and holds them for the full window
+  deviation: a caller without escrow or a booking intent acquires all slots and holds them, including by confirming into a non-expiring booked slot
   causes:
   - acquire has no payment or ledger reservation proof
+  - confirm is permissionless with the acquirer token and booked slots do not expire
   - maxUnits and holdBlocks bound one hold but not repetition
   consequences:
     on_chain: inventory denial for legitimate guests
@@ -1498,15 +1499,18 @@ hazards:
     safety: none
   severity: S2
   likelihood: L2
-  risk: high
-  controls: pause, maxUnits, holdBlocks and monitoring; a ledger-issued hold token is owed
+  risk: medium
+  controls: acquire takes a refundable pricePerSlot deposit; refund is probe-gated and forfeits after the hold window; confirm requires a deposit record and a verified funded booking; pause, maxUnits and monitoring remain
   findings: []
-  tests: []
-  lean: null
-  disposition: open
+  tests:
+  - T-HOLD-DEPOSIT
+  lean: RShare.Hold.confirm_requires_booking
+  disposition: mitigate
   owner: slots
   evidence:
   - contracts/src/deploy/14_listing_contract.rho
+  - contracts/src/deploy/41_hold_deposit.rho
+  - contracts/src/deploy/22_booking_contract.rho
 - id: HZ-062
   node: N19
   arm: CoverTerms@"validate"
